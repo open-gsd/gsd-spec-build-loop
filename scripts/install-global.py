@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 SKILLS = ("gsd-loop-spec", "gsd-loop-build", "gsd-loop-review", "gsd-loop-schedule")
-SUPPORTED_AGENTS = frozenset(("codex", "claude", "cursor", "kimi"))
+SUPPORTED_AGENTS = frozenset(("codex", "claude", "cursor", "gemini", "kimi"))
 MARKER = ".gsd-loop-install.json"
 MARKER_CONTENT = {"installer": "gsd-loop", "format": 1}
 ADAPTER_MARKER_SUFFIX = ".gsd-loop-adapter.json"
@@ -277,7 +277,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--agents",
         type=parse_agents,
         default=SUPPORTED_AGENTS,
-        help="comma-separated agents: codex,claude,cursor,kimi (default: all)",
+        help="comma-separated agents: codex,claude,cursor,gemini,kimi (default: all)",
     )
     parser.add_argument(
         "--adapter-mode",

@@ -1,0 +1,46 @@
+{
+  "name": "@open-gsd/gsd-loop",
+  "version": "0.1.0",
+  "description": "Install the gsd-loop Agent Skills for Codex, Claude Code, Cursor, Gemini CLI, and Kimi Code.",
+  "type": "module",
+  "bin": {
+    "gsd-loop": "bin/gsd-loop.mjs"
+  },
+  "files": [
+    ".agents/skills/",
+    "bin/",
+    "lib/",
+    "loop/",
+    "scripts/doctor.sh",
+    "scripts/scheduler-policy.sh",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node tests/npm_package_test.mjs",
+    "prepublishOnly": "tests/run.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/open-gsd/gsd-spec-build-loop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/open-gsd/gsd-spec-build-loop/issues"
+  },
+  "homepage": "https://github.com/open-gsd/gsd-spec-build-loop#readme",
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "kimi"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

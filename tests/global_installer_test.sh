@@ -37,6 +37,11 @@ shared_root="$TEST_ROOT/shared-only"
 test -d "$shared_root/.agents/skills/gsd-loop-build"
 test ! -e "$shared_root/.claude"
 
+gemini_root="$TEST_ROOT/gemini"
+"$INSTALLER" --home "$gemini_root" --agents gemini
+test -d "$gemini_root/.agents/skills/gsd-loop-build"
+test ! -e "$gemini_root/.claude"
+
 copy_root="$TEST_ROOT/copy"
 "$INSTALLER" --home "$copy_root" --adapter-mode copy
 test -d "$copy_root/.claude/skills/gsd-loop-build"

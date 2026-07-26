@@ -64,42 +64,26 @@ $gsd-loop-review
 
 ### Install globally
 
-Install once to make the skills available across repositories:
+The global installer supports Codex, Claude Code, Cursor, Gemini CLI, and Kimi
+Code. It installs skills for the agent application; it does not install or
+configure a model. No repository clone or global package install is required:
 
 ```bash
-scripts/install-global.py
+npx @open-gsd/gsd-loop@latest install --dry-run
+npx @open-gsd/gsd-loop@latest install
 ```
 
-The installer puts one self-contained copy in the shared Agent Skills location
-and adds only the compatibility adapter that needs a separate path:
+By default, one self-contained copy goes in `~/.agents/skills`, with Claude
+Code adapters in `~/.claude/skills`. Start a new agent session after installing.
 
-| Agent | Global discovery path | Install shape |
-|---|---|---|
-| Codex | `~/.agents/skills` | canonical copy |
-| Cursor | `~/.agents/skills` | canonical copy |
-| Kimi Code | `~/.agents/skills` | canonical copy |
-| Claude Code | `~/.claude/skills` | symlink to canonical, or copy fallback |
+The Node installer runs on macOS, Linux, and native Windows. The complete
+gsd-loop workflow currently requires a POSIX shell, so use WSL2 on Windows when
+running the installed skills. Native PowerShell is not yet an end-to-end
+supported runtime.
 
-Other clients that discover the shared Agent Skills directory can use the same
-canonical copy. Each installed skill bundles its playbook or helper scripts, so
-the source checkout does not need to be the active repository.
-
-Agent applications own skill discovery, so the selected model does not need a
-separate installation. A model used through Codex sees Codex's skills; a model
-used through Cursor sees Cursor's skills, and so on.
-
-Preview or limit an installation with:
-
-```bash
-scripts/install-global.py --dry-run
-scripts/install-global.py --agents codex,cursor,kimi
-scripts/install-global.py --adapter-mode copy
-```
-
-The installer updates only paths marked as its own. If a skill with the
-same name already exists and is not installer-owned, it stops without changing
-anything. Start a new agent session after installation so skill discovery runs
-again.
+See the [installation guide](docs/install.md) for prerequisites, the agent and
+OS support matrix, selective installs, updates, verification, conflicts, and
+troubleshooting.
 
 To keep a lane running on a host with native recurring tasks, ask for
 `$gsd-loop-schedule`. In the Codex app, it creates or updates one named

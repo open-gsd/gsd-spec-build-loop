@@ -38,3 +38,16 @@ jobs:
             grep -q "loop/$s.md" ".claude/skills/gsd-loop-$s/SKILL.md"
             grep -q "loop/$s.md" ".agents/skills/gsd-loop-$s/SKILL.md"
           done
+
+  npm-package:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: packed npm installation
+        run: node tests/npm_package_test.mjs
