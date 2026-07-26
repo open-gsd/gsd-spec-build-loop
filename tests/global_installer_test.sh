@@ -179,4 +179,60 @@ with mock.patch.object(Path, "rename", fail_stage_rename):
 for skill in installer.SKILLS:
     adapter = claude_root / skill
     assert (adapter / "preserve").read_text() == "old adapter\n"
+
+with mock.patch.object(
+    installer.tempfile,
+    "NamedTemporaryFile",
+    side_effect=OSError("marker creation failed"),
+):
+    try:
+        installer.install_claude_adapters(canonical_root, claude_root, "symlink")
+    except OSError:
+        pass
+    else:
+        raise AssertionError("marker creation failure must be reported")
+
+for skill in installer.SKILLS:
+    adapter = claude_root / skill
+    assert not adapter.is_symlink()
+    assert (adapter / "preserve").read_text() == "old adapter\n"
+    assert not installer.path_exists(installer.adapter_marker(adapter))
+
+removal_root = Path(os.environ["TEST_ROOT"]) / "marker-removal"
+removal_canonical_root = removal_root / ".agents" / "skills"
+removal_claude_root = removal_root / ".claude" / "skills"
+for skill in installer.SKILLS:
+    canonical = removal_canonical_root / skill
+    canonical.mkdir(parents=True)
+    (canonical / "SKILL.md").write_text("canonical\n")
+
+installer.install_claude_adapters(removal_canonical_root, removal_claude_root, "symlink")
+failed_marker = installer.adapter_marker(removal_claude_root / installer.SKILLS[0])
+original_remove_path = installer.remove_path
+
+def fail_marker_remove(path):
+    if path == failed_marker:
+        raise OSError("marker removal failed")
+    return original_remove_path(path)
+
+def fail_marker_rename(path, target):
+    if path == failed_marker:
+        raise OSError("marker removal failed")
+    return original_rename(path, target)
+
+with (
+    mock.patch.object(installer, "remove_path", fail_marker_remove),
+    mock.patch.object(Path, "rename", fail_marker_rename),
+):
+    try:
+        installer.install_claude_adapters(removal_canonical_root, removal_claude_root, "copy")
+    except OSError:
+        pass
+    else:
+        raise AssertionError("marker removal failure must be reported")
+
+for skill in installer.SKILLS:
+    adapter = removal_claude_root / skill
+    assert adapter.is_symlink()
+    assert installer.adapter_marker(adapter).is_file()
 PY

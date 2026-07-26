@@ -131,14 +131,17 @@ def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
         raise
 
 
+def move_to_backup(path: Path) -> Path | None:
+    if not path_exists(path):
+        return None
+    backup = Path(tempfile.mkdtemp(prefix=f".{path.name}.previous-", dir=path.parent))
+    backup.rmdir()
+    path.rename(backup)
+    return backup
+
+
 def replace_path(stage: Path, destination: Path) -> None:
-    backup: Path | None = None
-    if path_exists(destination):
-        backup = Path(
-            tempfile.mkdtemp(prefix=f".{destination.name}.previous-", dir=destination.parent)
-        )
-        backup.rmdir()
-        destination.rename(backup)
+    backup = move_to_backup(destination)
     try:
         stage.rename(destination)
     except Exception:
@@ -181,23 +184,57 @@ def stage_adapter(canonical: Path, destination: Path, mode: str) -> Path:
         raise
 
 
-def write_adapter_marker(destination: Path) -> None:
+def stage_adapter_marker(destination: Path) -> Path:
     marker = adapter_marker(destination)
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        prefix=f".{marker.name}.",
-        dir=marker.parent,
-        delete=False,
-    ) as temporary:
-        json.dump(ADAPTER_MARKER_CONTENT, temporary, sort_keys=True)
-        temporary.write("\n")
-        stage = Path(temporary.name)
+    stage: Path | None = None
 
     try:
-        replace_path(stage, marker)
-    finally:
-        if path_exists(stage):
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            prefix=f".{marker.name}.",
+            dir=marker.parent,
+            delete=False,
+        ) as temporary:
+            stage = Path(temporary.name)
+            json.dump(ADAPTER_MARKER_CONTENT, temporary, sort_keys=True)
+            temporary.write("\n")
+        return stage
+    except Exception:
+        if stage is not None and path_exists(stage):
             remove_path(stage)
+        raise
+
+
+def replace_adapter(stage: Path, destination: Path) -> None:
+    marker = adapter_marker(destination)
+    marker_stage = stage_adapter_marker(destination) if stage.is_symlink() else None
+    destination_backup: Path | None = None
+    marker_backup: Path | None = None
+    destination_installed = False
+
+    try:
+        destination_backup = move_to_backup(destination)
+        marker_backup = move_to_backup(marker)
+        stage.rename(destination)
+        destination_installed = True
+        if marker_stage is not None:
+            marker_stage.rename(marker)
+    except Exception:
+        if destination_installed:
+            remove_path(destination)
+        if marker_backup is not None:
+            marker_backup.rename(marker)
+        if destination_backup is not None:
+            destination_backup.rename(destination)
+        raise
+    else:
+        if marker_backup is not None:
+            remove_path(marker_backup)
+        if destination_backup is not None:
+            remove_path(destination_backup)
+    finally:
+        if marker_stage is not None and path_exists(marker_stage):
+            remove_path(marker_stage)
 
 
 def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) -> None:
@@ -213,15 +250,10 @@ def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) 
 
         stage = stage_adapter(canonical, destination, mode)
         try:
-            replace_path(stage, destination)
+            replace_adapter(stage, destination)
         finally:
             if path_exists(stage):
                 remove_path(stage)
-        marker = adapter_marker(destination)
-        if destination.is_symlink():
-            write_adapter_marker(destination)
-        elif path_exists(marker):
-            remove_path(marker)
 
 
 def build_parser() -> argparse.ArgumentParser:
