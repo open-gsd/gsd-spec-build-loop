@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -16,13 +17,6 @@ import { spawnSync } from "node:child_process";
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-npm-"));
 
-function npmExecutable(platform = process.platform) {
-  return platform === "win32" ? "npm.cmd" : "npm";
-}
-
-assert.equal(npmExecutable("win32"), "npm.cmd");
-assert.equal(npmExecutable("darwin"), "npm");
-
 function command(program, args, options = {}) {
   const { allowFailure = false, ...spawnOptions } = options;
   const result = spawnSync(program, args, {
@@ -36,10 +30,41 @@ function command(program, args, options = {}) {
   return result;
 }
 
+function npmCommand(args, options = {}) {
+  const { platform = process.platform, ...commandOptions } = options;
+  if (platform !== "win32") {
+    return command("npm", args, commandOptions);
+  }
+
+  const commandInterpreter = commandOptions.env?.ComSpec || process.env.ComSpec || "cmd.exe";
+  return command(
+    commandInterpreter,
+    ["/d", "/s", "/c", "npm.cmd", ...args],
+    commandOptions,
+  );
+}
+
 try {
-  const npmProgram = npmExecutable();
+  if (process.platform !== "win32") {
+    const commandInterpreter = join(testRoot, "cmd.exe");
+    writeFileSync(commandInterpreter, "#!/bin/sh\nprintf '%s\\n' \"$@\"\n");
+    chmodSync(commandInterpreter, 0o755);
+    const probe = npmCommand(["probe", "argument with spaces"], {
+      platform: "win32",
+      env: { ...process.env, ComSpec: commandInterpreter, PATH: testRoot },
+    });
+    assert.deepEqual(probe.stdout.trimEnd().split("\n"), [
+      "/d",
+      "/s",
+      "/c",
+      "npm.cmd",
+      "probe",
+      "argument with spaces",
+    ]);
+  }
+
   const npmEnvironment = { ...process.env, npm_config_dry_run: "false" };
-  const packResult = command(npmProgram, ["pack", "--json", "--pack-destination", testRoot], {
+  const packResult = npmCommand(["pack", "--json", "--pack-destination", testRoot], {
     env: npmEnvironment,
   });
   const [packMetadata] = JSON.parse(packResult.stdout);
@@ -47,8 +72,7 @@ try {
   const tarball = join(testRoot, filename);
   const consumer = join(testRoot, "consumer");
   mkdirSync(consumer);
-  command(
-    npmProgram,
+  npmCommand(
     ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--prefix", consumer, tarball],
     { env: npmEnvironment },
   );
