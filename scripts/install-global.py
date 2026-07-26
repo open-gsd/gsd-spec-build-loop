@@ -140,6 +140,13 @@ def move_to_backup(path: Path) -> Path | None:
     return backup
 
 
+def cleanup_backup(path: Path) -> None:
+    try:
+        remove_path(path)
+    except OSError as error:
+        print(f"warning: could not remove backup {path}: {error}", file=sys.stderr)
+
+
 def replace_path(stage: Path, destination: Path) -> None:
     backup = move_to_backup(destination)
     try:
@@ -149,7 +156,7 @@ def replace_path(stage: Path, destination: Path) -> None:
             backup.rename(destination)
         raise
     if backup is not None:
-        remove_path(backup)
+        cleanup_backup(backup)
 
 
 def install_canonical(source_root: Path, canonical_root: Path) -> None:
@@ -229,9 +236,9 @@ def replace_adapter(stage: Path, destination: Path) -> None:
         raise
     else:
         if marker_backup is not None:
-            remove_path(marker_backup)
+            cleanup_backup(marker_backup)
         if destination_backup is not None:
-            remove_path(destination_backup)
+            cleanup_backup(destination_backup)
     finally:
         if marker_stage is not None and path_exists(marker_stage):
             remove_path(marker_stage)

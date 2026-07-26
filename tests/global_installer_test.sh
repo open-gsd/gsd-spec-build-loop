@@ -101,7 +101,9 @@ test -L "$user_symlink"
 test ! -e "$user_symlink_root/.claude/skills/.gsd-loop-build.gsd-loop-adapter.json"
 
 INSTALLER="$INSTALLER" TEST_ROOT="$TEST_ROOT" python3 - <<'PY'
+import contextlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -235,4 +237,35 @@ for skill in installer.SKILLS:
     adapter = removal_claude_root / skill
     assert adapter.is_symlink()
     assert installer.adapter_marker(adapter).is_file()
+
+cleanup_root = Path(os.environ["TEST_ROOT"]) / "backup-cleanup"
+cleanup_canonical_root = cleanup_root / ".agents" / "skills"
+cleanup_claude_root = cleanup_root / ".claude" / "skills"
+for skill in installer.SKILLS:
+    canonical = cleanup_canonical_root / skill
+    canonical.mkdir(parents=True)
+    (canonical / "SKILL.md").write_text("canonical\n")
+
+installer.install_claude_adapters(cleanup_canonical_root, cleanup_claude_root, "symlink")
+cleanup_marker = installer.adapter_marker(cleanup_claude_root / installer.SKILLS[0])
+cleanup_backup_prefix = f".{cleanup_marker.name}.previous-"
+
+def fail_marker_backup_cleanup(path):
+    if path.name.startswith(cleanup_backup_prefix):
+        raise OSError("backup cleanup failed")
+    return original_remove_path(path)
+
+warnings = io.StringIO()
+with (
+    mock.patch.object(installer, "remove_path", fail_marker_backup_cleanup),
+    contextlib.redirect_stderr(warnings),
+):
+    installer.install_claude_adapters(cleanup_canonical_root, cleanup_claude_root, "copy")
+
+assert "warning: could not remove backup" in warnings.getvalue()
+for skill in installer.SKILLS:
+    adapter = cleanup_claude_root / skill
+    assert not adapter.is_symlink()
+    assert adapter.is_dir()
+    assert not installer.path_exists(installer.adapter_marker(adapter))
 PY
