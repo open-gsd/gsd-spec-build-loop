@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,6 +63,15 @@ try {
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
+
+  const damagedSkill = join(home, ".agents", "skills", "gsd-loop-build");
+  const danglingAdapter = join(home, ".claude", "skills", "gsd-loop-build");
+  rmSync(damagedSkill, { recursive: true });
+  assert.equal(existsSync(danglingAdapter), false);
+  assert.equal(lstatSync(danglingAdapter).isSymbolicLink(), true);
+  run(["install", "--home", home]);
+  assert.ok(existsSync(join(damagedSkill, "playbook.md")));
+  assert.equal(lstatSync(danglingAdapter).isSymbolicLink(), true);
 
   const dryHome = join(testRoot, "dry-home");
   run(["install", "--home", dryHome, "--dry-run"]);
