@@ -77,6 +77,22 @@ npx @opengsd/gsd-loop@latest init --yes \
   --runner codex
 ```
 
+In native Windows PowerShell, use backticks for line continuation:
+
+```powershell
+npx @opengsd/gsd-loop@latest init --yes `
+  --create-repo `
+  --repo OWNER/NAME `
+  --visibility private `
+  --runner codex
+```
+
+The equivalent Command Prompt command is:
+
+```bat
+npx @opengsd/gsd-loop@latest init --yes --create-repo --repo OWNER/NAME --visibility private --runner codex
+```
+
 `--yes` never implies `--create-repo`. Automatic creation is limited to an
 empty, non-Git directory.
 
@@ -160,6 +176,15 @@ npx @opengsd/gsd-loop@latest install --adapter-mode copy
 Reinstallation updates only paths marked as installer-owned. A conflicting
 unowned skill path stops the entire preflight before anything is replaced.
 Use `--home PATH` only for an alternate user profile or isolated test root.
+
+On native Windows, the default shared skill directory is
+`%USERPROFILE%\.agents\skills`, and Claude adapters are installed under
+`%USERPROFILE%\.claude\skills`. PowerShell users can preview an alternate
+profile without WSL:
+
+```powershell
+npx @opengsd/gsd-loop@latest install --dry-run --home "$env:USERPROFILE\gsd-loop-profile"
+```
 
 The Python source-checkout installer remains a skill-only fallback when Node
 is unavailable:

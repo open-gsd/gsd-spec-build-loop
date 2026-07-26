@@ -76,10 +76,11 @@ gh pr view NUMBER --json headRefOid,comments \
   happened, trade `gsd:rework` for `gsd:escalated`, stop.
 - Otherwise: address only the verdict's "Blocking" items, run the checks
   that cover them. Before pushing, inspect the complete PR diff against the
-  default-branch baseline. If it changes a dependency manifest or lockfile,
-  repeat the baseline-versus-branch dependency audit policy under "Prove it";
-  repair commits do not inherit stale audit evidence. Push only after that
-  gate passes, then remove `gsd:rework`, comment a summary. Stop.
+  default-branch baseline. If it changes a dependency manifest or lockfile and
+  the issue contract or repository guidance requires a dependency audit,
+  repeat the baseline-versus-branch audit policy under "Prove it"; repair
+  commits do not inherit stale audit evidence. Push only after required gates
+  pass, then remove `gsd:rework`, comment a summary. Stop.
 
 If a blocking item can't be fixed without crossing an `X-N` exclusion or
 making a product decision, don't. Comment the exact collision, ending with
@@ -149,8 +150,9 @@ Everything attributable to your diff must pass. When a broad suite fails for
 pre-existing unrelated reasons, run the narrow equivalent, keep the output,
 and disclose both in the PR.
 
-If the diff changes a dependency manifest or lockfile, audit dependencies in
-both the default-branch baseline and the proposed branch using the project's
+If the diff changes a dependency manifest or lockfile and the issue contract
+or repository guidance requires a dependency audit, audit dependencies in both
+the default-branch baseline and the proposed branch using the project's
 existing security command or the package manager's machine-readable audit.
 Compare advisories by identifier and affected package:
 
@@ -180,8 +182,9 @@ body containing:
 - A compact untouched-confirmation for every `X-N`, then the line
   `Side effects beyond the contract: none`
 - Which automated checks ran, with results
-- `Dependency audit: baseline compared — <result>` when dependency files
-  changed, or `Dependency audit: not applicable` otherwise
+- `Dependency audit: baseline compared — <result>` when the contract or
+  repository policy requires one, or `Dependency audit: not applicable`
+  otherwise
 - Whether the issue's manual walkthrough passed; reference it instead of
   copying every step into the PR
 - A justified risk call: Low / Medium / High

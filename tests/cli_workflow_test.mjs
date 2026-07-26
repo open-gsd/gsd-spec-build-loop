@@ -213,6 +213,19 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   const home = join(testRoot, "home");
   initializeRepository(repository);
 
+  writeFileSync(ghLog, "");
+  const mismatchedRepository = runCli([
+    "init",
+    "--dry-run",
+    "--yes",
+    "--runner", "codex",
+    "--repo", "octocat/other",
+    "--home", join(testRoot, "mismatched-home"),
+  ], { cwd: repository });
+  assert.equal(mismatchedRepository.status, 2);
+  assert.match(mismatchedRepository.stderr, /does not match the current checkout octocat\/project/);
+  assert.equal(readLog().some((args) => ["label", "api"].includes(args[0])), false);
+
   const dryRun = runCli([
     "init",
     "--dry-run",

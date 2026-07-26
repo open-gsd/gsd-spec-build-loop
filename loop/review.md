@@ -36,8 +36,13 @@ gh pr view NUMBER --json headRefOid,comments \
 
 Cheap gate before the expensive read: a PR whose required checks are still
 running, or whose mergeability reads `UNKNOWN`, isn't auditable yet — count
-it as idle without opening the diff. Five straight passes pending on one
-SHA → apply `gsd:escalated` with a "CI never finished" note.
+it as idle without opening the diff. Before reporting the wait, resolve Git's
+common directory with `git rev-parse --git-common-dir` and inspect
+`gsd-loop/review.jsonl` beneath it. Use `pending-ci-NUMBER-HEAD_SHA` as the
+result reason. If the last two log entries are idle passes with that exact
+reason, this is the third straight pending pass: apply `gsd:escalated` with a
+"CI never finished" note and report the pass as work. A missing or malformed
+log is no evidence of prior attempts, so do not escalate from it.
 
 Nothing auditable at all = an idle pass: say so, steer the loop runner to
 its longest interval, and after three consecutive idle passes recommend
@@ -73,14 +78,15 @@ List the changed paths and read the PR body before accepting its test evidence:
 gh pr view NUMBER --json files,body --jq '{files: [.files[].path], body: .body}'
 ```
 
-If a dependency manifest or lockfile changed, require branch-head evidence
-that the default-branch baseline and proposed branch were audited with the
-same machine-readable command and compared by advisory identifier and affected
+If a dependency manifest or lockfile changed and the issue contract or
+repository guidance requires a dependency audit, require branch-head evidence
+that the default-branch baseline and proposed branch were audited with the same
+machine-readable command and compared by advisory identifier and affected
 package. The PR body must contain `Dependency audit: baseline compared` with
-the commands and result. Missing, stale, or incomparable evidence is `[SEC]`
-and blocks approval. A new high or critical advisory attributable to the diff
-is also `[SEC]`; route it to `gsd:escalated` when the issue contract does not
-permit a compatible fix. For a PR without dependency changes, accept
+the commands and result. Missing, stale, or incomparable required evidence is
+`[SEC]` and blocks approval. A new high or critical advisory attributable to
+the diff is also `[SEC]`; route it to `gsd:escalated` when the issue contract
+does not permit a compatible fix. Otherwise accept
 `Dependency audit: not applicable`.
 
 Blocking findings are tagged:
@@ -112,7 +118,8 @@ is the escalation case below, not an error.
   computation) — treat as pending, retry next pass. Only `CONFLICTING` is a
   conflict, and it's a `[BUG]` blocking finding.
 - Pending required checks or `UNKNOWN` mergeability → report the wait, stop,
-  no verdict, no label changes.
+  no verdict, and no label changes unless the third-pass escalation rule above
+  applies.
 - A failed required check → `[CI]` blocking finding.
 - No required checks configured → `gsd:escalated`, never `gsd:approved`.
   Absent CI is not passing CI.
