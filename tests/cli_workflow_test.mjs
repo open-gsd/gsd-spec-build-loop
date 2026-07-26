@@ -43,6 +43,7 @@ function runCli(argumentsList, options = {}) {
       MOCK_PR_LIST_FAIL: options.prListFail ? "1" : "0",
       MOCK_CHECK_QUERY_FAIL: options.checkQueryFail ? "1" : "0",
       MOCK_RULES_QUERY_FAIL: options.rulesQueryFail ? "1" : "0",
+      MOCK_RULES_QUERY_FORBIDDEN: options.rulesQueryForbidden ? "1" : "0",
       MOCK_AGENT_AUTH_FAIL: options.agentAuthFail ? "1" : "0",
       MOCK_DEFAULT_CHECKS: JSON.stringify(options.defaultChecks ?? options.checks ?? [{ name: "test", conclusion: "success", app: { id: 15368, slug: "github-actions" } }]),
       MOCK_PR_CHECKS: JSON.stringify(options.prChecks ?? []),
@@ -129,6 +130,10 @@ else if (args[0] === "api") {
     if (process.env.MOCK_CHECK_QUERY_FAIL === "1") process.exit(1);
     console.log(JSON.stringify({ check_runs: JSON.parse(process.env.MOCK_PR_CHECKS) }));
   } else if (endpoint === "repos/octocat/project/rules/branches/main") {
+    if (process.env.MOCK_RULES_QUERY_FORBIDDEN === "1") {
+      console.error("gh: Resource not accessible by personal access token (HTTP 403)");
+      process.exit(1);
+    }
     if (process.env.MOCK_RULES_QUERY_FAIL === "1") {
       console.error("network unavailable");
       process.exit(1);
@@ -245,6 +250,18 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
     && args[1] === "create"
     && args[args.indexOf("--repo") + 1] === "octocat/project"
   )), false);
+
+  const privateRulesDryRun = runCli([
+    "init",
+    "--dry-run",
+    "--yes",
+    "--runner", "codex",
+    "--repo", "octocat/project",
+    "--required-check", "test",
+    "--home", join(testRoot, "private-rules-home"),
+  ], { cwd: repository, rulesQueryForbidden: true });
+  assert.equal(privateRulesDryRun.status, 0, privateRulesDryRun.stderr);
+  assert.match(privateRulesDryRun.stdout, /Require successful check: test/);
 
   const ambiguous = runCli([
     "init",
