@@ -8,8 +8,10 @@ scheduled-task tool. If the host has no recurring-task capability, stop and
 explain that this scheduling skill is unsupported there. Do not start a shell
 `while` loop.
 
-Resolve the repository root. Use `scripts/doctor.sh` and
-`scripts/scheduler-policy.sh` there when present; otherwise, use the copies in
+Resolve the repository root. Use its helper scripts only when the root
+identifies itself as the gsd-loop source: `README.md` starts with `# gsd-loop`,
+all three files under `loop/` exist, and `scripts/doctor.sh` plus
+`scripts/scheduler-policy.sh` exist. Otherwise, use the canonical copies in
 `scripts/` beside this `SKILL.md` that are included in global installs.
 
 1. Resolve the repository root and `owner/repo`. Schedule exactly one lane in

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import sys
 import tempfile
@@ -44,6 +43,10 @@ def path_exists(path: Path) -> bool:
     return path.exists() or path.is_symlink()
 
 
+def roots_alias(first: Path, second: Path) -> bool:
+    return first.resolve() == second.resolve()
+
+
 def preflight(canonical_root: Path, claude_root: Path, agents: frozenset[str]) -> list[Path]:
     conflicts: list[Path] = []
     for skill in SKILLS:
@@ -51,7 +54,7 @@ def preflight(canonical_root: Path, claude_root: Path, agents: frozenset[str]) -
         if path_exists(destination) and not is_owned_directory(destination):
             conflicts.append(destination)
 
-    if "claude" not in agents:
+    if "claude" not in agents or roots_alias(canonical_root, claude_root):
         return conflicts
 
     for skill in SKILLS:
@@ -84,10 +87,20 @@ def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
     return stage
 
 
-def replace_directory(stage: Path, destination: Path) -> None:
+def remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.exists():
+        shutil.rmtree(path)
+
+
+def replace_path(stage: Path, destination: Path) -> None:
     backup: Path | None = None
     if path_exists(destination):
-        backup = destination.with_name(f".{destination.name}.previous-{os.getpid()}")
+        backup = Path(
+            tempfile.mkdtemp(prefix=f".{destination.name}.previous-", dir=destination.parent)
+        )
+        backup.rmdir()
         destination.rename(backup)
     try:
         stage.rename(destination)
@@ -96,7 +109,7 @@ def replace_directory(stage: Path, destination: Path) -> None:
             backup.rename(destination)
         raise
     if backup is not None:
-        shutil.rmtree(backup)
+        remove_path(backup)
 
 
 def install_canonical(source_root: Path, canonical_root: Path) -> None:
@@ -104,20 +117,37 @@ def install_canonical(source_root: Path, canonical_root: Path) -> None:
         destination = canonical_root / skill
         stage = stage_skill(source_root, destination, skill)
         try:
-            replace_directory(stage, destination)
+            replace_path(stage, destination)
         finally:
             if stage.exists():
                 shutil.rmtree(stage)
 
 
-def remove_owned_adapter(destination: Path) -> None:
-    if destination.is_symlink():
-        destination.unlink()
-    elif destination.exists():
-        shutil.rmtree(destination)
+def stage_adapter(canonical: Path, destination: Path, mode: str) -> Path:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{destination.name}.", dir=destination.parent))
+    stage.rmdir()
+
+    try:
+        if mode in {"auto", "symlink"}:
+            try:
+                stage.symlink_to(canonical, target_is_directory=True)
+                return stage
+            except OSError:
+                if mode == "symlink":
+                    raise
+        shutil.copytree(canonical, stage)
+        return stage
+    except Exception:
+        if path_exists(stage):
+            remove_path(stage)
+        raise
 
 
 def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) -> None:
+    if roots_alias(canonical_root, claude_root):
+        return
+
     claude_root.mkdir(parents=True, exist_ok=True)
     for skill in SKILLS:
         canonical = canonical_root / skill
@@ -125,15 +155,12 @@ def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) 
         if destination.is_symlink() and destination.resolve() == canonical.resolve() and mode != "copy":
             continue
 
-        remove_owned_adapter(destination)
-        if mode in {"auto", "symlink"}:
-            try:
-                destination.symlink_to(canonical, target_is_directory=True)
-                continue
-            except OSError:
-                if mode == "symlink":
-                    raise
-        shutil.copytree(canonical, destination)
+        stage = stage_adapter(canonical, destination, mode)
+        try:
+            replace_path(stage, destination)
+        finally:
+            if path_exists(stage):
+                remove_path(stage)
 
 
 def build_parser() -> argparse.ArgumentParser:

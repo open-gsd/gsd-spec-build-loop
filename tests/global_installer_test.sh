@@ -64,3 +64,54 @@ fi
 grep -q 'refusing to overwrite unowned path' "$claude_conflict_output"
 grep -q 'preserve me' "$claude_conflict_root/.claude/skills/gsd-loop-review/user-file"
 test ! -e "$claude_conflict_root/.agents"
+
+aliased_root="$TEST_ROOT/aliased"
+mkdir -p "$aliased_root/.agents/skills" "$aliased_root/.claude"
+ln -s "$aliased_root/.agents/skills" "$aliased_root/.claude/skills"
+"$INSTALLER" --home "$aliased_root"
+for skill in spec build review schedule; do
+  canonical="$aliased_root/.agents/skills/gsd-loop-$skill"
+  test -d "$canonical"
+  test ! -L "$canonical"
+  test -f "$canonical/.gsd-loop-install.json"
+done
+
+INSTALLER="$INSTALLER" TEST_ROOT="$TEST_ROOT" python3 - <<'PY'
+import importlib.util
+import json
+import os
+from pathlib import Path
+from unittest import mock
+
+installer_path = Path(os.environ["INSTALLER"])
+spec = importlib.util.spec_from_file_location("global_installer", installer_path)
+installer = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(installer)
+
+root = Path(os.environ["TEST_ROOT"]) / "transaction"
+canonical_root = root / ".agents" / "skills"
+claude_root = root / ".claude" / "skills"
+for skill in installer.SKILLS:
+    canonical = canonical_root / skill
+    adapter = claude_root / skill
+    canonical.mkdir(parents=True)
+    adapter.mkdir(parents=True)
+    (canonical / "SKILL.md").write_text("canonical\n")
+    (adapter / installer.MARKER).write_text(json.dumps(installer.MARKER_CONTENT))
+    (adapter / "preserve").write_text("old adapter\n")
+
+with (
+    mock.patch.object(Path, "symlink_to", side_effect=OSError("symlink unavailable")),
+    mock.patch.object(installer.shutil, "copytree", side_effect=OSError("copy failed")),
+):
+    try:
+        installer.install_claude_adapters(canonical_root, claude_root, "auto")
+    except OSError:
+        pass
+    else:
+        raise AssertionError("adapter staging failure must be reported")
+
+for skill in installer.SKILLS:
+    adapter = claude_root / skill
+    assert (adapter / "preserve").read_text() == "old adapter\n"
+PY
