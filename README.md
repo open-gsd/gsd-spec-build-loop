@@ -6,8 +6,8 @@ irreversible step stays human.
 
 The loop is three agent-neutral playbooks in `loop/` that any coding agent
 can execute (Codex, Claude Code, Cursor, Gemini CLI, ...) — the only hard
-dependency is an authenticated `gh` CLI. Codex gets repository skills in
-`.agents/skills/`; Claude Code gets slash-command shims in `.claude/skills/`.
+dependency is an authenticated `gh` CLI. Repository skills live in
+`.agents/skills/`, with compatibility shims in `.claude/skills/`.
 
 ```
  idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue
@@ -61,6 +61,45 @@ $gsd-loop-spec
 $gsd-loop-build
 $gsd-loop-review
 ```
+
+### Install globally
+
+Install once to make the skills available across repositories:
+
+```bash
+scripts/install-global.py
+```
+
+The installer puts one self-contained copy in the shared Agent Skills location
+and adds only the compatibility adapter that needs a separate path:
+
+| Agent | Global discovery path | Install shape |
+|---|---|---|
+| Codex | `~/.agents/skills` | canonical copy |
+| Cursor | `~/.agents/skills` | canonical copy |
+| Kimi Code | `~/.agents/skills` | canonical copy |
+| Claude Code | `~/.claude/skills` | symlink to canonical, or copy fallback |
+
+Other clients that discover the shared Agent Skills directory can use the same
+canonical copy. Each installed skill bundles its playbook or helper scripts, so
+the source checkout does not need to be the active repository.
+
+Agent applications own skill discovery, so the selected model does not need a
+separate installation. A model used through Codex sees Codex's skills; a model
+used through Cursor sees Cursor's skills, and so on.
+
+Preview or limit an installation with:
+
+```bash
+scripts/install-global.py --dry-run
+scripts/install-global.py --agents codex,cursor,kimi
+scripts/install-global.py --adapter-mode copy
+```
+
+The installer updates only directories marked as its own. If a skill with the
+same name already exists and is not installer-owned, it stops without changing
+anything. Start a new agent session after installation so skill discovery runs
+again.
 
 To keep a lane running in the Codex app, ask for `$gsd-loop-schedule`. It
 creates or updates one named scheduled task for the current repository and
