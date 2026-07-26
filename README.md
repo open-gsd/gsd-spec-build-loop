@@ -5,19 +5,19 @@ issues, issues become PRs, PRs get audited verdicts — and every
 irreversible step stays human.
 
 The loop is three agent-neutral playbooks in `loop/` that any coding agent
-can execute (Codex, Claude Code, Cursor, Gemini CLI, ...) — the only hard
-dependency is an authenticated `gh` CLI. Repository skills live in
+can execute (Codex, Claude Code, Cursor, Gemini CLI, ...). The playbooks' only
+hard dependency is an authenticated `gh` CLI. Repository skills live in
 `.agents/skills/`, with compatibility shims in `.claude/skills/`.
 
 ```
  idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue
                                                         │
-              ┌──────────── /gsd-loop-build (loop) ◀────┘
+              ┌────────────────── build lane ◀──────────┘
               ▼
              PR ◀──── fix gsd:rework items ────┐
               │                                │
               ▼                                │
-   /gsd-loop-review (loop) ── blocking? ── yes ┘  (3 strikes → gsd:escalated)
+           review lane ── blocking? ── yes ┘  (3 strikes → gsd:escalated)
               │
               no
               ▼
@@ -52,8 +52,10 @@ npx @opengsd/gsd-loop@latest init
 
 `init` previews one plan and asks before it changes anything. It installs or
 updates the four global skills, checks Git and GitHub access, creates the five
-labels, records local runner state under `.git/gsd-loop`, and configures one
-unambiguous required CI check when GitHub supports repository rulesets.
+labels, and records local runner state under Git's common directory. When one
+successful CI check is selected and GitHub supports repository rulesets, it
+configures that check as required; otherwise it preserves existing readiness or
+leaves review safely blocked.
 
 In an empty directory it can also create a private GitHub repository named
 after that directory. Unattended setup never guesses this external action:
@@ -83,12 +85,11 @@ The foreground runner supports Codex, Claude Code, Cursor, and Gemini CLI. It
 runs one fresh agent pass at a time, waits 15 minutes after work, backs off to
 60 minutes after idle passes, and exits after three consecutive idle passes.
 It pauses on malformed output, credentials, permissions, dirty worktrees,
-escalations, or duplicate builders. Its locks and logs live under `.git`, so
-they do not dirty the project.
+escalations, or duplicate lane runners. Its locks and logs live under Git's
+local common directory, so they do not dirty the project.
 
-Kimi skills remain available for interactive one-pass use, but the portable
-runner does not automate Kimi subscriptions while Kimi's published usage policy
-prohibits non-interactive automation.
+Kimi skills remain available for interactive one-pass use, but Kimi is not a
+portable-runner target; see the [support matrix](docs/install.md#support-matrix).
 
 Direct `$gsd-loop-build`, `/gsd-loop-build`, and reviewer invocations execute
 one pass only. Use them for diagnosis, not durable repetition. Hosts with a
@@ -115,10 +116,10 @@ The loop is deliberately incapable of doing these:
 - Node.js 18+, Git, and the `gh` CLI authenticated with push access.
 - An authenticated Codex, Claude Code, Cursor, or Gemini CLI for portable
   unattended execution. Kimi remains supported interactively.
-- **Required status checks configured** on the default branch. The reviewer
-  refuses to treat missing CI as green. `init` configures an existing
-  successful check when GitHub supports rulesets; it never creates a fake
-  always-green workflow.
+- **Required status checks configured** on the default branch before review.
+  The reviewer refuses to treat missing CI as green. `init` configures an
+  existing successful check when GitHub supports rulesets; it never creates a
+  fake always-green workflow.
 
 Check an environment before the first run:
 

@@ -18,9 +18,11 @@ Codex, Cursor, Gemini, and Kimi share the Agent Skills directory. Claude uses
 symlinks to the canonical skills when supported and safe copies otherwise.
 Installing a skill does not install, authenticate, or choose a model.
 
-Kimi documents a non-interactive prompt flag but currently prohibits
-subscription-based non-interactive automation. The installer therefore keeps
-Kimi skill support while the portable runner refuses Kimi explicitly.
+Kimi documents a non-interactive prompt flag, but its
+[community guidelines](https://www.kimi.com/code/docs/en/kimi-code/community-guidelines.html)
+prohibit subscription-based non-interactive automation. The installer
+therefore keeps Kimi skill support while the portable runner refuses Kimi
+explicitly.
 
 ## Prerequisites
 
@@ -47,14 +49,16 @@ planned change, and asks once before it:
 - installs or updates all four self-contained skills;
 - verifies GitHub and agent authentication;
 - creates the five `gsd:*` labels without replacing existing labels;
-- writes non-secret runner configuration, locks, and logs beneath Git's common
-  directory;
+- writes non-secret runner configuration beneath Git's common directory, where
+  later runner invocations also keep their locks and logs;
 - excludes `.claude/scheduled_tasks.lock` through the local Git exclude file;
-- creates or updates only the dedicated `gsd-loop required CI` ruleset.
+- when one successful check is selected, creates or updates only the dedicated
+  `gsd-loop required CI` ruleset.
 
-If no successful CI check exists yet, setup exits with status `3` after making
-the build lane ready. Add CI through the first spec/build issue, wait for it to
-run successfully, then rerun `init` before starting the reviewer.
+If review is not already protected and no successful CI check exists yet,
+setup exits with status `3` after making the build lane ready. Add CI through
+the first spec/build issue, wait for it to run successfully, then rerun `init`
+before starting the reviewer.
 
 GitHub repository plans do not all expose rulesets for private repositories.
 When GitHub rejects the dedicated ruleset, `init` keeps the build lane ready,
@@ -126,7 +130,7 @@ Use `--once` for a single headless pass or a host-native scheduler:
 npx @opengsd/gsd-loop@latest run build --once
 ```
 
-One process owns one lane. A live duplicate build lock, active Claude loop
+One process owns one lane. A live duplicate lane lock, active Claude scheduler
 lock, missing required CI for review, malformed agent result, credentials, or
 other playbook stop condition pauses the runner instead of guessing. `Ctrl-C`
 is forwarded to the active agent and removes the local lock.

@@ -18,16 +18,16 @@ execute it exactly:
 
 Rules that apply regardless of agent:
 
-- One pass, then stop. The playbooks are written for external repetition
-  (a loop runner, cron, or a shell `while` loop), not for improvising extra
-  iterations.
+- One pass, then stop. The playbooks are written for repetition by the portable
+  or native runner, not for improvising extra iterations.
 - Never merge, never enable auto-merge, never force-push. Humans own every
   merge.
 - The issue is the whole contract: implement only its `O-N` outcomes, treat
   `X-N` exclusions as binding, and escalate with `gsd:escalated` instead of
   guessing.
-- Run at most one build loop per repository. The claim lock (issue
-  assignee) is cooperative, not atomic.
+- Run at most one build loop per repository. Portable and native runners share
+  a repository-local lane lock; the issue assignee remains the cooperative,
+  cross-host claim and is not atomic.
 
 ## Looping
 
@@ -53,4 +53,5 @@ passes.
 - Required status checks configured on the default branch — the reviewer
   escalates every PR in a repo without required CI, by design.
 
-Verify both with `scripts/doctor.sh [owner/repo]` before the first pass.
+Verify both with `npx @opengsd/gsd-loop@latest doctor --review-ready` before
+the first review pass.
