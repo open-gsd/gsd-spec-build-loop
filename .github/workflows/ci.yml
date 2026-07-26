@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck
-        run: shellcheck scripts/*.sh
+        run: shellcheck scripts/*.sh tests/*.sh tests/fixtures/bin/gh
+      - name: behavior tests
+        run: tests/run.sh
       - name: playbooks are intact
         run: |
           set -e

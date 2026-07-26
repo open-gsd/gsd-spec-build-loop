@@ -1,0 +1,4 @@
+interface:
+  display_name: "Invalid fixture"
+  short_description: "Invalid folder and skill name pairing"
+  default_prompt: "Use $actual-name for fixture validation."

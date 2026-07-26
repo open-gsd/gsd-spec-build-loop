@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -eu
+
+case "${1:-}" in
+  --version)
+    echo 'gh version 2.0.0 (fixture)'
+    ;;
+  auth)
+    [ "${2:-}" = status ]
+    ;;
+  api)
+    endpoint=${2:-}
+    case "$endpoint" in
+      repos/open-gsd/gsd-spec-build-loop)
+        case "$*" in
+          *permissions.push*) echo true ;;
+          *default_branch*) echo main ;;
+          *) exit 1 ;;
+        esac
+        ;;
+      repos/open-gsd/gsd-spec-build-loop/rules/branches/main)
+        echo "${MOCK_REQUIRED_CHECKS:-0}"
+        ;;
+      *)
+        exit 1
+        ;;
+    esac
+    ;;
+  label)
+    printf '%s\n' gsd:ready gsd:blocked gsd:approved gsd:rework gsd:escalated
+    ;;
+  *)
+    exit 1
+    ;;
+esac

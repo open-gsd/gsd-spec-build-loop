@@ -54,18 +54,20 @@ With Claude Code:
 /loop /gsd-loop-review    # session 2
 ```
 
-With Codex, invoke the repository skills directly:
+In a Codex prompt, invoke the repository skills directly:
 
-```bash
+```text
 $gsd-loop-spec
 $gsd-loop-build
 $gsd-loop-review
 ```
 
-To keep a lane running in the Codex app, ask for `$gsd-loop-schedule`. It uses
-a scheduled task attached to the current chat, defaults to a 15-minute cadence,
-and pauses after three consecutive idle passes. The computer and app must stay
-running for local scheduled work.
+To keep a lane running in the Codex app, ask for `$gsd-loop-schedule`. It
+creates or updates one named scheduled task for the current repository and
+chat. Productive passes run every 15 minutes; idle passes back off to 60
+minutes; three consecutive idle passes pause the task. Run build and review in
+separate chats so each has its own task and idle count. The computer and app
+must stay running for local scheduled work.
 
 Codex CLI or another agent that can `exec` a prompt can loop externally:
 
@@ -104,6 +106,7 @@ Check an environment before the first run:
 
 ```bash
 scripts/doctor.sh [owner/repo]   # defaults to the current directory's repo
+scripts/doctor.sh --review-ready # additionally requires protected CI
 ```
 
 To use the loop on another repository, copy `loop/` and `AGENTS.md` into it,

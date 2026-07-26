@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 # gsd-loop doctor — verifies an environment can run the loop against a repo.
-# Usage: scripts/doctor.sh [owner/repo]   (defaults to the current directory's repo)
+# Usage: scripts/doctor.sh [--review-ready] [owner/repo]
 set -u
 
 FAIL=0
+REVIEW_READY=0
 ok()   { printf 'ok    %s\n' "$1"; }
 warn() { printf 'warn  %s\n' "$1"; }
 bad()  { printf 'FAIL  %s\n' "$1"; FAIL=1; }
+
+if [ "${1:-}" = "--review-ready" ]; then
+  REVIEW_READY=1
+  shift
+fi
+
+if [ "$#" -gt 1 ]; then
+  echo "usage: scripts/doctor.sh [--review-ready] [owner/repo]" >&2
+  exit 2
+fi
 
 command -v gh >/dev/null 2>&1 || { bad "gh CLI not installed"; exit 1; }
 ok "gh $(gh --version | head -1 | awk '{print $3}')"
@@ -49,6 +60,8 @@ fi
 RULES=$(gh api "repos/$REPO/rules/branches/$BRANCH" --jq '[.[] | select(.type == "required_status_checks")] | length' 2>/dev/null || echo "")
 if [ "${RULES:-0}" -ge 1 ] 2>/dev/null; then
   ok "required status checks configured on $BRANCH"
+elif [ "$REVIEW_READY" -eq 1 ]; then
+  bad "required status checks are required for review scheduling on $BRANCH"
 else
   warn "no required status checks detected on $BRANCH — the reviewer will escalate every PR (gsd:escalated) until CI is required"
 fi
