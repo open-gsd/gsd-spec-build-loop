@@ -1,8 +1,13 @@
 # gsd-loop
 
-A human-gated agent work loop for GitHub, packaged as three Claude Code
-skills. Ideas become contract-grade issues, issues become PRs, PRs get
-audited verdicts — and every irreversible step stays human.
+A human-gated agent work loop for GitHub. Ideas become contract-grade
+issues, issues become PRs, PRs get audited verdicts — and every
+irreversible step stays human.
+
+The loop is three agent-neutral playbooks in `loop/` that any coding agent
+can execute (Codex, Claude Code, Cursor, Gemini CLI, ...) — the only hard
+dependency is an authenticated `gh` CLI. Claude Code gets slash-command
+shims in `.claude/skills/`; every other agent routes through `AGENTS.md`.
 
 ```
  idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue
@@ -19,13 +24,13 @@ audited verdicts — and every irreversible step stays human.
         gsd:approved ──▶ human merges
 ```
 
-## The three skills
+## The three playbooks
 
-| Skill | Mode | One pass does |
+| Playbook | Mode | One pass does |
 |---|---|---|
-| `/gsd-loop-spec` | interactive | Interview you about a raw idea, then file a GitHub issue with an `O-N` outcome / `X-N` exclusion contract |
-| `/gsd-loop-build` | unattended, `/loop` | Repair one `gsd:rework` PR, or claim the oldest safe `gsd:ready` issue and open a PR |
-| `/gsd-loop-review` | unattended, `/loop` | Audit one PR against its issue contract and required CI, post a `gsd-loop verdict`, set labels |
+| `loop/spec.md` | interactive | Interview you about a raw idea, then file a GitHub issue with an `O-N` outcome / `X-N` exclusion contract |
+| `loop/build.md` | unattended | Repair one `gsd:rework` PR, or claim the oldest safe `gsd:ready` issue and open a PR |
+| `loop/review.md` | unattended | Audit one PR against its issue contract and required CI, post a `gsd-loop verdict`, set labels |
 
 ## Label state machine
 
@@ -39,12 +44,25 @@ audited verdicts — and every irreversible step stays human.
 
 ## Running it
 
-Spec interactively, then run the two unattended halves in separate sessions:
+Spec interactively, then run the two unattended halves in separate sessions.
+
+With Claude Code:
 
 ```
 /gsd-loop-spec            # with you present
 /loop /gsd-loop-build     # session 1
 /loop /gsd-loop-review    # session 2
+```
+
+With Codex (or any agent that can `exec` a prompt), loop externally:
+
+```bash
+codex "Read loop/spec.md and run the interview with me."   # with you present
+
+while :; do   # session 1; same shape with loop/review.md for session 2
+  codex exec "Read loop/build.md and execute one pass exactly."
+  sleep 900
+done
 ```
 
 Sharing one GitHub token across both loops is safe — the reviewer only
@@ -63,16 +81,15 @@ The loop is deliberately incapable of doing these:
 
 ## Requirements
 
-- [Claude Code](https://claude.com/claude-code) with the `gh` CLI
+- Any coding agent that can run shell commands, plus the `gh` CLI
   authenticated against the target repository.
 - **Required status checks configured** on the default branch. The reviewer
   refuses to treat missing CI as green — without required checks, every PR
   escalates to `gsd:escalated`.
 
-The skills live in `.claude/skills/` and load automatically inside this
-repo. To use the loop on another repository, copy the three skill
-directories into that repo's `.claude/skills/` (or your global
-`~/.claude/skills/`). Labels are created automatically on first run.
+To use the loop on another repository, copy `loop/` and `AGENTS.md` into it
+(plus `.claude/skills/` if you use Claude Code — the skills are thin
+pointers at the playbooks). Labels are created automatically on first run.
 
 ## Design notes
 
