@@ -16,6 +16,13 @@ import { spawnSync } from "node:child_process";
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-npm-"));
 
+function npmExecutable(platform = process.platform) {
+  return platform === "win32" ? "npm.cmd" : "npm";
+}
+
+assert.equal(npmExecutable("win32"), "npm.cmd");
+assert.equal(npmExecutable("darwin"), "npm");
+
 function command(program, args, options = {}) {
   const { allowFailure = false, ...spawnOptions } = options;
   const result = spawnSync(program, args, {
@@ -30,8 +37,9 @@ function command(program, args, options = {}) {
 }
 
 try {
+  const npmProgram = npmExecutable();
   const npmEnvironment = { ...process.env, npm_config_dry_run: "false" };
-  const packResult = command("npm", ["pack", "--json", "--pack-destination", testRoot], {
+  const packResult = command(npmProgram, ["pack", "--json", "--pack-destination", testRoot], {
     env: npmEnvironment,
   });
   const [packMetadata] = JSON.parse(packResult.stdout);
@@ -39,9 +47,11 @@ try {
   const tarball = join(testRoot, filename);
   const consumer = join(testRoot, "consumer");
   mkdirSync(consumer);
-  command("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--prefix", consumer, tarball], {
-    env: npmEnvironment,
-  });
+  command(
+    npmProgram,
+    ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--prefix", consumer, tarball],
+    { env: npmEnvironment },
+  );
 
   const packageRoot = join(consumer, "node_modules", "@open-gsd", "gsd-loop");
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
