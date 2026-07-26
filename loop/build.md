@@ -93,7 +93,7 @@ gh issue list --state open --label gsd:ready --limit 200 \
 (The unassigned filter is client-side on purpose — `--search "no:assignee"`
 rides a lagging index and can miss an issue you unassigned seconds ago.)
 
-Discard issues labeled `gsd:blocked`. Discard issues whose body says
+Discard issues labeled `gsd:blocked` or `gsd:escalated`. Discard issues whose body says
 `Needs #N merged` unless `#N` is closed *and* its closing PR actually merged
 (`gh issue view N --json state,closedByPullRequestsReferences`) — closure
 without merged code doesn't satisfy the dependency. Of what's left, take the
@@ -145,6 +145,21 @@ Everything attributable to your diff must pass. When a broad suite fails for
 pre-existing unrelated reasons, run the narrow equivalent, keep the output,
 and disclose both in the PR.
 
+If the diff changes a dependency manifest or lockfile, audit dependencies in
+both the default-branch baseline and the proposed branch using the project's
+existing security command or the package manager's machine-readable audit.
+Compare advisories by identifier and affected package:
+
+- A new high or critical advisory attributable to the diff blocks the PR.
+  Attempt a compatible remediation only when it stays inside the issue
+  contract. If none exists, comment the evidence, apply `gsd:escalated`,
+  remove your assignment, and stop.
+- An audit that cannot run or cannot be compared reliably also escalates; a
+  missing result is not a clean result.
+- New lower-severity and pre-existing advisories do not block, but the PR must
+  disclose them. New moderate findings or audit uncertainty make the risk call
+  at least Medium.
+
 Read your own `git diff` and `git status` end to end. Unrelated files or
 anything secret-shaped in the diff = full stop.
 
@@ -152,16 +167,18 @@ anything secret-shaped in the diff = full stop.
 
 First re-confirm the issue is still open and `gsd:ready` — a human may have
 pulled it mid-build. If they did, comment what the branch contains, skip the
-PR, stop. Otherwise push and run `gh pr create --body-file` with a body
-containing:
+PR, stop. Otherwise push and run `gh pr create --body-file` with a compact
+body containing:
 
 - The change and its motivation
 - `Closes #NNN` (real number)
-- An accounting: evidence per `O-N`, an untouched-confirmation per `X-N`,
-  then the line `Side effects beyond the contract: none`
-- Numbered hands-on verification steps that match what actually got built
-- Which automated checks ran, with results
-- A risk call: Low / Medium / High
+- A one-row-per-outcome evidence table for `O-N`
+- A compact untouched-confirmation for every `X-N`, then the line
+  `Side effects beyond the contract: none`
+- Which automated checks and dependency audits ran, with results
+- Whether the issue's manual walkthrough passed; reference it instead of
+  copying every step into the PR
+- A justified risk call: Low / Medium / High
 
 If the side-effects line would be a lie, stop and get the issue amended
 first.
@@ -187,3 +204,17 @@ unlabels.
 
 "This is unclear" is not a question. Name the decision, the options, and the
 `O-N` it gates. Then stop, so the next pass is free to work something else.
+
+## Report the pass
+
+The final response must end with exactly one machine-readable line and no text
+after it:
+
+```text
+GSD_LOOP_RESULT={"lane":"build","status":"work|idle|blocked","reason":"short-reason"}
+```
+
+Use `work` when the pass changed GitHub or git state, including a hand-back or
+escalation; use `idle` only when both queues are empty; use `blocked` when a
+preflight, permission, dirty-worktree, or malformed-contract condition prevents
+the pass from safely reaching one of those outcomes.

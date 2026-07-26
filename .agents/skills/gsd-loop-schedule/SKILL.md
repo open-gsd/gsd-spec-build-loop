@@ -5,7 +5,8 @@ description: Create or update a native recurring task that repeatedly runs one-p
 
 Use the host's native recurring-task tool. In Codex, use the native
 scheduled-task tool. If the host has no recurring-task capability, stop and
-explain that this scheduling skill is unsupported there. Do not start a shell
+give the portable foreground alternative:
+`npx @opengsd/gsd-loop@latest run build` (or `review`). Do not start a shell
 `while` loop.
 
 Resolve the repository root. Use its helper scripts only when the root
@@ -16,6 +17,8 @@ all three files under `loop/` exist, and `scripts/doctor.sh` plus
 
 1. Resolve the repository root and `owner/repo`. Schedule exactly one lane in
    the current chat: build by default, or review when explicitly requested.
+   Require repository-local initialization under Git's common directory; when
+   it is absent, stop with `npx @opengsd/gsd-loop@latest init`.
 2. Run the resolved `doctor.sh` before build scheduling. Run it with
    `--review-ready` before review scheduling. Do not create or update a review
    task when that stricter check fails.
@@ -25,8 +28,8 @@ all three files under `loop/` exist, and `scripts/doctor.sh` plus
 4. Attach the task to the current chat, start at 15 minutes, and initialize its
    lane-specific idle count to zero.
 5. Put `$gsd-loop-build` or `$gsd-loop-review` in the scheduled prompt. Run
-   exactly one playbook pass per wake and classify its result as `work`, `idle`,
-   or `blocked`.
+   exactly one playbook pass per wake and require its final `GSD_LOOP_RESULT`
+   line. A missing or malformed result is `blocked`, never inferred from prose.
 6. After each pass, run the resolved `scheduler-policy.sh EVENT IDLE_COUNT`.
    Persist the returned count in task context and immediately apply its action
    and interval to this scheduled task. This resets productive work to 15

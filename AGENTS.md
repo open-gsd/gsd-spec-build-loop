@@ -31,18 +31,17 @@ Rules that apply regardless of agent:
 
 ## Looping
 
-Claude Code users run `/loop /gsd-loop-build` and `/loop /gsd-loop-review`
-(thin skills in `.claude/skills/` point at these playbooks). Codex users can
-invoke `$gsd-loop-build`, `$gsd-loop-review`, or `$gsd-loop-schedule` from the
-repository skills in `.agents/skills/`. Codex CLI and other agents can also loop
-externally, e.g.:
+Use the portable foreground runner for durable cross-agent repetition:
 
 ```bash
-while :; do
-  codex exec "Read loop/build.md and execute one pass exactly."
-  sleep 900
-done
+npx @opengsd/gsd-loop@latest run build
+npx @opengsd/gsd-loop@latest run review
 ```
+
+Run the lanes in separate terminals. Direct `$gsd-loop-build`,
+`$gsd-loop-review`, or `/gsd-loop-*` invocations are one-pass tools, not
+durable schedulers. `$gsd-loop-schedule` remains an optional adapter for hosts
+with native recurring tasks.
 
 Honor the playbooks' idle guidance: when a pass reports an empty queue,
 lengthen the interval, and stop the loop after three consecutive idle

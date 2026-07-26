@@ -164,3 +164,16 @@ removes the label.
   labels is the whole interface.
 - `gsd:approved` is input to a human's merge decision, not a substitute for
   it.
+
+## Report the pass
+
+The final response must end with exactly one machine-readable line and no text
+after it:
+
+```text
+GSD_LOOP_RESULT={"lane":"review","status":"work|idle|blocked","reason":"short-reason"}
+```
+
+Use `work` after posting or repairing a verdict or label, `idle` only when no
+PR is auditable, and `blocked` when credentials, permissions, required CI, or
+malformed repository state prevent a safe verdict.

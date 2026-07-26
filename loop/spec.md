@@ -38,6 +38,13 @@ recommended answer, then the alternatives. Stick to genuine product forks:
   failures mid-flow
 - Consequences for stored data: migrations, backfills, legacy records
 
+When the work exposes a command, API, or other machine-facing interface, also
+settle its complete observable boundary: empty invocation, unknown commands,
+extra operands and options, stdout versus stderr, exit statuses, and empty or
+corrupt state. Do not let the builder invent any of these. For a greenfield
+repository, include the minimum runnable scaffolding, test command, and CI
+workflow in the first issue unless the user explicitly excludes them.
+
 Between rounds, integrate the answers and test the spec:
 
 > Would two engineers, working apart, ship indistinguishable behavior from
@@ -46,6 +53,10 @@ Between rounds, integrate the answers and test the spec:
 Not yet? Another round. Round count is unbounded — two questions can settle a
 typo fix while a real feature may take twenty. Don't quit early to be polite,
 and don't pad with questions after the test passes.
+
+Before showing the draft, list every remaining choice that could change
+externally visible behavior. If the issue does not select exactly one answer
+for each, continue the interview.
 
 ## Write the issue
 

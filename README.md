@@ -42,72 +42,62 @@ dependency is an authenticated `gh` CLI. Repository skills live in
 | `gsd:approved` | reviewer | — | Evidence complete; merge is yours |
 | `gsd:escalated` | either | human | Out of automation until a human resolves it |
 
-## Running it
+## Quick start
 
-Spec interactively, then run the two unattended halves in separate sessions.
-
-With Claude Code:
-
-```
-/gsd-loop-spec            # with you present
-/loop /gsd-loop-build     # session 1
-/loop /gsd-loop-review    # session 2
-```
-
-In a Codex prompt, invoke the repository skills directly:
-
-```text
-$gsd-loop-spec
-$gsd-loop-build
-$gsd-loop-review
-```
-
-### Install globally
-
-The global installer supports Codex, Claude Code, Cursor, Gemini CLI, and Kimi
-Code. It installs skills for the agent application; it does not install or
-configure a model. No repository clone or global package install is required:
+From the repository you want gsd-loop to manage:
 
 ```bash
-npx @opengsd/gsd-loop@latest install --dry-run
-npx @opengsd/gsd-loop@latest install
+npx @opengsd/gsd-loop@latest init
 ```
 
-By default, one self-contained copy goes in `~/.agents/skills`, with Claude
-Code adapters in `~/.claude/skills`. Start a new agent session after installing.
+`init` previews one plan and asks before it changes anything. It installs or
+updates the four global skills, checks Git and GitHub access, creates the five
+labels, records local runner state under `.git/gsd-loop`, and configures one
+unambiguous required CI check when GitHub supports repository rulesets.
 
-The Node installer runs on macOS, Linux, and native Windows. The complete
-gsd-loop workflow currently requires a POSIX shell, so use WSL2 on Windows when
-running the installed skills. Native PowerShell is not yet an end-to-end
-supported runtime.
-
-See the [installation guide](docs/install.md) for prerequisites, the agent and
-OS support matrix, selective installs, updates, verification, conflicts, and
-troubleshooting.
-
-To keep a lane running on a host with native recurring tasks, ask for
-`$gsd-loop-schedule`. In the Codex app, it creates or updates one named
-scheduled task for the current repository and chat. Productive passes run every
-15 minutes; idle passes back off to 60 minutes; three consecutive idle passes
-pause the task. Run build and review in separate chats so each has its own task
-and idle count. The computer and app must stay running for local scheduled
-work. On a host without native recurring tasks, the skill reports that
-scheduling is unsupported instead of starting its own background loop.
-
-Codex CLI or another agent that can `exec` a prompt can loop externally:
+In an empty directory it can also create a private GitHub repository named
+after that directory. Unattended setup never guesses this external action:
 
 ```bash
-codex "Read loop/spec.md and run the interview with me."   # with you present
-
-while :; do   # session 1; same shape with loop/review.md for session 2
-  codex exec "Read loop/build.md and execute one pass exactly."
-  sleep 900
-done
+npx @opengsd/gsd-loop@latest init --yes \
+  --create-repo --repo OWNER/NAME --visibility private --runner codex
 ```
 
-Sharing one GitHub token across both loops is safe — the reviewer only
-comments and labels. Run at most one builder loop per repository; the claim
-lock (issue assignee) is cooperative, not atomic.
+Next, invoke the interactive spec skill in your agent and add `gsd:ready` to
+the issue after reading it:
+
+| Agent | Spec invocation |
+|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-spec` |
+| Claude Code | `/gsd-loop-spec` |
+| Kimi Code | `/skill:gsd-loop-spec` |
+
+Keep the unattended lanes running in separate terminals:
+
+```bash
+npx @opengsd/gsd-loop@latest run build
+npx @opengsd/gsd-loop@latest run review
+```
+
+The foreground runner supports Codex, Claude Code, Cursor, and Gemini CLI. It
+runs one fresh agent pass at a time, waits 15 minutes after work, backs off to
+60 minutes after idle passes, and exits after three consecutive idle passes.
+It pauses on malformed output, credentials, permissions, dirty worktrees,
+escalations, or duplicate builders. Its locks and logs live under `.git`, so
+they do not dirty the project.
+
+Kimi skills remain available for interactive one-pass use, but the portable
+runner does not automate Kimi subscriptions while Kimi's published usage policy
+prohibits non-interactive automation.
+
+Direct `$gsd-loop-build`, `/gsd-loop-build`, and reviewer invocations execute
+one pass only. Use them for diagnosis, not durable repetition. Hosts with a
+native recurring-task feature can instead invoke `$gsd-loop-schedule`; it uses
+the same pass result contract and safety checks.
+
+The installer and runner are native Node.js programs tested on macOS, Linux,
+and Windows. WSL is not required. See the [installation guide](docs/install.md)
+for selective installs, unattended flags, the support matrix, and recovery.
 
 ## Your four duties
 
@@ -121,24 +111,25 @@ The loop is deliberately incapable of doing these:
 
 ## Requirements
 
-- Any coding agent that can run shell commands, plus the `gh` CLI
-  authenticated against the target repository.
+- Node.js 18+, Git, and the `gh` CLI authenticated with push access.
+- An authenticated Codex, Claude Code, Cursor, or Gemini CLI for portable
+  unattended execution. Kimi remains supported interactively.
 - **Required status checks configured** on the default branch. The reviewer
-  refuses to treat missing CI as green — without required checks, every PR
-  escalates to `gsd:escalated`.
+  refuses to treat missing CI as green. `init` configures an existing
+  successful check when GitHub supports rulesets; it never creates a fake
+  always-green workflow.
 
 Check an environment before the first run:
 
 ```bash
-scripts/doctor.sh [owner/repo]   # defaults to the current directory's repo
-scripts/doctor.sh --review-ready # additionally requires protected CI
+npx @opengsd/gsd-loop@latest doctor
+npx @opengsd/gsd-loop@latest doctor --review-ready
 ```
 
 After a global installation, invoke the skills from any GitHub worktree; no
-project files need to be copied. For a repository-local setup instead, copy
-`loop/` and `AGENTS.md` into it, plus `.agents/skills/` for shared Agent Skills
-clients or `.claude/skills/` for Claude Code. The repository skills are thin
-pointers at the playbooks. Labels are created automatically on first run.
+project files need to be copied. `gsd-loop install` remains available when only
+global skill installation is wanted; `init` is the recommended repository
+onboarding command.
 
 ## Design notes
 

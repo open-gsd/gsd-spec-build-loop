@@ -82,9 +82,14 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
+  assert.equal(metadata.version, "0.2.0");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
+  const help = run(["--help"]).stdout;
+  assert.match(help, /gsd-loop init/);
+  assert.match(help, /gsd-loop doctor/);
+  assert.match(help, /gsd-loop run build\|review/);
 
   const home = join(testRoot, "home");
   run(["install", "--home", home]);
@@ -138,6 +143,8 @@ try {
   const packageFiles = packMetadata.files.map(({ path }) => path);
   assert.ok(packageFiles.includes("bin/gsd-loop.mjs"));
   assert.ok(packageFiles.includes("lib/install.mjs"));
+  assert.ok(packageFiles.includes("lib/init.mjs"));
+  assert.ok(packageFiles.includes("lib/runner.mjs"));
   assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/SKILL.md"));
   assert.ok(packageFiles.includes("loop/build.md"));
   assert.equal(packageFiles.some((path) => path.startsWith("tests/")), false);

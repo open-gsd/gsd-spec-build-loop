@@ -3,24 +3,76 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { formatDoctor, inspectDoctor } from "../lib/doctor.mjs";
+import { CliError, UsageError } from "../lib/errors.mjs";
+import { initialize, parseInitArguments } from "../lib/init.mjs";
 import { install, parseInstallArguments } from "../lib/install.mjs";
+import { runLane } from "../lib/runner.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const metadata = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
 const argumentsList = process.argv.slice(2);
 
 function usage() {
-  return `Usage: gsd-loop [install] [options]
+  return `Usage:
+  gsd-loop install [options]
+  gsd-loop init [options]
+  gsd-loop doctor [--review-ready] [--json] [--repo OWNER/NAME]
+  gsd-loop run build|review [--agent NAME] [--once]
 
-Install global, self-contained gsd-loop skills.
+Install skills, prepare a repository, and keep one-pass work lanes running.
 
-Options:
+Install options:
   --home PATH                       install beneath an alternate home directory
   --agents LIST                     codex,claude,cursor,gemini,kimi (default: all)
   --adapter-mode auto|symlink|copy  Claude adapter behavior (default: auto)
   --dry-run                         show destinations without writing
+
+Init options:
+  --repo OWNER/NAME                 target GitHub repository
+  --create-repo                     allow creation in an empty directory
+  --visibility private|public       visibility for a created repository
+  --required-check NAME             successful CI check to require
+  --runner NAME                     codex,claude,cursor,gemini
+  --yes                             apply an unambiguous preview without prompting
+
+Run options:
+  --agent NAME                      override the configured runner
+  --once                            execute one pass without sleeping
+
+General options:
   -h, --help                        show help
   -v, --version                     show version`;
+}
+
+function parseDoctorArguments(values) {
+  const options = { reviewReady: false, json: false, repo: null };
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index];
+    if (value === "--review-ready") options.reviewReady = true;
+    else if (value === "--json") options.json = true;
+    else if (value === "--repo") {
+      options.repo = values[index + 1];
+      if (!options.repo || options.repo.startsWith("--")) throw new UsageError("--repo requires OWNER/NAME");
+      index += 1;
+    } else throw new UsageError(`unknown option: ${value}`);
+  }
+  return options;
+}
+
+function parseRunArguments(values) {
+  const lane = values.shift();
+  const options = { lane, agent: null, once: false };
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index];
+    if (value === "--once") options.once = true;
+    else if (value === "--agent") {
+      options.agent = values[index + 1];
+      if (!options.agent || options.agent.startsWith("--")) throw new UsageError("--agent requires a value");
+      index += 1;
+    } else throw new UsageError(`unknown option: ${value}`);
+  }
+  return options;
 }
 
 try {
@@ -36,13 +88,24 @@ try {
   const command = argumentsList[0] && !argumentsList[0].startsWith("-")
     ? argumentsList.shift()
     : "install";
-  if (command !== "install") {
-    throw new Error(`unknown command: ${command}`);
+  if (command === "install") {
+    const options = parseInstallArguments(argumentsList);
+    install({ ...options, sourceRoot: packageRoot });
+  } else if (command === "init") {
+    const options = parseInitArguments(argumentsList);
+    process.exitCode = await initialize({ sourceRoot: packageRoot, cwd: process.cwd(), options });
+  } else if (command === "doctor") {
+    const options = parseDoctorArguments(argumentsList);
+    const report = inspectDoctor({ cwd: process.cwd(), repo: options.repo });
+    console.log(options.json ? JSON.stringify(report) : formatDoctor(report));
+    if (options.reviewReady && !report.reviewReady) process.exitCode = 3;
+  } else if (command === "run") {
+    const options = parseRunArguments(argumentsList);
+    process.exitCode = await runLane({ cwd: process.cwd(), ...options });
+  } else {
+    throw new UsageError(`unknown command: ${command}`);
   }
-
-  const options = parseInstallArguments(argumentsList);
-  install({ ...options, sourceRoot: packageRoot });
 } catch (error) {
   console.error(`gsd-loop: ${error.message}`);
-  process.exit(1);
+  process.exit(error instanceof CliError ? error.exitCode : 1);
 }
