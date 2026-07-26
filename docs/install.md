@@ -118,7 +118,9 @@ is forwarded to the active agent and removes the local lock.
 The default policy is 15 minutes after work, 60 minutes after idle, and a clean
 stop after three consecutive idle passes. The process is foreground-only and
 does not survive closing its terminal. `$gsd-loop-schedule` remains available
-as an optional adapter on hosts with native recurring tasks.
+as an optional adapter on hosts with native recurring tasks. It invokes
+`gsd-loop run LANE --once` on every wake, so it cannot bypass the foreground
+runner's repository lock or safety gates.
 
 ## Readiness checks
 

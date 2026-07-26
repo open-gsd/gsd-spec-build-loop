@@ -51,3 +51,5 @@ jobs:
           node-version: 22
       - name: packed npm installation
         run: node tests/npm_package_test.mjs
+      - name: native onboarding and runner
+        run: node tests/cli_workflow_test.mjs

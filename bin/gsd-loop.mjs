@@ -7,7 +7,7 @@ import { formatDoctor, inspectDoctor } from "../lib/doctor.mjs";
 import { CliError, UsageError } from "../lib/errors.mjs";
 import { initialize, parseInitArguments } from "../lib/init.mjs";
 import { install, parseInstallArguments } from "../lib/install.mjs";
-import { runLane } from "../lib/runner.mjs";
+import { runLane, schedulerDecision } from "../lib/runner.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const metadata = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
@@ -19,6 +19,7 @@ function usage() {
   gsd-loop init [options]
   gsd-loop doctor [--review-ready] [--json] [--repo OWNER/NAME]
   gsd-loop run build|review [--agent NAME] [--once]
+  gsd-loop policy work|idle|blocked IDLE_COUNT
 
 Install skills, prepare a repository, and keep one-pass work lanes running.
 
@@ -102,6 +103,12 @@ try {
   } else if (command === "run") {
     const options = parseRunArguments(argumentsList);
     process.exitCode = await runLane({ cwd: process.cwd(), ...options });
+  } else if (command === "policy") {
+    if (argumentsList.length !== 2 || !/^\d+$/.test(argumentsList[1])) {
+      throw new UsageError("policy requires work|idle|blocked and a non-negative idle count");
+    }
+    const decision = schedulerDecision(argumentsList[0], Number(argumentsList[1]));
+    console.log(`action=${decision.action} interval_minutes=${decision.intervalMinutes} idle_count=${decision.idleCount}`);
   } else {
     throw new UsageError(`unknown command: ${command}`);
   }

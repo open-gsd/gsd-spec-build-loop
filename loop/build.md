@@ -75,7 +75,11 @@ gh pr view NUMBER --json headRefOid,comments \
 - Can't check out the branch (deleted head, vanished fork)? Comment what
   happened, trade `gsd:rework` for `gsd:escalated`, stop.
 - Otherwise: address only the verdict's "Blocking" items, run the checks
-  that cover them, push, remove `gsd:rework`, comment a summary. Stop.
+  that cover them. Before pushing, inspect the complete PR diff against the
+  default-branch baseline. If it changes a dependency manifest or lockfile,
+  repeat the baseline-versus-branch dependency audit policy under "Prove it";
+  repair commits do not inherit stale audit evidence. Push only after that
+  gate passes, then remove `gsd:rework`, comment a summary. Stop.
 
 If a blocking item can't be fixed without crossing an `X-N` exclusion or
 making a product decision, don't. Comment the exact collision, ending with
@@ -175,7 +179,9 @@ body containing:
 - A one-row-per-outcome evidence table for `O-N`
 - A compact untouched-confirmation for every `X-N`, then the line
   `Side effects beyond the contract: none`
-- Which automated checks and dependency audits ran, with results
+- Which automated checks ran, with results
+- `Dependency audit: baseline compared — <result>` when dependency files
+  changed, or `Dependency audit: not applicable` otherwise
 - Whether the issue's manual walkthrough passed; reference it instead of
   copying every step into the PR
 - A justified risk call: Low / Medium / High

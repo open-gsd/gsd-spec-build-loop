@@ -90,6 +90,11 @@ try {
   assert.match(help, /gsd-loop init/);
   assert.match(help, /gsd-loop doctor/);
   assert.match(help, /gsd-loop run build\|review/);
+  assert.match(help, /gsd-loop policy/);
+  assert.equal(run(["policy", "work", "2"]).stdout.trim(), "action=continue interval_minutes=15 idle_count=0");
+  assert.equal(run(["policy", "idle", "2"]).stdout.trim(), "action=pause interval_minutes=0 idle_count=3");
+  const invalidPolicy = run(["policy", "idle", "invalid"], { allowFailure: true });
+  assert.equal(invalidPolicy.status, 2);
 
   const home = join(testRoot, "home");
   run(["install", "--home", home]);
@@ -104,6 +109,8 @@ try {
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
+  const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");
+  assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest run LANE --once/);
 
   const damagedSkill = join(home, ".agents", "skills", "gsd-loop-build");
   const danglingAdapter = join(home, ".claude", "skills", "gsd-loop-build");

@@ -67,6 +67,22 @@ data paths, scope creep, security holes, absent loading/error handling, and
 code a future agent won't be able to safely modify. Unrelated improvement
 ideas stay out of the verdict unless severe.
 
+List the changed paths and read the PR body before accepting its test evidence:
+
+```bash
+gh pr view NUMBER --json files,body --jq '{files: [.files[].path], body: .body}'
+```
+
+If a dependency manifest or lockfile changed, require branch-head evidence
+that the default-branch baseline and proposed branch were audited with the
+same machine-readable command and compared by advisory identifier and affected
+package. The PR body must contain `Dependency audit: baseline compared` with
+the commands and result. Missing, stale, or incomparable evidence is `[SEC]`
+and blocks approval. A new high or critical advisory attributable to the diff
+is also `[SEC]`; route it to `gsd:escalated` when the issue contract does not
+permit a compatible fix. For a PR without dependency changes, accept
+`Dependency audit: not applicable`.
+
 Blocking findings are tagged:
 
 - `[O-N]` — that outcome isn't delivered
@@ -114,6 +130,7 @@ gsd-loop verdict for COMMIT_SHA
 
 Required CI: passing | failing | none configured
 Merge state: <mergeStateStatus verbatim — CLEAN, DIRTY, BEHIND, BLOCKED, ...>
+Dependency audit: baseline compared | not applicable | blocking
 
 ### What this PR does
 

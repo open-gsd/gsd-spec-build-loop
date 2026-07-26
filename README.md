@@ -92,8 +92,9 @@ prohibits non-interactive automation.
 
 Direct `$gsd-loop-build`, `/gsd-loop-build`, and reviewer invocations execute
 one pass only. Use them for diagnosis, not durable repetition. Hosts with a
-native recurring-task feature can instead invoke `$gsd-loop-schedule`; it uses
-the same pass result contract and safety checks.
+native recurring-task feature can instead invoke `$gsd-loop-schedule`; each
+wake enters through `gsd-loop run --once`, so native and foreground runners
+share the same lock, consent, readiness, and result checks.
 
 The installer and runner are native Node.js programs tested on macOS, Linux,
 and Windows. WSL is not required. See the [installation guide](docs/install.md)

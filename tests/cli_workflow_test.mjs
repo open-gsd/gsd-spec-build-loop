@@ -40,6 +40,10 @@ function runCli(argumentsList, options = {}) {
       MOCK_REQUIRED_CHECKS: options.requiredChecks ? "1" : "0",
       MOCK_RULESET_FAIL: options.rulesetFail ? "1" : "0",
       MOCK_RULESET_LIST_FAIL: options.rulesetListFail ? "1" : "0",
+      MOCK_PR_LIST_FAIL: options.prListFail ? "1" : "0",
+      MOCK_CHECK_QUERY_FAIL: options.checkQueryFail ? "1" : "0",
+      MOCK_RULES_QUERY_FAIL: options.rulesQueryFail ? "1" : "0",
+      MOCK_AGENT_AUTH_FAIL: options.agentAuthFail ? "1" : "0",
       MOCK_DEFAULT_CHECKS: JSON.stringify(options.defaultChecks ?? options.checks ?? [{ name: "test", conclusion: "success", app: { id: 15368, slug: "github-actions" } }]),
       MOCK_PR_CHECKS: JSON.stringify(options.prChecks ?? []),
       MOCK_REMOTE_ROOT: remoteRoot,
@@ -88,6 +92,7 @@ appendFileSync(process.env.MOCK_GH_LOG, JSON.stringify(args) + "\\n");
 if (args[0] === "--version") console.log("gh version 2.80.0");
 else if (args[0] === "auth" && args[1] === "status") process.exit(0);
 else if (args[0] === "repo" && args[1] === "view") console.log("octocat/project");
+else if (args[0] === "pr" && args[1] === "list" && process.env.MOCK_PR_LIST_FAIL === "1") process.exit(1);
 else if (args[0] === "pr" && args[1] === "list") console.log(JSON.stringify(
   JSON.parse(process.env.MOCK_PR_CHECKS).length ? [{ headRefOid: "pull-request-head", updatedAt: "2026-07-26T00:00:00Z" }] : []
 ));
@@ -118,10 +123,16 @@ else if (args[0] === "api") {
     else if (args.includes(".default_branch")) console.log("main");
     else console.log(JSON.stringify({ permissions: { push: true }, default_branch: "main" }));
   } else if (endpoint === "repos/octocat/project/commits/main/check-runs") {
+    if (process.env.MOCK_CHECK_QUERY_FAIL === "1") process.exit(1);
     console.log(JSON.stringify({ check_runs: JSON.parse(process.env.MOCK_DEFAULT_CHECKS) }));
   } else if (endpoint === "repos/octocat/project/commits/pull-request-head/check-runs") {
+    if (process.env.MOCK_CHECK_QUERY_FAIL === "1") process.exit(1);
     console.log(JSON.stringify({ check_runs: JSON.parse(process.env.MOCK_PR_CHECKS) }));
   } else if (endpoint === "repos/octocat/project/rules/branches/main") {
+    if (process.env.MOCK_RULES_QUERY_FAIL === "1") {
+      console.error("network unavailable");
+      process.exit(1);
+    }
     console.log(process.env.MOCK_REQUIRED_CHECKS === "1" ? JSON.stringify([{ type: "required_status_checks" }]) : "[]");
   } else if (endpoint === "repos/octocat/project/rulesets" && !args.includes("POST") && process.env.MOCK_RULESET_LIST_FAIL === "1") {
     console.error("rulesets cannot be listed for this repository");
@@ -136,6 +147,7 @@ else if (args[0] === "api") {
   writeExecutable("codex", `
 const args = process.argv.slice(2);
 if (args.includes("--version")) console.log("codex-cli 1.0.0");
+else if (args.join(" ").includes("GSD_LOOP_AUTH_OK") && process.env.MOCK_AGENT_AUTH_FAIL === "1") process.exit(1);
 else if (args.join(" ").includes("GSD_LOOP_AUTH_OK")) console.log("GSD_LOOP_AUTH_OK");
 else console.log(process.env.MOCK_AGENT_OUTPUT || "");
 `);
@@ -169,6 +181,21 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   assert.equal(command("git", ["rev-list", "--count", "HEAD"], { cwd: createdRepository }).stdout.trim(), "1");
   assert.match(command("git", ["remote", "get-url", "origin"], { cwd: createdRepository }).stdout, /octocat-created[.]git/);
   assert.ok(existsSync(join(createdRepository, ".git", "gsd-loop", "config.json")));
+
+  const rejectedRepository = join(testRoot, "rejected-before-create");
+  mkdirSync(rejectedRepository);
+  const rejected = runCli([
+    "init",
+    "--yes",
+    "--create-repo",
+    "--repo", "octocat/rejected-before-create",
+    "--visibility", "private",
+    "--runner", "codex",
+    "--home", join(testRoot, "rejected-home"),
+  ], { cwd: rejectedRepository, agentAuthFail: true });
+  assert.equal(rejected.status, 3);
+  assert.equal(existsSync(join(rejectedRepository, ".git")), false);
+  assert.equal(readLog().some((args) => args[0] === "repo" && args[1] === "create" && args[2] === "octocat/rejected-before-create"), false);
 
   const oneConfirmationRepository = join(testRoot, "one-confirmation");
   mkdirSync(oneConfirmationRepository);
@@ -239,6 +266,21 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   assert.equal(pullRequestCheck.status, 0, pullRequestCheck.stderr);
   assert.match(pullRequestCheck.stdout, /Require successful check: test/);
 
+  const pullRequestInspectionFailure = runCli([
+    "init", "--dry-run", "--yes", "--runner", "codex",
+    "--repo", "octocat/project", "--required-check", "test",
+    "--home", join(testRoot, "pr-inspection-failure-home"),
+  ], { cwd: repository, prListFail: true });
+  assert.equal(pullRequestInspectionFailure.status, 1);
+  assert.match(pullRequestInspectionFailure.stderr, /gh pr list .* failed/);
+
+  const checkInspectionFailure = runCli([
+    "init", "--dry-run", "--yes", "--runner", "codex",
+    "--repo", "octocat/project", "--home", join(testRoot, "check-inspection-failure-home"),
+  ], { cwd: repository, checkQueryFail: true });
+  assert.equal(checkInspectionFailure.status, 1);
+  assert.match(checkInspectionFailure.stderr, /check-runs failed/);
+
   const rulesetFailureRepository = join(testRoot, "ruleset-failure");
   const rulesetFailureHome = join(testRoot, "ruleset-failure-home");
   initializeRepository(rulesetFailureRepository);
@@ -289,6 +331,24 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   assert.ok(readLog().some((args) => args[0] === "label" && args[1] === "create"));
   assert.ok(readLog().some((args) => args.includes("--method") && args.includes("POST")));
 
+  const configPath = join(repository, ".git", "gsd-loop", "config.json");
+  const configured = JSON.parse(readFileSync(configPath, "utf8"));
+  writeFileSync(configPath, `${JSON.stringify({ ...configured, autonomousConsent: false }, null, 2)}\n`);
+  const consentMissing = runCli(["run", "build", "--once"], { cwd: repository });
+  assert.equal(consentMissing.status, 3);
+  assert.match(consentMissing.stderr, /autonomous consent/);
+  writeFileSync(configPath, `${JSON.stringify(configured, null, 2)}\n`);
+
+  const switchedAgent = runCli(["run", "build", "--agent", "claude", "--once"], { cwd: repository });
+  assert.equal(switchedAgent.status, 3);
+  assert.match(switchedAgent.stderr, /rerun gsd-loop init --runner claude/);
+
+  writeFileSync(configPath, `${JSON.stringify({ ...configured, intervals: { workMinutes: 0, idleMinutes: 60, idleLimit: 3 } }, null, 2)}\n`);
+  const invalidIntervals = runCli(["run", "build", "--once"], { cwd: repository });
+  assert.equal(invalidIntervals.status, 3);
+  assert.match(invalidIntervals.stderr, /interval configuration is invalid/);
+  writeFileSync(configPath, `${JSON.stringify(configured, null, 2)}\n`);
+
   const doctor = runCli(["doctor", "--json", "--repo", "octocat/project"], { cwd: repository });
   assert.equal(doctor.status, 0, doctor.stderr);
   assert.deepEqual(JSON.parse(doctor.stdout), {
@@ -302,6 +362,10 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   const strictDoctor = runCli(["doctor", "--review-ready", "--repo", "octocat/project"], { cwd: repository });
   assert.equal(strictDoctor.status, 3);
   assert.match(strictDoctor.stdout, /review: blocked/);
+
+  const failedDoctor = runCli(["doctor", "--repo", "octocat/project"], { cwd: repository, rulesQueryFail: true });
+  assert.equal(failedDoctor.status, 1);
+  assert.match(failedDoctor.stderr, /network unavailable/);
 
   const workPass = runCli(["run", "build", "--once"], {
     cwd: repository,
@@ -338,6 +402,18 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   assert.match(duplicate.stderr, /another build runner is active/);
   rmSync(lockPath);
 
+  writeFileSync(lockPath, "not-json\n");
+  const corruptPortableLock = runCli(["run", "build", "--once"], { cwd: repository });
+  assert.equal(corruptPortableLock.status, 3);
+  assert.match(corruptPortableLock.stderr, /cannot safely read the build lock/);
+  rmSync(lockPath);
+
+  writeFileSync(lockPath, "{}\n");
+  const malformedPortableLock = runCli(["run", "build", "--once"], { cwd: repository });
+  assert.equal(malformedPortableLock.status, 3);
+  assert.match(malformedPortableLock.stderr, /cannot safely read the build lock/);
+  rmSync(lockPath);
+
   const kimi = runCli(["run", "build", "--agent", "kimi", "--once"], { cwd: repository });
   assert.equal(kimi.status, 2);
   assert.match(kimi.stderr, /Kimi automation is disabled/);
@@ -349,12 +425,38 @@ else console.log(process.env.MOCK_AGENT_OUTPUT || "");
   assert.match(claudeConflict.stderr, /Claude scheduler is active/);
   rmSync(join(repository, ".claude", "scheduled_tasks.lock"));
 
+  writeFileSync(join(repository, ".claude", "scheduled_tasks.lock"), "not-json\n");
+  const corruptClaudeLock = runCli(["run", "build", "--once"], { cwd: repository });
+  assert.equal(corruptClaudeLock.status, 3);
+  assert.match(corruptClaudeLock.stderr, /cannot safely read the Claude scheduler lock/);
+  rmSync(join(repository, ".claude", "scheduled_tasks.lock"));
+
+  writeFileSync(join(repository, ".claude", "scheduled_tasks.lock"), "{}\n");
+  const malformedClaudeLock = runCli(["run", "build", "--once"], { cwd: repository });
+  assert.equal(malformedClaudeLock.status, 3);
+  assert.match(malformedClaudeLock.stderr, /cannot safely read the Claude scheduler lock/);
+  rmSync(join(repository, ".claude", "scheduled_tasks.lock"));
+
   const invalidPass = runCli(["run", "build", "--once"], {
     cwd: repository,
     agentOutput: "completed without a result marker",
   });
   assert.equal(invalidPass.status, 3);
   assert.match(invalidPass.stderr, /missing GSD_LOOP_RESULT/);
+
+  const trailingOutput = runCli(["run", "build", "--once"], {
+    cwd: repository,
+    agentOutput: 'GSD_LOOP_RESULT={"lane":"build","status":"work","reason":"not-final"}\ntrailing output',
+  });
+  assert.equal(trailingOutput.status, 3);
+  assert.match(trailingOutput.stderr, /final output line/);
+
+  const extraResultField = runCli(["run", "build", "--once"], {
+    cwd: repository,
+    agentOutput: 'GSD_LOOP_RESULT={"lane":"build","status":"work","reason":"extra","unexpected":true}',
+  });
+  assert.equal(extraResultField.status, 3);
+  assert.match(extraResultField.stderr, /invalid GSD_LOOP_RESULT/);
 
   console.log("native onboarding and runner passed");
 } finally {
