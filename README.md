@@ -87,6 +87,12 @@ The loop is deliberately incapable of doing these:
   refuses to treat missing CI as green — without required checks, every PR
   escalates to `gsd:escalated`.
 
+Check an environment before the first run:
+
+```bash
+scripts/doctor.sh [owner/repo]   # defaults to the current directory's repo
+```
+
 To use the loop on another repository, copy `loop/` and `AGENTS.md` into it
 (plus `.claude/skills/` if you use Claude Code — the skills are thin
 pointers at the playbooks). Labels are created automatically on first run.

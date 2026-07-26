@@ -50,3 +50,5 @@ passes.
 - `gh` authenticated with write access to the target repository.
 - Required status checks configured on the default branch — the reviewer
   escalates every PR in a repo without required CI, by design.
+
+Verify both with `scripts/doctor.sh [owner/repo]` before the first pass.
