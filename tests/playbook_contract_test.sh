@@ -16,7 +16,9 @@ grep -q 'pending-ci-NUMBER-HEAD_SHA' "$REVIEW"
 
 grep -q 'npx @opengsd/gsd-loop@latest run LANE --once' "$SCHEDULE"
 grep -q 'npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT' "$SCHEDULE"
-if grep -q 'Put `\$gsd-loop-build` or `\$gsd-loop-review` in the scheduled prompt' "$SCHEDULE"; then
+# The literal '$' is matched on purpose (grep pattern, no shell expansion wanted).
+# shellcheck disable=SC2016
+if grep -q 'Put `$gsd-loop-build` or `$gsd-loop-review` in the scheduled prompt' "$SCHEDULE"; then
   echo 'native scheduling must not bypass the portable runner lock' >&2
   exit 1
 fi
