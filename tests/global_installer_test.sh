@@ -76,6 +76,18 @@ for skill in spec build review schedule; do
   test -f "$canonical/.gsd-loop-install.json"
 done
 
+user_symlink_root="$TEST_ROOT/user-symlink"
+"$INSTALLER" --home "$user_symlink_root" --agents codex
+user_symlink="$user_symlink_root/.claude/skills/gsd-loop-build"
+mkdir -p "$(dirname "$user_symlink")"
+ln -s "$user_symlink_root/.agents/skills/gsd-loop-build" "$user_symlink"
+if "$INSTALLER" --home "$user_symlink_root" --adapter-mode copy; then
+  echo 'copy mode must not replace an unowned symlink' >&2
+  exit 1
+fi
+test -L "$user_symlink"
+[ "$(readlink "$user_symlink")" = "$user_symlink_root/.agents/skills/gsd-loop-build" ]
+
 INSTALLER="$INSTALLER" TEST_ROOT="$TEST_ROOT" python3 - <<'PY'
 import importlib.util
 import json
@@ -87,6 +99,24 @@ installer_path = Path(os.environ["INSTALLER"])
 spec = importlib.util.spec_from_file_location("global_installer", installer_path)
 installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
+
+stage_root = Path(os.environ["TEST_ROOT"]) / "canonical-stage"
+canonical_stage_root = stage_root / ".agents" / "skills"
+
+def fail_copy(source, destination, **kwargs):
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination / "partial").write_text("partial\n")
+    raise OSError("copy failed")
+
+with mock.patch.object(installer.shutil, "copytree", side_effect=fail_copy):
+    try:
+        installer.install_canonical(installer_path.parents[1], canonical_stage_root)
+    except OSError:
+        pass
+    else:
+        raise AssertionError("canonical staging failure must be reported")
+
+assert not list(canonical_stage_root.iterdir())
 
 root = Path(os.environ["TEST_ROOT"]) / "transaction"
 canonical_root = root / ".agents" / "skills"
@@ -110,6 +140,29 @@ with (
         pass
     else:
         raise AssertionError("adapter staging failure must be reported")
+
+for skill in installer.SKILLS:
+    adapter = claude_root / skill
+    assert (adapter / "preserve").read_text() == "old adapter\n"
+
+original_rename = Path.rename
+
+def fail_stage_rename(path, target):
+    if (
+        path.name.startswith(".gsd-loop-spec.")
+        and ".previous-" not in path.name
+        and Path(target).name == "gsd-loop-spec"
+    ):
+        raise OSError("replacement failed")
+    return original_rename(path, target)
+
+with mock.patch.object(Path, "rename", fail_stage_rename):
+    try:
+        installer.install_claude_adapters(canonical_root, claude_root, "copy")
+    except OSError:
+        pass
+    else:
+        raise AssertionError("adapter replacement failure must be reported")
 
 for skill in installer.SKILLS:
     adapter = claude_root / skill

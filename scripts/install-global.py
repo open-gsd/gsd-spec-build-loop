@@ -47,7 +47,12 @@ def roots_alias(first: Path, second: Path) -> bool:
     return first.resolve() == second.resolve()
 
 
-def preflight(canonical_root: Path, claude_root: Path, agents: frozenset[str]) -> list[Path]:
+def preflight(
+    canonical_root: Path,
+    claude_root: Path,
+    agents: frozenset[str],
+    adapter_mode: str,
+) -> list[Path]:
     conflicts: list[Path] = []
     for skill in SKILLS:
         destination = canonical_root / skill
@@ -62,29 +67,15 @@ def preflight(canonical_root: Path, claude_root: Path, agents: frozenset[str]) -
         canonical = canonical_root / skill
         if not path_exists(destination):
             continue
-        if destination.is_symlink() and destination.resolve() == canonical.resolve():
+        if (
+            destination.is_symlink()
+            and destination.resolve() == canonical.resolve()
+            and adapter_mode != "copy"
+        ):
             continue
         if not is_owned_directory(destination):
             conflicts.append(destination)
     return conflicts
-
-
-def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    stage = Path(tempfile.mkdtemp(prefix=f".{skill}.", dir=destination.parent))
-    shutil.copytree(source_root / ".agents" / "skills" / skill, stage, dirs_exist_ok=True)
-
-    lane = skill.removeprefix("gsd-loop-")
-    if lane in {"spec", "build", "review"}:
-        shutil.copy2(source_root / "loop" / f"{lane}.md", stage / "playbook.md")
-    elif lane == "schedule":
-        scripts = stage / "scripts"
-        scripts.mkdir(exist_ok=True)
-        for script in ("doctor.sh", "scheduler-policy.sh"):
-            shutil.copy2(source_root / "scripts" / script, scripts / script)
-
-    (stage / MARKER).write_text(json.dumps(MARKER_CONTENT, sort_keys=True) + "\n")
-    return stage
 
 
 def remove_path(path: Path) -> None:
@@ -92,6 +83,29 @@ def remove_path(path: Path) -> None:
         path.unlink()
     elif path.exists():
         shutil.rmtree(path)
+
+
+def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{skill}.", dir=destination.parent))
+
+    try:
+        shutil.copytree(source_root / ".agents" / "skills" / skill, stage, dirs_exist_ok=True)
+
+        lane = skill.removeprefix("gsd-loop-")
+        if lane in {"spec", "build", "review"}:
+            shutil.copy2(source_root / "loop" / f"{lane}.md", stage / "playbook.md")
+        elif lane == "schedule":
+            scripts = stage / "scripts"
+            scripts.mkdir(exist_ok=True)
+            for script in ("doctor.sh", "scheduler-policy.sh"):
+                shutil.copy2(source_root / "scripts" / script, scripts / script)
+
+        (stage / MARKER).write_text(json.dumps(MARKER_CONTENT, sort_keys=True) + "\n")
+        return stage
+    except Exception:
+        remove_path(stage)
+        raise
 
 
 def replace_path(stage: Path, destination: Path) -> None:
@@ -196,7 +210,7 @@ def main() -> int:
     canonical_root = home / ".agents" / "skills"
     claude_root = home / ".claude" / "skills"
 
-    conflicts = preflight(canonical_root, claude_root, args.agents)
+    conflicts = preflight(canonical_root, claude_root, args.agents, args.adapter_mode)
     if conflicts:
         for conflict in conflicts:
             print(f"refusing to overwrite unowned path: {conflict}", file=sys.stderr)
