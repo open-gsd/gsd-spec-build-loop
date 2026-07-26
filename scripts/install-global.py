@@ -15,6 +15,8 @@ SKILLS = ("gsd-loop-spec", "gsd-loop-build", "gsd-loop-review", "gsd-loop-schedu
 SUPPORTED_AGENTS = frozenset(("codex", "claude", "cursor", "kimi"))
 MARKER = ".gsd-loop-install.json"
 MARKER_CONTENT = {"installer": "gsd-loop", "format": 1}
+ADAPTER_MARKER_SUFFIX = ".gsd-loop-adapter.json"
+ADAPTER_MARKER_CONTENT = {"installer": "gsd-loop", "format": 1, "adapter": "symlink"}
 
 
 def parse_agents(value: str) -> frozenset[str]:
@@ -29,18 +31,35 @@ def parse_agents(value: str) -> frozenset[str]:
     return frozenset(requested)
 
 
-def is_owned_directory(path: Path) -> bool:
-    marker = path / MARKER
-    if path.is_symlink() or not path.is_dir() or not marker.is_file():
+def marker_matches(path: Path, content: dict[str, object]) -> bool:
+    if path.is_symlink() or not path.is_file():
         return False
     try:
-        return json.loads(marker.read_text()) == MARKER_CONTENT
+        return json.loads(path.read_text()) == content
     except (OSError, json.JSONDecodeError):
         return False
 
 
+def is_owned_directory(path: Path) -> bool:
+    return not path.is_symlink() and path.is_dir() and marker_matches(
+        path / MARKER, MARKER_CONTENT
+    )
+
+
 def path_exists(path: Path) -> bool:
     return path.exists() or path.is_symlink()
+
+
+def adapter_marker(destination: Path) -> Path:
+    return destination.with_name(f".{destination.name}{ADAPTER_MARKER_SUFFIX}")
+
+
+def is_owned_adapter(destination: Path, canonical: Path) -> bool:
+    return (
+        destination.is_symlink()
+        and destination.resolve() == canonical.resolve()
+        and marker_matches(adapter_marker(destination), ADAPTER_MARKER_CONTENT)
+    )
 
 
 def roots_alias(first: Path, second: Path) -> bool:
@@ -65,12 +84,16 @@ def preflight(
     for skill in SKILLS:
         destination = claude_root / skill
         canonical = canonical_root / skill
+        marker = adapter_marker(destination)
+        owned_adapter = is_owned_adapter(destination, canonical)
+        if path_exists(marker) and not owned_adapter:
+            conflicts.append(marker)
         if not path_exists(destination):
             continue
         if (
             destination.is_symlink()
             and destination.resolve() == canonical.resolve()
-            and adapter_mode != "copy"
+            and (adapter_mode != "copy" or owned_adapter)
         ):
             continue
         if not is_owned_directory(destination):
@@ -158,6 +181,25 @@ def stage_adapter(canonical: Path, destination: Path, mode: str) -> Path:
         raise
 
 
+def write_adapter_marker(destination: Path) -> None:
+    marker = adapter_marker(destination)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        prefix=f".{marker.name}.",
+        dir=marker.parent,
+        delete=False,
+    ) as temporary:
+        json.dump(ADAPTER_MARKER_CONTENT, temporary, sort_keys=True)
+        temporary.write("\n")
+        stage = Path(temporary.name)
+
+    try:
+        replace_path(stage, marker)
+    finally:
+        if path_exists(stage):
+            remove_path(stage)
+
+
 def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) -> None:
     if roots_alias(canonical_root, claude_root):
         return
@@ -175,6 +217,11 @@ def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) 
         finally:
             if path_exists(stage):
                 remove_path(stage)
+        marker = adapter_marker(destination)
+        if destination.is_symlink():
+            write_adapter_marker(destination)
+        elif path_exists(marker):
+            remove_path(marker)
 
 
 def build_parser() -> argparse.ArgumentParser:

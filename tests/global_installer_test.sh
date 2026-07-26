@@ -15,6 +15,7 @@ for skill in spec build review schedule; do
   test -f "$canonical/SKILL.md"
   test -f "$canonical/.gsd-loop-install.json"
   test -L "$claude"
+  test -f "$install_root/.claude/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
   [ "$(readlink "$claude")" = "$canonical" ]
 done
 
@@ -40,6 +41,16 @@ copy_root="$TEST_ROOT/copy"
 "$INSTALLER" --home "$copy_root" --adapter-mode copy
 test -d "$copy_root/.claude/skills/gsd-loop-build"
 test ! -L "$copy_root/.claude/skills/gsd-loop-build"
+
+owned_conversion_root="$TEST_ROOT/owned-conversion"
+"$INSTALLER" --home "$owned_conversion_root"
+"$INSTALLER" --home "$owned_conversion_root" --adapter-mode copy
+for skill in spec build review schedule; do
+  adapter="$owned_conversion_root/.claude/skills/gsd-loop-$skill"
+  test -d "$adapter"
+  test ! -L "$adapter"
+  test ! -e "$owned_conversion_root/.claude/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
+done
 
 conflict_root="$TEST_ROOT/conflict"
 conflict_output="$TEST_ROOT/conflict.out"
@@ -87,6 +98,7 @@ if "$INSTALLER" --home "$user_symlink_root" --adapter-mode copy; then
 fi
 test -L "$user_symlink"
 [ "$(readlink "$user_symlink")" = "$user_symlink_root/.agents/skills/gsd-loop-build" ]
+test ! -e "$user_symlink_root/.claude/skills/.gsd-loop-build.gsd-loop-adapter.json"
 
 INSTALLER="$INSTALLER" TEST_ROOT="$TEST_ROOT" python3 - <<'PY'
 import importlib.util
