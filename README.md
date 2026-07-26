@@ -6,8 +6,8 @@ irreversible step stays human.
 
 The loop is three agent-neutral playbooks in `loop/` that any coding agent
 can execute (Codex, Claude Code, Cursor, Gemini CLI, ...) — the only hard
-dependency is an authenticated `gh` CLI. Claude Code gets slash-command
-shims in `.claude/skills/`; every other agent routes through `AGENTS.md`.
+dependency is an authenticated `gh` CLI. Codex gets repository skills in
+`.agents/skills/`; Claude Code gets slash-command shims in `.claude/skills/`.
 
 ```
  idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue
@@ -54,7 +54,20 @@ With Claude Code:
 /loop /gsd-loop-review    # session 2
 ```
 
-With Codex (or any agent that can `exec` a prompt), loop externally:
+With Codex, invoke the repository skills directly:
+
+```bash
+$gsd-loop-spec
+$gsd-loop-build
+$gsd-loop-review
+```
+
+To keep a lane running in the Codex app, ask for `$gsd-loop-schedule`. It uses
+a scheduled task attached to the current chat, defaults to a 15-minute cadence,
+and pauses after three consecutive idle passes. The computer and app must stay
+running for local scheduled work.
+
+Codex CLI or another agent that can `exec` a prompt can loop externally:
 
 ```bash
 codex "Read loop/spec.md and run the interview with me."   # with you present
@@ -93,9 +106,10 @@ Check an environment before the first run:
 scripts/doctor.sh [owner/repo]   # defaults to the current directory's repo
 ```
 
-To use the loop on another repository, copy `loop/` and `AGENTS.md` into it
-(plus `.claude/skills/` if you use Claude Code — the skills are thin
-pointers at the playbooks). Labels are created automatically on first run.
+To use the loop on another repository, copy `loop/` and `AGENTS.md` into it,
+plus `.agents/skills/` for Codex or `.claude/skills/` for Claude Code. The
+skills are thin pointers at the playbooks. Labels are created automatically on
+first run.
 
 ## Design notes
 

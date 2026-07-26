@@ -14,6 +14,7 @@ execute it exactly:
 | "spec this idea", "write a queue-ready issue" | `loop/spec.md` | interactive — a human must be present |
 | "run the builder", "work the ready queue", "fix rework" | `loop/build.md` | unattended-safe; one pass = one unit of work |
 | "run the reviewer", "audit the PR queue" | `loop/review.md` | unattended-safe; one pass = one verdict |
+| "keep the build running", "schedule gsd-loop" | `.agents/skills/gsd-loop-schedule/SKILL.md` | schedules bounded recurring passes |
 
 Rules that apply regardless of agent:
 
@@ -28,11 +29,13 @@ Rules that apply regardless of agent:
 - Run at most one build loop per repository. The claim lock (issue
   assignee) is cooperative, not atomic.
 
-## Looping without Claude Code
+## Looping
 
 Claude Code users run `/loop /gsd-loop-build` and `/loop /gsd-loop-review`
-(thin skills in `.claude/skills/` point at these playbooks). Any other agent
-loops externally, e.g. with Codex:
+(thin skills in `.claude/skills/` point at these playbooks). Codex users can
+invoke `$gsd-loop-build`, `$gsd-loop-review`, or `$gsd-loop-schedule` from the
+repository skills in `.agents/skills/`. Codex CLI and other agents can also loop
+externally, e.g.:
 
 ```bash
 while :; do

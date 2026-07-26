@@ -1,0 +1,4 @@
+interface:
+  display_name: "GSD Loop Build"
+  short_description: "Build one ready issue or repair one PR"
+  default_prompt: "Use $gsd-loop-build to execute one builder pass."

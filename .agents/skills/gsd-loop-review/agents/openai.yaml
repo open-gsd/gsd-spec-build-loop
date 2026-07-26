@@ -1,0 +1,4 @@
+interface:
+  display_name: "GSD Loop Review"
+  short_description: "Audit one PR against its issue contract"
+  default_prompt: "Use $gsd-loop-review to execute one reviewer pass."

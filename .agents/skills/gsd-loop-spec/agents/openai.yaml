@@ -1,0 +1,4 @@
+interface:
+  display_name: "GSD Loop Spec"
+  short_description: "Turn an idea into a queue-ready issue"
+  default_prompt: "Use $gsd-loop-spec to turn my idea into a queue-ready issue."
