@@ -77,9 +77,11 @@ try {
     { env: npmEnvironment },
   );
 
-  const packageRoot = join(consumer, "node_modules", "@open-gsd", "gsd-loop");
+  const packageRoot = join(consumer, "node_modules", "@opengsd", "gsd-loop");
+  assert.ok(existsSync(packageRoot), "packed artifact must install as @opengsd/gsd-loop");
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+  assert.equal(metadata.name, "@opengsd/gsd-loop");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);

@@ -69,8 +69,8 @@ Code. It installs skills for the agent application; it does not install or
 configure a model. No repository clone or global package install is required:
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --dry-run
-npx @open-gsd/gsd-loop@latest install
+npx @opengsd/gsd-loop@latest install --dry-run
+npx @opengsd/gsd-loop@latest install
 ```
 
 By default, one self-contained copy goes in `~/.agents/skills`, with Claude

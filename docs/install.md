@@ -71,8 +71,8 @@ Preview the destinations, then install. `npx` downloads a temporary copy of the
 package; it does not add gsd-loop to a project or install it globally.
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --dry-run
-npx @open-gsd/gsd-loop@latest install
+npx @opengsd/gsd-loop@latest install --dry-run
+npx @opengsd/gsd-loop@latest install
 ```
 
 These commands work in macOS and Linux shells, WSL2, and native PowerShell.
@@ -136,19 +136,19 @@ Before scheduling or running a lane in a repository, check its GitHub setup:
 Install the shared canonical skills without Claude adapters:
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --agents codex,cursor,gemini,kimi
+npx @opengsd/gsd-loop@latest install --agents codex,cursor,gemini,kimi
 ```
 
 Install for one named shared-path host:
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --agents gemini
+npx @opengsd/gsd-loop@latest install --agents gemini
 ```
 
 Force Claude adapters to be copies instead of symlinks:
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --adapter-mode copy
+npx @opengsd/gsd-loop@latest install --adapter-mode copy
 ```
 
 `--adapter-mode auto` is the default: try symlinks first and fall back to
@@ -175,8 +175,8 @@ python3 scripts/install-global.py
 Run the latest package again:
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --dry-run
-npx @open-gsd/gsd-loop@latest install
+npx @opengsd/gsd-loop@latest install --dry-run
+npx @opengsd/gsd-loop@latest install
 ```
 
 Reinstallation updates only installer-owned paths. If a destination with the
@@ -210,7 +210,7 @@ its contents. Rename it if you want to keep it, then rerun the installer.
 Use copy adapters:
 
 ```bash
-npx @open-gsd/gsd-loop@latest install --adapter-mode copy
+npx @opengsd/gsd-loop@latest install --adapter-mode copy
 ```
 
 ### GitHub checks fail
