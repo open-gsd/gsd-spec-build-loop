@@ -96,17 +96,19 @@ scripts/install-global.py --agents codex,cursor,kimi
 scripts/install-global.py --adapter-mode copy
 ```
 
-The installer updates only directories marked as its own. If a skill with the
+The installer updates only paths marked as its own. If a skill with the
 same name already exists and is not installer-owned, it stops without changing
 anything. Start a new agent session after installation so skill discovery runs
 again.
 
-To keep a lane running in the Codex app, ask for `$gsd-loop-schedule`. It
-creates or updates one named scheduled task for the current repository and
-chat. Productive passes run every 15 minutes; idle passes back off to 60
-minutes; three consecutive idle passes pause the task. Run build and review in
-separate chats so each has its own task and idle count. The computer and app
-must stay running for local scheduled work.
+To keep a lane running on a host with native recurring tasks, ask for
+`$gsd-loop-schedule`. In the Codex app, it creates or updates one named
+scheduled task for the current repository and chat. Productive passes run every
+15 minutes; idle passes back off to 60 minutes; three consecutive idle passes
+pause the task. Run build and review in separate chats so each has its own task
+and idle count. The computer and app must stay running for local scheduled
+work. On a host without native recurring tasks, the skill reports that
+scheduling is unsupported instead of starting its own background loop.
 
 Codex CLI or another agent that can `exec` a prompt can loop externally:
 
@@ -148,10 +150,11 @@ scripts/doctor.sh [owner/repo]   # defaults to the current directory's repo
 scripts/doctor.sh --review-ready # additionally requires protected CI
 ```
 
-To use the loop on another repository, copy `loop/` and `AGENTS.md` into it,
-plus `.agents/skills/` for Codex or `.claude/skills/` for Claude Code. The
-skills are thin pointers at the playbooks. Labels are created automatically on
-first run.
+After a global installation, invoke the skills from any GitHub worktree; no
+project files need to be copied. For a repository-local setup instead, copy
+`loop/` and `AGENTS.md` into it, plus `.agents/skills/` for shared Agent Skills
+clients or `.claude/skills/` for Claude Code. The repository skills are thin
+pointers at the playbooks. Labels are created automatically on first run.
 
 ## Design notes
 
