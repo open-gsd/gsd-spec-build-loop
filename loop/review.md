@@ -1,11 +1,12 @@
 # gsd-loop: review
 
-Each pass audits one PR, posts one verdict, sets labels, stops. Your loop
-runner supplies the cadence.
+Each pass handles one PR, repairs or posts one verdict, synchronizes its linked
+issue, sets labels, then stops. Your loop runner supplies the cadence.
 
 Runs alongside a build loop running the `loop/build.md` playbook in its own
-session. Sharing a token is fine — this playbook's entire output is comments
-and labels, so it can't collide with the builder's git state.
+session. Sharing a token is fine — this playbook changes only PR comments,
+issue outcome checkboxes, and labels, so it can't collide with the builder's
+git state.
 
 ## Choose what to audit
 
@@ -28,11 +29,32 @@ gh pr view NUMBER --json headRefOid,comments \
   --jq '{head: .headRefOid, verdicts: [.comments[] | select(.body | startswith("gsd-loop verdict for "))]}'
 ```
 
-- Current verdict already covers the head SHA? Don't re-audit — even when
-  the verdict's labels are missing (a prior pass died between comment and
-  label). Reinstate whatever labels that verdict dictates, post nothing,
-  move on. One SHA, one verdict, ever.
+- Current verdict already covers the head SHA? Don't re-audit. Resolve its
+  linked issue as below, synchronize that issue's outcomes to `complete` for
+  an approved verdict or `pending` for any blocking/escalated verdict, then
+  reinstate whatever labels the verdict dictates. Post nothing. This repairs
+  a pass that died between comment, checklist, and label. One SHA, one verdict,
+  ever.
 - New commits beyond the last verdict, or no verdict at all → auditable.
+
+Resolve the linked issue before checking CI, using the linkage rules under
+"Establish the contract." For a new head, invalidate earlier outcome evidence
+before auditing it:
+
+```bash
+gsd-loop outcomes ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
+```
+
+When executing the playbook from this source checkout without a globally
+installed command, use `node bin/gsd-loop.mjs outcomes ...` instead.
+
+The command verifies the PR head twice, refuses malformed or concurrently
+changed issue bodies, and changes only `O-N` checkboxes in `## Outcomes`. If it
+is unavailable or fails, report the pass as blocked; never edit the issue body
+with an ad-hoc text transform. An already-pending checklist is a no-op. If this
+invalidates checked outcomes but CI is not yet auditable, report work with
+reason `outcomes-invalidated`; only an unchanged pending checklist counts as an
+idle CI wait.
 
 Cheap gate before the expensive read: a PR whose required checks are still
 running, or whose mergeability reads `UNKNOWN`, isn't auditable yet — count
@@ -51,7 +73,8 @@ stopping the loop.
 ## Establish the contract
 
 Resolve the linked issue through GitHub's own linkage, with body-parsing of
-`Closes #NNN` only as a fallback:
+`Closes #NNN` only as a fallback. Do this once per candidate, before the CI
+gate and outcome invalidation described above:
 
 ```bash
 gh pr view NUMBER --json closingIssuesReferences \
@@ -78,16 +101,15 @@ List the changed paths and read the PR body before accepting its test evidence:
 gh pr view NUMBER --json files,body --jq '{files: [.files[].path], body: .body}'
 ```
 
-If a dependency manifest or lockfile changed and the issue contract or
-repository guidance requires a dependency audit, require branch-head evidence
-that the default-branch baseline and proposed branch were audited with the same
+If a dependency manifest or lockfile changed, require branch-head evidence that
+the default-branch baseline and proposed branch were audited with the same
 machine-readable command and compared by advisory identifier and affected
 package. The PR body must contain `Dependency audit: baseline compared` with
-the commands and result. Missing, stale, or incomparable required evidence is
-`[SEC]` and blocks approval. A new high or critical advisory attributable to
-the diff is also `[SEC]`; route it to `gsd:escalated` when the issue contract
-does not permit a compatible fix. Otherwise accept
-`Dependency audit: not applicable`.
+the commands and result. Missing, stale, or incomparable evidence is `[SEC]`
+and blocks approval. A new high or critical advisory attributable to the diff
+is also `[SEC]`; route it to `gsd:escalated` when the issue contract does not
+permit a compatible fix. Only a diff with no dependency manifest or lockfile
+changes may use `Dependency audit: not applicable`.
 
 Blocking findings are tagged:
 
@@ -175,6 +197,18 @@ Labels follow the verdict:
 Any verdict that applies `gsd:escalated` closes with the resumption
 instruction: "Resolve the above, then remove `gsd:escalated`."
 
+Immediately after posting the verdict and before changing labels, synchronize
+the linked issue against the same head SHA. An approval checks every outcome:
+
+```bash
+gsd-loop outcomes ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
+```
+
+Any blocking or escalated verdict uses `pending` instead. If synchronization
+fails after the comment is posted, stop without changing labels and report the
+pass as blocked. The next pass recognizes the SHA-pinned verdict and repairs
+the checklist and labels without posting a second verdict.
+
 Escalation is a one-way door out of automation by design: the loop won't
 look at that commit again until a human fixes the underlying cause and
 removes the label.
@@ -184,8 +218,8 @@ removes the label.
 - No merging, no auto-merge.
 - No commits, no pushes, ever, to any branch.
 - No formal GitHub review approvals or change-requests — the loop may share
-  the PR author's token, and GitHub refuses self-review. One comment plus
-  labels is the whole interface.
+  the PR author's token, and GitHub refuses self-review. The verdict comment,
+  issue outcome checkboxes, and labels are the whole interface.
 - `gsd:approved` is input to a human's merge decision, not a substitute for
   it.
 
@@ -198,6 +232,7 @@ after it:
 GSD_LOOP_RESULT={"lane":"review","status":"work|idle|blocked","reason":"short-reason"}
 ```
 
-Use `work` after posting or repairing a verdict or label, `idle` only when no
-PR is auditable, and `blocked` when credentials, permissions, required CI, or
-malformed repository state prevent a safe verdict.
+Use `work` after changing a checklist, posting or repairing a verdict, or
+changing a label; `idle` only when no PR is auditable and no state changed;
+and `blocked` when credentials, permissions, required CI, or malformed
+repository state prevent a safe verdict.

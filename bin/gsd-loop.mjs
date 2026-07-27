@@ -7,6 +7,7 @@ import { formatDoctor, inspectDoctor } from "../lib/doctor.mjs";
 import { CliError, UsageError } from "../lib/errors.mjs";
 import { initialize, parseInitArguments } from "../lib/init.mjs";
 import { install, parseInstallArguments } from "../lib/install.mjs";
+import { parseOutcomeArguments, syncIssueOutcomes } from "../lib/outcomes.mjs";
 import { runLane, schedulerDecision } from "../lib/runner.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -18,6 +19,7 @@ function usage() {
   gsd-loop install [options]
   gsd-loop init [options]
   gsd-loop doctor [--review-ready] [--json] [--repo OWNER/NAME]
+  gsd-loop outcomes ISSUE complete|pending --repo OWNER/NAME --pr NUMBER --head SHA
   gsd-loop run build|review [--agent NAME] [--once]
   gsd-loop policy work|idle|blocked IDLE_COUNT
 
@@ -100,6 +102,11 @@ try {
     const report = inspectDoctor({ cwd: process.cwd(), repo: options.repo });
     console.log(options.json ? JSON.stringify(report) : formatDoctor(report));
     if (options.reviewReady && !report.reviewReady) process.exitCode = 3;
+  } else if (command === "outcomes") {
+    const options = parseOutcomeArguments(argumentsList);
+    const changed = syncIssueOutcomes({ cwd: process.cwd(), ...options });
+    const state = changed ? options.state : `already ${options.state}`;
+    console.log(`issue #${options.issue} outcomes: ${state}`);
   } else if (command === "run") {
     const options = parseRunArguments(argumentsList);
     process.exitCode = await runLane({ cwd: process.cwd(), ...options });

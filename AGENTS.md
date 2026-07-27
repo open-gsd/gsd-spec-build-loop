@@ -1,8 +1,10 @@
 # gsd-loop — instructions for coding agents
 
 This repository ships three agent-neutral playbooks under `loop/`. They work
-with any agent that can run shell commands and the authenticated `gh` CLI
-(Codex, Claude Code, Cursor, Gemini CLI, aider, ...).
+with any agent that can run shell commands, the authenticated `gh` CLI, and the
+companion `gsd-loop` command (Codex, Claude Code, Cursor, Gemini CLI, aider,
+...). The npm runner supplies that command; from this source checkout use
+`node bin/gsd-loop.mjs` when it is not installed globally.
 
 ## Routing
 

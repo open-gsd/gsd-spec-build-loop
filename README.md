@@ -4,10 +4,11 @@ A human-gated agent work loop for GitHub. Ideas become contract-grade
 issues, issues become PRs, PRs get audited verdicts — and every
 irreversible step stays human.
 
-The loop is three agent-neutral playbooks in `loop/` that any coding agent
-can execute (Codex, Claude Code, Cursor, Gemini CLI, ...). The playbooks' only
-hard dependency is an authenticated `gh` CLI. Repository skills live in
-`.agents/skills/`, with compatibility shims in `.claude/skills/`.
+The loop is three agent-neutral playbooks in `loop/` that any coding agent can
+execute (Codex, Claude Code, Cursor, Gemini CLI, ...). They use an authenticated
+`gh` CLI plus the companion `gsd-loop` command for deterministic state changes;
+the npm runner places that command on the agent's path. Repository skills live
+in `.agents/skills/`, with compatibility shims in `.claude/skills/`.
 
 ```
  idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue
@@ -30,7 +31,7 @@ hard dependency is an authenticated `gh` CLI. Repository skills live in
 |---|---|---|
 | `loop/spec.md` | interactive | Interview you about a raw idea, then file a GitHub issue with an `O-N` outcome / `X-N` exclusion contract |
 | `loop/build.md` | unattended | Repair one `gsd:rework` PR, or claim the oldest safe `gsd:ready` issue and open a PR |
-| `loop/review.md` | unattended | Audit one PR against its issue contract and required CI, post a `gsd-loop verdict`, set labels |
+| `loop/review.md` | unattended | Audit one PR against its issue contract and required CI, post a `gsd-loop verdict`, synchronize outcome checkboxes, set labels |
 
 ## Label state machine
 
@@ -39,7 +40,7 @@ hard dependency is an authenticated `gh` CLI. Repository skills live in
 | `gsd:ready` | human | merge (issue closes) | Approved for the build queue |
 | `gsd:blocked` | builder | human | One specific question awaits an answer |
 | `gsd:rework` | reviewer | builder | Verdict has blocking findings |
-| `gsd:approved` | reviewer | — | Evidence complete; merge is yours |
+| `gsd:approved` | reviewer | — | Evidence complete and issue outcomes checked; merge is yours |
 | `gsd:escalated` | either | human | Out of automation until a human resolves it |
 
 ## Quick start
@@ -137,7 +138,9 @@ onboarding command.
 
 - **One SHA, one verdict.** Verdict comments open with
   `gsd-loop verdict for <sha>`; a commit is never re-audited, and crashed
-  passes repair labels from the existing verdict instead of re-reviewing.
+  passes repair issue checkboxes and labels from the existing verdict instead
+  of re-reviewing. New commits invalidate checked outcomes until the new head
+  is independently approved.
 - **Crash-anywhere recovery.** The builder reconstructs state from git and
   GitHub (dirty trees, orphaned `gsd/NNN-*` branches, stale claims) rather
   than from memory, so a pass can die on any line without wedging the queue.
@@ -147,6 +150,10 @@ onboarding command.
 - **Contracts bind both sides.** The builder implements only `O-N` outcomes;
   the reviewer audits only against them; `X-N` exclusions fence both. If it
   isn't in the issue, it doesn't exist.
+- **Dependency diffs are audited.** Any manifest or lockfile change requires a
+  machine-readable baseline-versus-branch advisory comparison. New high or
+  critical advisories block approval even when the issue did not ask for a
+  security audit.
 - **Idle back-off.** Empty queues push the loop to its longest interval and,
   after three idle passes, recommend stopping — new work only appears when
   a human files, unblocks, or merges.
