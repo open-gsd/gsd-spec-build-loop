@@ -77,6 +77,24 @@ assert.equal(
   transformOutcomeChecklist(postBlankDescriptionBody, "complete"),
   postBlankDescriptionBody.replace("- [ ] O-6", "- [x] O-6"),
 );
+const wideMarkerDescriptionBody = `## Outcomes
+
+-   [ ] O-6 — tests cover every required path, including
+    O-5 must exit 1 without changing state.
+`;
+assert.equal(
+  transformOutcomeChecklist(wideMarkerDescriptionBody, "complete"),
+  wideMarkerDescriptionBody.replace("-   [ ] O-6", "-   [x] O-6"),
+);
+const tabbedDescriptionBody = `## Outcomes
+
+-\t[ ] O-6 — tests cover every required path, including
+\tO-5 must exit 1 without changing state.
+`;
+assert.equal(
+  transformOutcomeChecklist(tabbedDescriptionBody, "complete"),
+  tabbedDescriptionBody.replace("-\t[ ] O-6", "-\t[x] O-6"),
+);
 assert.throws(
   () => transformOutcomeChecklist("## Why\n\nNo contract.\n", "complete"),
   /Outcomes section/,
@@ -111,6 +129,10 @@ assert.throws(
 );
 assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n\n O-2 must not be ignored.\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n-   [ ] O-1 — first\n  O-2 must not be ignored.\n", "complete"),
   /malformed outcome O-2/,
 );
 assert.throws(
