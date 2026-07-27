@@ -40,8 +40,8 @@ compatibility shims in `.claude/skills/`.
 |---|---|---|---|
 | `gsd:ready` | human | merge (issue closes) | Approved for the build queue |
 | `gsd:blocked` | builder | human | One specific question awaits an answer |
-| `gsd:rework` | reviewer | builder | Verdict has blocking findings |
-| `gsd:approved` | reviewer | — | Evidence complete and issue outcomes checked; merge is yours |
+| `gsd:rework` | reviewer | builder or reviewer | Verdict has blocking findings |
+| `gsd:approved` | reviewer | reviewer on a new head or blocking verdict | Evidence complete and issue outcomes checked; merge is yours |
 | `gsd:escalated` | either | human | Out of automation until a human resolves it |
 
 ## Quick start
@@ -137,24 +137,26 @@ onboarding command.
 
 ## Design notes
 
-- **One SHA, one verdict.** Verdict comments open with
-  `gsd-loop verdict for <sha>`; a commit is never re-audited, and crashed
-  passes repair issue checkboxes and labels from the existing verdict instead
-  of re-reviewing. New commits invalidate checked outcomes until the new head
-  is independently approved.
+- **One head and linked issue, one verdict.** Trusted verdict comments open
+  with `gsd-loop verdict for <sha> issue #<number>`; that head-and-issue pair
+  is never re-audited, and crashed passes repair issue checkboxes and labels
+  from the existing verdict instead. New commits invalidate checked outcomes
+  until the new head is independently approved.
 - **Crash-anywhere recovery.** The builder reconstructs state from git and
   GitHub (dirty trees, orphaned `gsd/NNN-*` branches, stale claims) rather
   than from memory, so a pass can die on any line without wedging the queue.
 - **Three strikes.** Three blocking verdicts on distinct SHAs — counted
   since the last human-cleared escalation — route the PR to `gsd:escalated`
   instead of looping forever.
-- **Contracts bind both sides.** The builder implements only `O-N` outcomes;
-  the reviewer audits only against them; `X-N` exclusions fence both. If it
-  isn't in the issue, it doesn't exist.
+- **Contracts bind product scope.** The builder implements only `O-N`
+  outcomes; the reviewer audits functional behavior against them; `X-N`
+  exclusions fence both. Independent required-CI and dependency-security
+  gates still apply.
 - **Dependency diffs are audited.** Any manifest or lockfile change requires a
   machine-readable baseline-versus-branch advisory comparison. New high or
   critical advisories block approval even when the issue did not ask for a
   security audit.
-- **Idle back-off.** Empty queues push the loop to its longest interval and,
-  after three idle passes, recommend stopping — new work only appears when
-  a human files, unblocks, or merges.
+- **Idle back-off.** Empty queues push the loop to its longest interval. The
+  portable runner stops after three idle passes; direct one-pass use recommends
+  stopping then because new work only appears when a human files, unblocks, or
+  merges.

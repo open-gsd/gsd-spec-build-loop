@@ -24,9 +24,9 @@ Rules that apply regardless of agent:
   or native runner, not for improvising extra iterations.
 - Never merge, never enable auto-merge, never force-push. Humans own every
   merge.
-- The issue is the whole contract: implement only its `O-N` outcomes, treat
-  `X-N` exclusions as binding, and escalate with `gsd:escalated` instead of
-  guessing.
+- The issue is the whole product and scope contract: implement only its `O-N`
+  outcomes, treat `X-N` exclusions as binding, and escalate with
+  `gsd:escalated` instead of guessing.
 - Run at most one build loop per repository. Portable and native runners share
   a repository-local lane lock; the issue assignee remains the cooperative,
   cross-host claim and is not atomic.
