@@ -22,16 +22,14 @@ function usage() {
   gsd-loop policy work|idle|blocked IDLE_COUNT
 
 Install skills and prepare a repository. Run work inside your agent harness:
-  Codex:       $gsd-loop-build or $gsd-loop-review
-  Claude Code: /gsd-loop-build or /gsd-loop-review
-  Cursor:      /gsd-loop-build or /gsd-loop-review
-  Gemini CLI:  Use the gsd-loop-build skill or Use the gsd-loop-review skill
-  Kimi Code:   /skill:gsd-loop-build or /skill:gsd-loop-review
+  Codex, Cursor, Gemini: $gsd-loop-build or $gsd-loop-review
+  Claude Code:          /gsd-loop-build or /gsd-loop-review
+  Kimi Code:            /skill:gsd-loop-build or /skill:gsd-loop-review
 
 Install options:
   --home PATH                       install beneath an alternate home directory
   --agents LIST                     codex,claude,cursor,gemini,kimi (default: all)
-  --adapter-mode auto|symlink|copy  native adapter behavior (default: auto)
+  --adapter-mode auto|symlink|copy  Claude adapter behavior (default: auto)
   --dry-run                         show destinations without writing
 
 Init options:

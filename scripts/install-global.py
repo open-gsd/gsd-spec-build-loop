@@ -17,11 +17,6 @@ MARKER = ".gsd-loop-install.json"
 MARKER_CONTENT = {"installer": "gsd-loop", "format": 1}
 ADAPTER_MARKER_SUFFIX = ".gsd-loop-adapter.json"
 ADAPTER_MARKER_CONTENT = {"installer": "gsd-loop", "format": 1, "adapter": "symlink"}
-ADAPTER_ROOTS = {
-    "claude": ("Claude", ".claude"),
-    "cursor": ("Cursor", ".cursor"),
-    "gemini": ("Gemini", ".gemini"),
-}
 
 
 def parse_agents(value: str) -> frozenset[str]:
@@ -71,15 +66,23 @@ def roots_alias(first: Path, second: Path) -> bool:
     return first.resolve() == second.resolve()
 
 
-def preflight_adapter_root(
-    canonical_root: Path, adapter_root: Path, adapter_mode: str
+def preflight(
+    canonical_root: Path,
+    claude_root: Path,
+    agents: frozenset[str],
+    adapter_mode: str,
 ) -> list[Path]:
     conflicts: list[Path] = []
-    if roots_alias(canonical_root, adapter_root):
+    for skill in SKILLS:
+        destination = canonical_root / skill
+        if path_exists(destination) and not is_owned_directory(destination):
+            conflicts.append(destination)
+
+    if "claude" not in agents or roots_alias(canonical_root, claude_root):
         return conflicts
 
     for skill in SKILLS:
-        destination = adapter_root / skill
+        destination = claude_root / skill
         canonical = canonical_root / skill
         marker = adapter_marker(destination)
         owned_adapter = is_owned_adapter(destination, canonical)
@@ -95,24 +98,6 @@ def preflight_adapter_root(
             continue
         if not is_owned_directory(destination):
             conflicts.append(destination)
-    return conflicts
-
-
-def preflight(
-    canonical_root: Path,
-    adapter_roots: list[Path],
-    adapter_mode: str,
-) -> list[Path]:
-    conflicts: list[Path] = []
-    for skill in SKILLS:
-        destination = canonical_root / skill
-        if path_exists(destination) and not is_owned_directory(destination):
-            conflicts.append(destination)
-
-    for adapter_root in adapter_roots:
-        conflicts.extend(
-            preflight_adapter_root(canonical_root, adapter_root, adapter_mode)
-        )
     return conflicts
 
 
@@ -264,14 +249,14 @@ def replace_adapter(stage: Path, destination: Path) -> None:
             remove_path(marker_stage)
 
 
-def install_adapters(canonical_root: Path, adapter_root: Path, mode: str) -> None:
-    if roots_alias(canonical_root, adapter_root):
+def install_claude_adapters(canonical_root: Path, claude_root: Path, mode: str) -> None:
+    if roots_alias(canonical_root, claude_root):
         return
 
-    adapter_root.mkdir(parents=True, exist_ok=True)
+    claude_root.mkdir(parents=True, exist_ok=True)
     for skill in SKILLS:
         canonical = canonical_root / skill
-        destination = adapter_root / skill
+        destination = claude_root / skill
         if destination.is_symlink() and destination.resolve() == canonical.resolve() and mode != "copy":
             continue
 
@@ -303,7 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--adapter-mode",
         choices=("auto", "symlink", "copy"),
         default="auto",
-        help="how to create native host adapters (default: auto)",
+        help="how to create Claude adapters (default: auto)",
     )
     parser.add_argument("--dry-run", action="store_true", help="show destinations without writing")
     return parser
@@ -314,33 +299,25 @@ def main() -> int:
     source_root = Path(__file__).resolve().parents[1]
     home = args.home.expanduser().resolve()
     canonical_root = home / ".agents" / "skills"
-    adapter_roots = [
-        (label, home / directory / "skills")
-        for agent, (label, directory) in ADAPTER_ROOTS.items()
-        if agent in args.agents
-    ]
+    claude_root = home / ".claude" / "skills"
 
-    conflicts = preflight(
-        canonical_root,
-        [root for _, root in adapter_roots],
-        args.adapter_mode,
-    )
+    conflicts = preflight(canonical_root, claude_root, args.agents, args.adapter_mode)
     if conflicts:
         for conflict in conflicts:
             print(f"refusing to overwrite unowned path: {conflict}", file=sys.stderr)
         return 1
 
-    print(f"canonical skills: {canonical_root}")
-    for label, root in adapter_roots:
-        print(f"{label} adapters: {root} ({args.adapter_mode})")
+    print(f"shared skills: {canonical_root}")
+    if "claude" in args.agents:
+        print(f"Claude adapters: {claude_root} ({args.adapter_mode})")
     print(f"agents: {', '.join(sorted(args.agents))}")
     if args.dry_run:
         print("dry run; no files written")
         return 0
 
     install_canonical(source_root, canonical_root)
-    for _, root in adapter_roots:
-        install_adapters(canonical_root, root, args.adapter_mode)
+    if "claude" in args.agents:
+        install_claude_adapters(canonical_root, claude_root, args.adapter_mode)
     print(f"installed {len(SKILLS)} gsd-loop skills")
     return 0
 
