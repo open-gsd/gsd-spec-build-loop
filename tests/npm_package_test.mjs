@@ -82,7 +82,7 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
-  assert.equal(metadata.version, "0.2.1");
+  assert.equal(metadata.version, "0.2.2");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
@@ -90,8 +90,27 @@ try {
   assert.match(help, /gsd-loop init/);
   assert.match(help, /gsd-loop doctor/);
   assert.doesNotMatch(help, /gsd-loop run build\|review/);
-  assert.match(help, /\$gsd-loop-build/);
-  assert.match(help, /\/gsd-loop-review/);
+  assert.match(
+    help,
+    /Codex:.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
+    /Claude Code:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
+    /Cursor:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
+    /Gemini CLI:.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
+  );
+  assert.match(
+    help,
+    /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
+  );
+  assert.match(help, /native adapter behavior/);
   assert.match(help, /gsd-loop policy/);
   const removedRunner = run(["run", "build"], { allowFailure: true });
   assert.equal(removedRunner.status, 2);
@@ -106,10 +125,15 @@ try {
   run(["install", "--home", home]);
   for (const lane of ["spec", "build", "review", "schedule"]) {
     const skill = join(home, ".agents", "skills", `gsd-loop-${lane}`);
-    const claude = join(home, ".claude", "skills", `gsd-loop-${lane}`);
     assert.ok(existsSync(join(skill, "SKILL.md")));
     assert.ok(existsSync(join(skill, ".gsd-loop-install.json")));
-    assert.ok(existsSync(claude));
+    for (const directory of [".claude", ".cursor", ".gemini"]) {
+      const adapterRoot = join(home, directory, "skills");
+      const adapter = join(adapterRoot, `gsd-loop-${lane}`);
+      const marker = join(adapterRoot, `.gsd-loop-${lane}.gsd-loop-adapter.json`);
+      assert.ok(existsSync(adapter));
+      assert.ok(existsSync(marker));
+    }
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
@@ -134,8 +158,10 @@ try {
   assert.match(invalidProjection.stderr, /must contain GraphQL pages/);
   assert.equal(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts")), false);
   const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");
-  assert.match(scheduleSkill, /Codex, Cursor, or Gemini: `\$gsd-loop-build` or `\$gsd-loop-review`/);
+  assert.match(scheduleSkill, /Codex: `\$gsd-loop-build` or `\$gsd-loop-review`/);
   assert.match(scheduleSkill, /Claude Code: `\/gsd-loop-build` or `\/gsd-loop-review`/);
+  assert.match(scheduleSkill, /Cursor: `\/gsd-loop-build` or `\/gsd-loop-review`/);
+  assert.match(scheduleSkill, /Gemini CLI: `Use the gsd-loop-build skill` or `Use the gsd-loop-review skill`/);
   assert.match(scheduleSkill, /Kimi Code: `\/skill:gsd-loop-build` or `\/skill:gsd-loop-review`/);
   assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest policy EVENT IDLE_COUNT/);
   assert.doesNotMatch(scheduleSkill, /npx @opengsd\/gsd-loop@latest run/);
@@ -159,7 +185,68 @@ try {
   const geminiHome = join(testRoot, "gemini-home");
   run(["install", "--home", geminiHome, "--agents", "gemini"]);
   assert.ok(existsSync(join(geminiHome, ".agents", "skills", "gsd-loop-spec")));
+  assert.ok(existsSync(join(geminiHome, ".gemini", "skills", "gsd-loop-spec")));
   assert.equal(existsSync(join(geminiHome, ".claude")), false);
+  assert.equal(existsSync(join(geminiHome, ".cursor")), false);
+
+  const cursorRootConflictHome = join(testRoot, "cursor-root-conflict-home");
+  run(["install", "--home", cursorRootConflictHome, "--agents", "codex"]);
+  const cursorCanonicalBuild = join(
+    cursorRootConflictHome,
+    ".agents",
+    "skills",
+    "gsd-loop-build",
+    "SKILL.md",
+  );
+  const cursorCanonicalSpec = join(cursorRootConflictHome, ".agents", "skills", "gsd-loop-spec");
+  writeFileSync(cursorCanonicalBuild, "old canonical\n");
+  rmSync(cursorCanonicalSpec, { recursive: true });
+  mkdirSync(join(cursorRootConflictHome, ".cursor"), { recursive: true });
+  const cursorRootConflict = join(cursorRootConflictHome, ".cursor", "skills");
+  writeFileSync(cursorRootConflict, "preserve root\n");
+  const cursorRootFailed = run(
+    ["install", "--home", cursorRootConflictHome, "--agents", "cursor"],
+    { allowFailure: true },
+  );
+  assert.notEqual(cursorRootFailed.status, 0);
+  assert.match(cursorRootFailed.stderr, /refusing to overwrite unowned path/);
+  assert.equal(readFileSync(cursorRootConflict, "utf8"), "preserve root\n");
+  assert.equal(readFileSync(cursorCanonicalBuild, "utf8"), "old canonical\n");
+  assert.equal(existsSync(cursorCanonicalSpec), false);
+
+  const geminiParentConflictHome = join(testRoot, "gemini-parent-conflict-home");
+  run(["install", "--home", geminiParentConflictHome, "--agents", "codex"]);
+  const geminiCanonicalBuild = join(
+    geminiParentConflictHome,
+    ".agents",
+    "skills",
+    "gsd-loop-build",
+    "SKILL.md",
+  );
+  const geminiCanonicalSpec = join(geminiParentConflictHome, ".agents", "skills", "gsd-loop-spec");
+  writeFileSync(geminiCanonicalBuild, "old canonical\n");
+  rmSync(geminiCanonicalSpec, { recursive: true });
+  const geminiParentConflict = join(geminiParentConflictHome, ".gemini");
+  writeFileSync(geminiParentConflict, "preserve parent\n");
+  const geminiParentFailed = run(
+    ["install", "--home", geminiParentConflictHome, "--agents", "gemini"],
+    { allowFailure: true },
+  );
+  assert.notEqual(geminiParentFailed.status, 0);
+  assert.match(geminiParentFailed.stderr, /refusing to overwrite unowned path/);
+  assert.equal(readFileSync(geminiParentConflict, "utf8"), "preserve parent\n");
+  assert.equal(readFileSync(geminiCanonicalBuild, "utf8"), "old canonical\n");
+  assert.equal(existsSync(geminiCanonicalSpec), false);
+
+  const cursorConflictHome = join(testRoot, "cursor-conflict-home");
+  const cursorConflict = join(cursorConflictHome, ".cursor", "skills", "gsd-loop-review");
+  mkdirSync(cursorConflict, { recursive: true });
+  writeFileSync(join(cursorConflict, "user-file"), "preserve me\n");
+  const cursorFailed = run(["install", "--home", cursorConflictHome], { allowFailure: true });
+  assert.notEqual(cursorFailed.status, 0);
+  assert.match(cursorFailed.stderr, /refusing to overwrite unowned path/);
+  assert.equal(readFileSync(join(cursorConflict, "user-file"), "utf8"), "preserve me\n");
+  assert.equal(existsSync(join(cursorConflictHome, ".agents")), false);
 
   if (process.platform !== "win32") {
     const migrationHome = join(testRoot, "migration-home");

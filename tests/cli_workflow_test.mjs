@@ -169,8 +169,27 @@ else process.exit(1);
   assert.equal(help.status, 0);
   assert.match(help.stdout, /gsd-loop init/);
   assert.doesNotMatch(help.stdout, /gsd-loop run build\|review/);
-  assert.match(help.stdout, /\$gsd-loop-build/);
-  assert.match(help.stdout, /\/gsd-loop-review/);
+  assert.match(
+    help.stdout,
+    /Codex:.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
+  );
+  assert.match(
+    help.stdout,
+    /Claude Code:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help.stdout,
+    /Cursor:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help.stdout,
+    /Gemini CLI:.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
+  );
+  assert.match(
+    help.stdout,
+    /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
+  );
+  assert.match(help.stdout, /native adapter behavior/);
 
   const removedRunner = runCli(["run", "build"]);
   assert.equal(removedRunner.status, 2);
@@ -363,6 +382,8 @@ else process.exit(1);
   assert.match(initialized.stdout, /build: ready/);
   assert.match(initialized.stdout, /review: ready/);
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "SKILL.md")));
+  assert.ok(existsSync(join(home, ".cursor", "skills", "gsd-loop-build", "SKILL.md")));
+  assert.ok(existsSync(join(home, ".gemini", "skills", "gsd-loop-build", "SKILL.md")));
   assert.equal(existsSync(join(repository, ".git", "gsd-loop")), false);
   const localExclude = join(repository, ".git", "info", "exclude");
   assert.doesNotMatch(readFileSync(localExclude, "utf8"), /\.claude\/scheduled_tasks\.lock/);

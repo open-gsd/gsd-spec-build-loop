@@ -11,12 +11,14 @@ install_root="$TEST_ROOT/install"
 
 for skill in spec build review schedule; do
   canonical="$install_root/.agents/skills/gsd-loop-$skill"
-  claude="$install_root/.claude/skills/gsd-loop-$skill"
   test -f "$canonical/SKILL.md"
   test -f "$canonical/.gsd-loop-install.json"
-  test -L "$claude"
-  test -f "$install_root/.claude/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
-  [ "$(readlink "$claude")" = "$canonical" ]
+  for host in .claude .cursor .gemini; do
+    adapter="$install_root/$host/skills/gsd-loop-$skill"
+    test -L "$adapter"
+    test -f "$install_root/$host/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
+    [ "$(readlink "$adapter")" = "$canonical" ]
+  done
 done
 
 test -f "$install_root/.agents/skills/gsd-loop-build/playbook.md"
@@ -50,29 +52,37 @@ dry_root="$TEST_ROOT/dry"
 "$INSTALLER" --home "$dry_root" --dry-run
 test ! -e "$dry_root"
 
-shared_root="$TEST_ROOT/shared-only"
+shared_root="$TEST_ROOT/selective"
 "$INSTALLER" --home "$shared_root" --agents codex,cursor,kimi
 test -d "$shared_root/.agents/skills/gsd-loop-build"
+test -L "$shared_root/.cursor/skills/gsd-loop-build"
 test ! -e "$shared_root/.claude"
+test ! -e "$shared_root/.gemini"
 
 gemini_root="$TEST_ROOT/gemini"
 "$INSTALLER" --home "$gemini_root" --agents gemini
 test -d "$gemini_root/.agents/skills/gsd-loop-build"
+test -L "$gemini_root/.gemini/skills/gsd-loop-build"
 test ! -e "$gemini_root/.claude"
+test ! -e "$gemini_root/.cursor"
 
 copy_root="$TEST_ROOT/copy"
 "$INSTALLER" --home "$copy_root" --adapter-mode copy
-test -d "$copy_root/.claude/skills/gsd-loop-build"
-test ! -L "$copy_root/.claude/skills/gsd-loop-build"
+for host in .claude .cursor .gemini; do
+  test -d "$copy_root/$host/skills/gsd-loop-build"
+  test ! -L "$copy_root/$host/skills/gsd-loop-build"
+done
 
 owned_conversion_root="$TEST_ROOT/owned-conversion"
 "$INSTALLER" --home "$owned_conversion_root"
 "$INSTALLER" --home "$owned_conversion_root" --adapter-mode copy
 for skill in spec build review schedule; do
-  adapter="$owned_conversion_root/.claude/skills/gsd-loop-$skill"
-  test -d "$adapter"
-  test ! -L "$adapter"
-  test ! -e "$owned_conversion_root/.claude/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
+  for host in .claude .cursor .gemini; do
+    adapter="$owned_conversion_root/$host/skills/gsd-loop-$skill"
+    test -d "$adapter"
+    test ! -L "$adapter"
+    test ! -e "$owned_conversion_root/$host/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
+  done
 done
 
 conflict_root="$TEST_ROOT/conflict"
@@ -98,6 +108,47 @@ fi
 grep -q 'refusing to overwrite unowned path' "$claude_conflict_output"
 grep -q 'preserve me' "$claude_conflict_root/.claude/skills/gsd-loop-review/user-file"
 test ! -e "$claude_conflict_root/.agents"
+
+cursor_conflict_root="$TEST_ROOT/cursor-conflict"
+cursor_conflict_output="$TEST_ROOT/cursor-conflict.out"
+mkdir -p "$cursor_conflict_root/.cursor/skills/gsd-loop-review"
+printf 'preserve me\n' > "$cursor_conflict_root/.cursor/skills/gsd-loop-review/user-file"
+if "$INSTALLER" --home "$cursor_conflict_root" >"$cursor_conflict_output" 2>&1; then
+  echo 'an unowned Cursor destination must block installation' >&2
+  exit 1
+fi
+grep -q 'refusing to overwrite unowned path' "$cursor_conflict_output"
+grep -q 'preserve me' "$cursor_conflict_root/.cursor/skills/gsd-loop-review/user-file"
+test ! -e "$cursor_conflict_root/.agents"
+
+cursor_root_conflict="$TEST_ROOT/cursor-root-conflict"
+"$INSTALLER" --home "$cursor_root_conflict" --agents codex
+printf 'old canonical\n' > "$cursor_root_conflict/.agents/skills/gsd-loop-build/SKILL.md"
+rm -r "$cursor_root_conflict/.agents/skills/gsd-loop-spec"
+mkdir -p "$cursor_root_conflict/.cursor"
+printf 'preserve root\n' > "$cursor_root_conflict/.cursor/skills"
+if "$INSTALLER" --home "$cursor_root_conflict" --agents cursor >"$TEST_ROOT/cursor-root-conflict.out" 2>&1; then
+  echo 'an occupied Cursor adapter root must block installation' >&2
+  exit 1
+fi
+grep -q 'refusing to overwrite unowned path' "$TEST_ROOT/cursor-root-conflict.out"
+[ "$(cat "$cursor_root_conflict/.cursor/skills")" = 'preserve root' ]
+[ "$(cat "$cursor_root_conflict/.agents/skills/gsd-loop-build/SKILL.md")" = 'old canonical' ]
+test ! -e "$cursor_root_conflict/.agents/skills/gsd-loop-spec"
+
+gemini_parent_conflict="$TEST_ROOT/gemini-parent-conflict"
+"$INSTALLER" --home "$gemini_parent_conflict" --agents codex
+printf 'old canonical\n' > "$gemini_parent_conflict/.agents/skills/gsd-loop-build/SKILL.md"
+rm -r "$gemini_parent_conflict/.agents/skills/gsd-loop-spec"
+printf 'preserve parent\n' > "$gemini_parent_conflict/.gemini"
+if "$INSTALLER" --home "$gemini_parent_conflict" --agents gemini >"$TEST_ROOT/gemini-parent-conflict.out" 2>&1; then
+  echo 'an occupied Gemini adapter parent must block installation' >&2
+  exit 1
+fi
+grep -q 'refusing to overwrite unowned path' "$TEST_ROOT/gemini-parent-conflict.out"
+[ "$(cat "$gemini_parent_conflict/.gemini")" = 'preserve parent' ]
+[ "$(cat "$gemini_parent_conflict/.agents/skills/gsd-loop-build/SKILL.md")" = 'old canonical' ]
+test ! -e "$gemini_parent_conflict/.agents/skills/gsd-loop-spec"
 
 aliased_root="$TEST_ROOT/aliased"
 mkdir -p "$aliased_root/.agents/skills" "$aliased_root/.claude"
@@ -172,7 +223,7 @@ with (
     mock.patch.object(installer.shutil, "copytree", side_effect=OSError("copy failed")),
 ):
     try:
-        installer.install_claude_adapters(canonical_root, claude_root, "auto")
+        installer.install_adapters(canonical_root, claude_root, "auto")
     except OSError:
         pass
     else:
@@ -195,7 +246,7 @@ def fail_stage_rename(path, target):
 
 with mock.patch.object(Path, "rename", fail_stage_rename):
     try:
-        installer.install_claude_adapters(canonical_root, claude_root, "copy")
+        installer.install_adapters(canonical_root, claude_root, "copy")
     except OSError:
         pass
     else:
@@ -211,7 +262,7 @@ with mock.patch.object(
     side_effect=OSError("marker creation failed"),
 ):
     try:
-        installer.install_claude_adapters(canonical_root, claude_root, "symlink")
+        installer.install_adapters(canonical_root, claude_root, "symlink")
     except OSError:
         pass
     else:
@@ -231,7 +282,7 @@ for skill in installer.SKILLS:
     canonical.mkdir(parents=True)
     (canonical / "SKILL.md").write_text("canonical\n")
 
-installer.install_claude_adapters(removal_canonical_root, removal_claude_root, "symlink")
+installer.install_adapters(removal_canonical_root, removal_claude_root, "symlink")
 failed_marker = installer.adapter_marker(removal_claude_root / installer.SKILLS[0])
 original_remove_path = installer.remove_path
 
@@ -250,7 +301,7 @@ with (
     mock.patch.object(Path, "rename", fail_marker_rename),
 ):
     try:
-        installer.install_claude_adapters(removal_canonical_root, removal_claude_root, "copy")
+        installer.install_adapters(removal_canonical_root, removal_claude_root, "copy")
     except OSError:
         pass
     else:
@@ -269,7 +320,7 @@ for skill in installer.SKILLS:
     canonical.mkdir(parents=True)
     (canonical / "SKILL.md").write_text("canonical\n")
 
-installer.install_claude_adapters(cleanup_canonical_root, cleanup_claude_root, "symlink")
+installer.install_adapters(cleanup_canonical_root, cleanup_claude_root, "symlink")
 cleanup_marker = installer.adapter_marker(cleanup_claude_root / installer.SKILLS[0])
 cleanup_backup_prefix = f".{cleanup_marker.name}.previous-"
 
@@ -283,7 +334,7 @@ with (
     mock.patch.object(installer, "remove_path", fail_marker_backup_cleanup),
     contextlib.redirect_stderr(warnings),
 ):
-    installer.install_claude_adapters(cleanup_canonical_root, cleanup_claude_root, "copy")
+    installer.install_adapters(cleanup_canonical_root, cleanup_claude_root, "copy")
 
 assert "warning: could not remove backup" in warnings.getvalue()
 for skill in installer.SKILLS:

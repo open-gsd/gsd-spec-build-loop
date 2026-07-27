@@ -47,8 +47,10 @@ grep -q 'outcomes-invalidated' "$REVIEW"
 grep -q 'The verdict comment,' "$REVIEW"
 grep -q 'issue outcome checkboxes, and labels are the whole interface' "$REVIEW"
 
-grep -q 'Codex, Cursor, or Gemini: `$gsd-loop-build` or `$gsd-loop-review`' "$SCHEDULE"
+grep -q 'Codex: `$gsd-loop-build` or `$gsd-loop-review`' "$SCHEDULE"
 grep -q 'Claude Code: `/gsd-loop-build` or `/gsd-loop-review`' "$SCHEDULE"
+grep -q 'Cursor: `/gsd-loop-build` or `/gsd-loop-review`' "$SCHEDULE"
+grep -q 'Gemini CLI: `Use the gsd-loop-build skill` or `Use the gsd-loop-review skill`' "$SCHEDULE"
 grep -q 'Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`' "$SCHEDULE"
 grep -q 'npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT' "$SCHEDULE"
 if grep -q 'npx @opengsd/gsd-loop@latest run' "$SCHEDULE"; then
@@ -58,10 +60,24 @@ fi
 for guide in "$AGENT_GUIDE" "$README" "$INSTALL_GUIDE"; do
   grep -q '/gsd-loop-schedule' "$guide"
   grep -q '/skill:gsd-loop-schedule' "$guide"
+  grep -q 'Use the gsd-loop-schedule skill' "$guide"
   if grep -q '/loop /gsd-loop-' "$guide"; then
     echo 'documentation must route recurring work through the scheduling skill' >&2
     exit 1
   fi
 done
+grep -Fq '| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |' "$AGENT_GUIDE"
+grep -Fq '| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |' "$AGENT_GUIDE"
+if [ "$(grep -c 'npx @opengsd/gsd-loop@latest init' "$README")" -ne 1 ]; then
+  echo 'README must contain exactly one npm bootstrap command' >&2
+  exit 1
+fi
+if grep -q 'npx @opengsd/gsd-loop@latest doctor' "$README"; then
+  echo 'README must leave standalone diagnostics to the installation guide' >&2
+  exit 1
+fi
 
 echo 'playbook contracts passed'
