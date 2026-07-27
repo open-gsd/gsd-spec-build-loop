@@ -82,7 +82,7 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
-  assert.equal(metadata.version, "0.2.1");
+  assert.equal(metadata.version, "0.2.2");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
@@ -90,8 +90,12 @@ try {
   assert.match(help, /gsd-loop init/);
   assert.match(help, /gsd-loop doctor/);
   assert.doesNotMatch(help, /gsd-loop run build\|review/);
-  assert.match(help, /\$gsd-loop-build/);
-  assert.match(help, /\/gsd-loop-review/);
+  assert.match(help, /Codex:.*\$gsd-loop-build/);
+  assert.match(help, /Claude Code:.*\/gsd-loop-build/);
+  assert.match(help, /Cursor:.*\/gsd-loop-build/);
+  assert.match(help, /Gemini CLI:.*Use the gsd-loop-build skill/);
+  assert.match(help, /Kimi Code:.*\/skill:gsd-loop-build/);
+  assert.match(help, /native adapter behavior/);
   assert.match(help, /gsd-loop policy/);
   const removedRunner = run(["run", "build"], { allowFailure: true });
   assert.equal(removedRunner.status, 2);
@@ -106,10 +110,15 @@ try {
   run(["install", "--home", home]);
   for (const lane of ["spec", "build", "review", "schedule"]) {
     const skill = join(home, ".agents", "skills", `gsd-loop-${lane}`);
-    const claude = join(home, ".claude", "skills", `gsd-loop-${lane}`);
     assert.ok(existsSync(join(skill, "SKILL.md")));
     assert.ok(existsSync(join(skill, ".gsd-loop-install.json")));
-    assert.ok(existsSync(claude));
+    for (const directory of [".claude", ".cursor", ".gemini"]) {
+      const adapterRoot = join(home, directory, "skills");
+      const adapter = join(adapterRoot, `gsd-loop-${lane}`);
+      const marker = join(adapterRoot, `.gsd-loop-${lane}.gsd-loop-adapter.json`);
+      assert.ok(existsSync(adapter));
+      assert.ok(existsSync(marker));
+    }
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
@@ -161,7 +170,19 @@ try {
   const geminiHome = join(testRoot, "gemini-home");
   run(["install", "--home", geminiHome, "--agents", "gemini"]);
   assert.ok(existsSync(join(geminiHome, ".agents", "skills", "gsd-loop-spec")));
+  assert.ok(existsSync(join(geminiHome, ".gemini", "skills", "gsd-loop-spec")));
   assert.equal(existsSync(join(geminiHome, ".claude")), false);
+  assert.equal(existsSync(join(geminiHome, ".cursor")), false);
+
+  const cursorConflictHome = join(testRoot, "cursor-conflict-home");
+  const cursorConflict = join(cursorConflictHome, ".cursor", "skills", "gsd-loop-review");
+  mkdirSync(cursorConflict, { recursive: true });
+  writeFileSync(join(cursorConflict, "user-file"), "preserve me\n");
+  const cursorFailed = run(["install", "--home", cursorConflictHome], { allowFailure: true });
+  assert.notEqual(cursorFailed.status, 0);
+  assert.match(cursorFailed.stderr, /refusing to overwrite unowned path/);
+  assert.equal(readFileSync(join(cursorConflict, "user-file"), "utf8"), "preserve me\n");
+  assert.equal(existsSync(join(cursorConflictHome, ".agents")), false);
 
   if (process.platform !== "win32") {
     const migrationHome = join(testRoot, "migration-home");

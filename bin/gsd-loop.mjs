@@ -31,7 +31,7 @@ Install skills and prepare a repository. Run work inside your agent harness:
 Install options:
   --home PATH                       install beneath an alternate home directory
   --agents LIST                     codex,claude,cursor,gemini,kimi (default: all)
-  --adapter-mode auto|symlink|copy  Claude adapter behavior (default: auto)
+  --adapter-mode auto|symlink|copy  native adapter behavior (default: auto)
   --dry-run                         show destinations without writing
 
 Init options:

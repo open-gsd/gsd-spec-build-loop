@@ -9,15 +9,15 @@ spec, build, review, and scheduling all run inside the harness the user opened.
 | Agent application | Skill location | Invocation |
 |---|---|---|
 | [Codex](https://developers.openai.com/codex/skills/) | `~/.agents/skills` | `$gsd-loop-*` |
-| [Cursor](https://cursor.com/docs/skills) | `~/.agents/skills` | `/gsd-loop-*` |
-| [Gemini CLI](https://geminicli.com/docs/cli/creating-skills/) | `~/.agents/skills` | Natural-language request |
 | [Claude Code](https://code.claude.com/docs/en/skills) | `~/.claude/skills` adapter | `/gsd-loop-*` |
+| [Cursor](https://cursor.com/docs/skills) | `~/.cursor/skills` adapter | `/gsd-loop-*` |
+| [Gemini CLI](https://geminicli.com/docs/cli/creating-skills/) | `~/.gemini/skills` adapter | Natural-language request |
 | [Kimi Code](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html) | `~/.agents/skills` | `/skill:gsd-loop-*` |
 
-Codex, Cursor, Gemini, and Kimi share the Agent Skills directory. Claude uses
-symlinks to those canonical skills when supported and safe copies otherwise.
-Installing a skill does not install, authenticate, select, or launch a model or
-agent application.
+`~/.agents/skills` is the canonical source for Codex and Kimi. Claude, Cursor,
+and Gemini use symlinks from their native global directories when supported and
+safe copies otherwise. Installing a skill does not install, authenticate,
+select, or launch a model or agent application.
 
 ## Prerequisites
 
@@ -161,7 +161,7 @@ npx @opengsd/gsd-loop@latest install --dry-run
 npx @opengsd/gsd-loop@latest install
 ```
 
-Select hosts or Claude adapter behavior when necessary:
+Select hosts or native adapter behavior when necessary:
 
 ```bash
 npx @opengsd/gsd-loop@latest install --agents codex,cursor,gemini,kimi
@@ -172,10 +172,11 @@ Reinstallation updates only paths marked as installer-owned. A conflicting
 unowned skill path stops the entire preflight before anything is replaced. Use
 `--home PATH` only for an alternate user profile or isolated test root.
 
-On native Windows, the default shared skill directory is
-`%USERPROFILE%\.agents\skills`, and Claude adapters are installed under
-`%USERPROFILE%\.claude\skills`. PowerShell users can preview an alternate
-profile without WSL:
+On native Windows, the canonical skill directory is
+`%USERPROFILE%\.agents\skills`. Claude, Cursor, and Gemini adapters are
+installed under `%USERPROFILE%\.claude\skills`,
+`%USERPROFILE%\.cursor\skills`, and `%USERPROFILE%\.gemini\skills`.
+PowerShell users can preview an alternate profile without WSL:
 
 ```powershell
 npx @opengsd/gsd-loop@latest install --dry-run --home "$env:USERPROFILE\gsd-loop-profile"
@@ -191,8 +192,11 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
+- **Upgrading from `0.2.1`:** rerun `init` or `install` with version `0.2.2` to
+  add the native Cursor and Gemini adapters. Existing canonical and Claude
+  installs remain installer-owned and update safely.
 - **Upgrading from `0.2.0`:** stop any old `npx ... run build|review`
-  processes. Version `0.2.1` ignores their `.git/gsd-loop` state; remove that
+  processes. Version `0.2.2` ignores their `.git/gsd-loop` state; remove that
   directory only after confirming no old runner process is active.
 - **A skill is not visible:** start a new agent session. Gemini can run
   `/skills reload`; Cursor users should update the CLI and reopen the chat.
