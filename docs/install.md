@@ -1,36 +1,30 @@
 # Install and initialize gsd-loop
 
-`@opengsd/gsd-loop` provides one native Node.js CLI for skill installation,
-repository setup, readiness checks, and portable loop execution. It runs on
-macOS, Linux, and native Windows; WSL is optional, not required.
+`@opengsd/gsd-loop` installs four Agent Skills and provides deterministic
+repository setup and readiness checks. The package never launches an agent;
+spec, build, review, and scheduling all run inside the harness the user opened.
 
 ## Support matrix
 
-| Agent application | Skills | Portable runner |
+| Agent application | Skill location | Invocation |
 |---|---|---|
-| [Codex](https://developers.openai.com/codex/skills/) | `~/.agents/skills` | Supported |
-| [Cursor](https://cursor.com/docs/skills) | `~/.agents/skills` | Supported |
-| [Gemini CLI](https://geminicli.com/docs/cli/creating-skills/) | `~/.agents/skills` | Supported |
-| [Claude Code](https://code.claude.com/docs/en/skills) | `~/.claude/skills` adapter | Supported |
-| [Kimi Code](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html) | `~/.agents/skills` | Interactive only |
+| [Codex](https://developers.openai.com/codex/skills/) | `~/.agents/skills` | `$gsd-loop-*` |
+| [Cursor](https://cursor.com/docs/skills) | `~/.agents/skills` | `$gsd-loop-*` |
+| [Gemini CLI](https://geminicli.com/docs/cli/creating-skills/) | `~/.agents/skills` | `$gsd-loop-*` |
+| [Claude Code](https://code.claude.com/docs/en/skills) | `~/.claude/skills` adapter | `/gsd-loop-*` |
+| [Kimi Code](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html) | `~/.agents/skills` | `/skill:gsd-loop-*` |
 
 Codex, Cursor, Gemini, and Kimi share the Agent Skills directory. Claude uses
-symlinks to the canonical skills when supported and safe copies otherwise.
-Installing a skill does not install, authenticate, or choose a model.
-
-Kimi documents a non-interactive prompt flag, but its
-[community guidelines](https://www.kimi.com/code/docs/en/kimi-code/community-guidelines.html)
-prohibit subscription-based non-interactive automation. The installer
-therefore keeps Kimi skill support while the portable runner refuses Kimi
-explicitly.
+symlinks to those canonical skills when supported and safe copies otherwise.
+Installing a skill does not install, authenticate, select, or launch a model or
+agent application.
 
 ## Prerequisites
 
 - Node.js 18 or newer, including `npm` and `npx`.
 - Git with a configured author name and email.
 - The [`gh` CLI](https://cli.github.com/) authenticated with push access.
-- One authenticated Codex, Claude Code, Cursor, or Gemini CLI for unattended
-  build/review lanes.
+- One supported agent harness with shell access.
 
 The repository must eventually have a real successful CI check. gsd-loop can
 require an existing check, but it does not invent an always-green workflow.
@@ -43,17 +37,16 @@ Run this inside an existing GitHub worktree:
 npx @opengsd/gsd-loop@latest init
 ```
 
-The command discovers the repository and installed agent CLIs, previews every
-planned change, and asks once before it:
+`init` previews every planned change and asks once before it:
 
-- installs or updates all four self-contained skills;
-- verifies GitHub and agent authentication;
+- installs or updates all four skills;
+- verifies GitHub access;
 - creates the five `gsd:*` labels without replacing existing labels;
-- writes non-secret runner configuration beneath Git's common directory, where
-  later runner invocations also keep their locks and logs;
-- excludes `.claude/scheduled_tasks.lock` through the local Git exclude file;
 - when one successful check is selected, creates or updates only the dedicated
   `gsd-loop required CI` ruleset.
+
+It does not detect an agent CLI, request autonomous permissions, write runner
+configuration, or start background work.
 
 If review is not already protected and no successful CI check exists yet,
 setup exits with status `3` after making the build lane ready. Add CI through
@@ -77,70 +70,73 @@ For unattended setup, repository creation requires every external choice:
 npx @opengsd/gsd-loop@latest init --yes \
   --create-repo \
   --repo OWNER/NAME \
-  --visibility private \
-  --runner codex
+  --visibility private
 ```
 
-In native Windows PowerShell, use backticks for line continuation:
+In native Windows PowerShell:
 
 ```powershell
 npx @opengsd/gsd-loop@latest init --yes `
   --create-repo `
   --repo OWNER/NAME `
-  --visibility private `
-  --runner codex
+  --visibility private
 ```
 
 The equivalent Command Prompt command is:
 
 ```bat
-npx @opengsd/gsd-loop@latest init --yes --create-repo --repo OWNER/NAME --visibility private --runner codex
+npx @opengsd/gsd-loop@latest init --yes --create-repo --repo OWNER/NAME --visibility private
 ```
 
 `--yes` never implies `--create-repo`. Automatic creation is limited to an
 empty, non-Git directory.
 
-### Choose CI or agent explicitly
+### Choose CI explicitly
 
-When several successful checks or runner CLIs exist, interactive setup asks
-which one to use. Unattended setup must disambiguate them:
-
-```bash
-npx @opengsd/gsd-loop@latest init --yes \
-  --runner claude \
-  --required-check test
-```
-
-Supported runner names are `codex`, `claude`, `cursor`, and `gemini`. The
-preview displays the exact autonomous command and permission flags before
-consent. Configuration contains no tokens or credentials.
-
-## Run the loop
-
-Use separate terminals for build and review:
+When several successful checks exist, interactive setup asks which one to
+require. Unattended setup must identify it:
 
 ```bash
-npx @opengsd/gsd-loop@latest run build
-npx @opengsd/gsd-loop@latest run review
+npx @opengsd/gsd-loop@latest init --yes --required-check test
 ```
 
-Use `--once` for a single headless pass or a host-native scheduler:
+## Run skills inside the harness
 
-```bash
-npx @opengsd/gsd-loop@latest run build --once
+Start a new harness session after installation. Invoke one skill per pass:
+
+| Agent | Spec | Build | Review |
+|---|---|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` |
+| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` |
+| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` |
+
+Spec is interactive. Build and review are unattended-safe but deliberately
+bounded: each invocation performs one unit of work and stops. Keep build and
+review in separate sessions.
+
+### Keep a lane running
+
+On a harness with native recurring tasks, invoke `$gsd-loop-schedule` (or its
+host-equivalent syntax) in the build session, then invoke it separately in the
+review session. The scheduling skill creates a native task whose prompt invokes
+`$gsd-loop-build` or `$gsd-loop-review` directly. It never shells out to a
+second agent CLI.
+
+Productive passes repeat after 15 minutes, idle passes back off to 60 minutes,
+and the task pauses after three consecutive idle passes. Credentials,
+permissions, malformed output, dirty unrelated worktrees, and escalations pause
+the task instead of guessing.
+
+Claude Code can use its native loop command directly:
+
+```text
+/loop /gsd-loop-build
+/loop /gsd-loop-review
 ```
 
-One process owns one lane. A live duplicate lane lock, active Claude scheduler
-lock, missing required CI for review, malformed agent result, credentials, or
-other playbook stop condition pauses the runner instead of guessing. `Ctrl-C`
-is forwarded to the active agent and removes the local lock.
-
-The default policy is 15 minutes after work, 60 minutes after idle, and a clean
-stop after three consecutive idle passes. The process is foreground-only and
-does not survive closing its terminal. `$gsd-loop-schedule` remains available
-as an optional adapter on hosts with native recurring tasks. It invokes
-`gsd-loop run LANE --once` on every wake, so it cannot bypass the foreground
-runner's repository lock or safety gates.
+If a host has no native recurring-task facility, the scheduling skill reports
+that limitation. Run another one-pass skill invocation when you want another
+pass; gsd-loop does not create a foreground daemon or launch a separate agent.
 
 ## Readiness checks
 
@@ -158,8 +154,8 @@ npx @opengsd/gsd-loop@latest doctor --json --repo OWNER/NAME
 ```
 
 Exit status `0` means the requested readiness level passed, `1` is an
-operational failure, `2` is invalid usage, and `3` means setup or execution is
-safely waiting for human action.
+operational failure, `2` is invalid usage, and `3` means setup is safely waiting
+for human action.
 
 ## Install skills only
 
@@ -178,8 +174,8 @@ npx @opengsd/gsd-loop@latest install --adapter-mode copy
 ```
 
 Reinstallation updates only paths marked as installer-owned. A conflicting
-unowned skill path stops the entire preflight before anything is replaced.
-Use `--home PATH` only for an alternate user profile or isolated test root.
+unowned skill path stops the entire preflight before anything is replaced. Use
+`--home PATH` only for an alternate user profile or isolated test root.
 
 On native Windows, the default shared skill directory is
 `%USERPROFILE%\.agents\skills`, and Claude adapters are installed under
@@ -190,8 +186,8 @@ profile without WSL:
 npx @opengsd/gsd-loop@latest install --dry-run --home "$env:USERPROFILE\gsd-loop-profile"
 ```
 
-The Python source-checkout installer remains a skill-only fallback when Node
-is unavailable:
+The Python source-checkout installer remains a skill-only fallback when Node is
+unavailable:
 
 ```bash
 python3 scripts/install-global.py --dry-run
@@ -200,15 +196,15 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
+- **Upgrading from `0.2.0`:** stop any old `npx ... run build|review`
+  processes. Version `0.2.1` ignores their `.git/gsd-loop` state; remove that
+  directory only after confirming no old runner process is active.
 - **A skill is not visible:** start a new agent session. Gemini can run
   `/skills reload`; Cursor users should update the CLI and reopen the chat.
-- **Agent authentication probe fails:** authenticate that agent CLI directly,
-  verify one ordinary prompt succeeds, then rerun `init`.
 - **Review remains blocked:** allow CI to complete successfully, rerun `init`,
   and select the check when prompted.
-- **A duplicate runner is reported:** stop the existing process. Delete a lock
-  only after confirming its recorded PID is no longer running; stale portable
-  locks are recovered automatically.
+- **Native scheduling is unavailable:** run the build or review skill manually
+  for another bounded pass. Do not substitute an external agent launcher.
 - **Claude symlink creation fails:** rerun with `--adapter-mode copy`.
 - **The installer refuses a path:** preserve and inspect it. gsd-loop never
   overwrites an unowned destination.

@@ -1,6 +1,6 @@
 {
   "name": "@opengsd/gsd-loop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Install the gsd-loop Agent Skills for Codex, Claude Code, Cursor, Gemini CLI, and Kimi Code.",
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   "files": [
     ".agents/skills/",
     "bin/",
+    "docs/install.md",
     "lib/",
     "loop/",
     "scripts/doctor.sh",

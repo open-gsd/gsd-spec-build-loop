@@ -54,54 +54,42 @@ npx @opengsd/gsd-loop@latest init
 
 `init` previews one plan and asks before it changes anything. It installs or
 updates the four global skills, checks Git and GitHub access, creates the five
-labels, and records local runner state under Git's common directory. When one
-successful CI check is selected and GitHub supports repository rulesets, it
-configures that check as required; otherwise it preserves existing readiness or
-leaves review safely blocked.
+labels, and can configure an existing successful CI check as required when
+GitHub supports repository rulesets. It does not choose, launch, or configure
+an agent harness.
 
 In an empty directory it can also create a private GitHub repository named
 after that directory. Unattended setup never guesses this external action:
 
 ```bash
 npx @opengsd/gsd-loop@latest init --yes \
-  --create-repo --repo OWNER/NAME --visibility private --runner codex
+  --create-repo --repo OWNER/NAME --visibility private
 ```
 
-Next, invoke the interactive spec skill in your agent and add `gsd:ready` to
-the issue after reading it:
+Start a new harness session after installation. All work runs as skills inside
+that harness:
 
-| Agent | Spec invocation |
-|---|---|
-| Codex, Cursor, Gemini | `$gsd-loop-spec` |
-| Claude Code | `/gsd-loop-spec` |
-| Kimi Code | `/skill:gsd-loop-spec` |
+| Agent | Spec | Build one pass | Review one pass |
+|---|---|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` |
+| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` |
+| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` |
 
-Keep the unattended lanes running in separate terminals:
+After the spec files an issue, read it and add `gsd:ready`. Build and review
+belong in separate harness sessions so their state cannot mix.
 
-```bash
-npx @opengsd/gsd-loop@latest run build
-npx @opengsd/gsd-loop@latest run review
-```
+Each build or review invocation executes exactly one bounded pass. To keep a
+lane running, invoke `$gsd-loop-schedule` (or the host-equivalent skill syntax)
+inside that lane's session. The skill uses the harness's native recurring-task
+facility, backs idle work off from 15 to 60 minutes, and pauses after three idle
+passes. Claude Code can also use `/loop /gsd-loop-build` and
+`/loop /gsd-loop-review`. A host without native repetition reports that
+scheduling is unsupported; gsd-loop does not launch a second agent process.
 
-The foreground runner supports Codex, Claude Code, Cursor, and Gemini CLI. It
-runs one fresh agent pass at a time, waits 15 minutes after work, backs off to
-60 minutes after idle passes, and exits after three consecutive idle passes.
-It pauses on malformed output, credentials, permissions, dirty worktrees,
-escalations, or duplicate lane runners. Its locks and logs live under Git's
-local common directory, so they do not dirty the project.
-
-Kimi skills remain available for interactive one-pass use, but Kimi is not a
-portable-runner target; see the [support matrix](docs/install.md#support-matrix).
-
-Direct `$gsd-loop-build`, `/gsd-loop-build`, and reviewer invocations execute
-one pass only. Use them for diagnosis, not durable repetition. Hosts with a
-native recurring-task feature can instead invoke `$gsd-loop-schedule`; each
-wake enters through `gsd-loop run --once`, so native and foreground runners
-share the same lock, consent, readiness, and result checks.
-
-The installer and runner are native Node.js programs tested on macOS, Linux,
-and Windows. WSL is not required. See the [installation guide](docs/install.md)
-for selective installs, unattended flags, the support matrix, and recovery.
+The installer and deterministic setup helpers are native Node.js programs
+tested on macOS, Linux, and Windows. WSL is not required. See the
+[installation guide](docs/install.md) for selective installs, unattended flags,
+the support matrix, and recovery.
 
 ## Your four duties
 
@@ -116,8 +104,8 @@ The loop is deliberately incapable of doing these:
 ## Requirements
 
 - Node.js 18+, Git, and the `gh` CLI authenticated with push access.
-- An authenticated Codex, Claude Code, Cursor, or Gemini CLI for portable
-  unattended execution. Kimi remains supported interactively.
+- A supported agent harness with shell access. Installation does not install,
+  authenticate, select, or launch the harness.
 - **Required status checks configured** on the default branch before review.
   The reviewer refuses to treat missing CI as green. `init` configures an
   existing successful check when GitHub supports rulesets; it never creates a
@@ -157,6 +145,5 @@ onboarding command.
   critical advisories block approval even when the issue did not ask for a
   security audit.
 - **Idle back-off.** Empty queues push the loop to its longest interval. The
-  portable runner stops after three idle passes; direct one-pass use recommends
-  stopping then because new work only appears when a human files, unblocks, or
-  merges.
+  scheduling skill pauses after three idle passes because new work only appears
+  when a human files, unblocks, or merges.

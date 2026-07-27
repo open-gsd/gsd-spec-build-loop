@@ -44,10 +44,10 @@ grep -q 'outcomes-invalidated' "$REVIEW"
 grep -q 'The verdict comment,' "$REVIEW"
 grep -q 'issue outcome checkboxes, and labels are the whole interface' "$REVIEW"
 
-grep -q 'npx @opengsd/gsd-loop@latest run LANE --once' "$SCHEDULE"
+grep -q 'Put `$gsd-loop-build` or `$gsd-loop-review` in the scheduled prompt' "$SCHEDULE"
 grep -q 'npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT' "$SCHEDULE"
-if grep -q 'Put `$gsd-loop-build` or `$gsd-loop-review` in the scheduled prompt' "$SCHEDULE"; then
-  echo 'native scheduling must not bypass the portable runner lock' >&2
+if grep -q 'npx @opengsd/gsd-loop@latest run' "$SCHEDULE"; then
+  echo 'native scheduling must invoke installed skills instead of a subprocess runner' >&2
   exit 1
 fi
 
