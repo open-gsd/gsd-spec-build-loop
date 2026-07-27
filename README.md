@@ -12,9 +12,9 @@ outcome synchronizer, so direct one-pass use does not require a global
 compatibility shims in `.claude/skills/`.
 
 ```
- idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue
-                                                        │
-              ┌────────────────── build lane ◀──────────┘
+ idea ──spec skill──▶ issue ──human: gsd:ready──▶ queue
+                                                  │
+              ┌────────────────── build lane ◀────┘
               ▼
              PR ◀──── fix gsd:rework items ────┐
               │                                │
