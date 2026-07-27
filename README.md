@@ -122,6 +122,13 @@ project files need to be copied. `gsd-loop install` remains available when only
 global skill installation is wanted; `init` is the recommended repository
 onboarding command.
 
+## Maintainer releases
+
+npm releases use GitHub Actions trusted publishing rather than a stored npm
+token. See the [release guide](https://github.com/open-gsd/gsd-spec-build-loop/blob/main/docs/releasing.md)
+for the exact npm publisher settings and the manual, `main`-only release
+procedure.
+
 ## Design notes
 
 - **One head and linked issue, one verdict.** Trusted verdict comments open
