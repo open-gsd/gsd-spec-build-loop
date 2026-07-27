@@ -104,11 +104,11 @@ npx @opengsd/gsd-loop@latest init --yes --required-check test
 
 Start a new harness session after installation. Invoke one skill per pass:
 
-| Agent | Spec | Build | Review |
-|---|---|---|---|
-| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` |
-| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` |
-| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` |
+| Agent | Spec | Build | Review | Schedule |
+|---|---|---|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 Spec is interactive. Build and review are unattended-safe but deliberately
 bounded: each invocation performs one unit of work and stops. Keep build and
@@ -116,23 +116,16 @@ review in separate sessions.
 
 ### Keep a lane running
 
-On a harness with native recurring tasks, invoke `$gsd-loop-schedule` (or its
-host-equivalent syntax) in the build session, then invoke it separately in the
-review session. The scheduling skill creates a native task whose prompt invokes
-`$gsd-loop-build` or `$gsd-loop-review` directly. It never shells out to a
-second agent CLI.
+On a harness with native recurring tasks, invoke the scheduling skill using the
+syntax above in the build session, then invoke it separately in the review
+session. The scheduling skill creates a native task whose prompt invokes the
+lane skill using that same host's syntax. It never shells out to a second agent
+CLI.
 
 Productive passes repeat after 15 minutes, idle passes back off to 60 minutes,
 and the task pauses after three consecutive idle passes. Credentials,
 permissions, malformed output, dirty unrelated worktrees, and escalations pause
 the task instead of guessing.
-
-Claude Code can use its native loop command directly:
-
-```text
-/loop /gsd-loop-build
-/loop /gsd-loop-review
-```
 
 If a host has no native recurring-task facility, the scheduling skill reports
 that limitation. Run another one-pass skill invocation when you want another

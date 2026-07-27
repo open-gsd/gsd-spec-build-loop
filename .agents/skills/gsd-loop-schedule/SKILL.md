@@ -18,9 +18,14 @@ explain that this scheduling skill is unsupported there. Do not start a shell
    different active builder targets the same repository, stop and identify it.
 4. Attach the task to the current chat, start at 15 minutes, and initialize its
    lane-specific idle count to zero.
-5. Put `$gsd-loop-build` or `$gsd-loop-review` in the scheduled prompt. Run
-   exactly one playbook pass per wake and require its final `GSD_LOOP_RESULT`
-   line. A missing or malformed result is `blocked`, never inferred from prose.
+5. Put the lane skill in the scheduled prompt using the current host's native
+   invocation syntax:
+   - Codex, Cursor, or Gemini: `$gsd-loop-build` or `$gsd-loop-review`
+   - Claude Code: `/gsd-loop-build` or `/gsd-loop-review`
+   - Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`
+   Run exactly one playbook pass per wake and require its final
+   `GSD_LOOP_RESULT` line. A missing or malformed result is `blocked`, never
+   inferred from prose.
 6. After each pass, run
    `npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT`.
    Persist the returned count in task context and immediately apply its action

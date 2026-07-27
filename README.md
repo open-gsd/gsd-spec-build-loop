@@ -69,22 +69,21 @@ npx @opengsd/gsd-loop@latest init --yes \
 Start a new harness session after installation. All work runs as skills inside
 that harness:
 
-| Agent | Spec | Build one pass | Review one pass |
-|---|---|---|---|
-| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` |
-| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` |
-| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` |
+| Agent | Spec | Build one pass | Review one pass | Schedule |
+|---|---|---|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 After the spec files an issue, read it and add `gsd:ready`. Build and review
 belong in separate harness sessions so their state cannot mix.
 
 Each build or review invocation executes exactly one bounded pass. To keep a
-lane running, invoke `$gsd-loop-schedule` (or the host-equivalent skill syntax)
-inside that lane's session. The skill uses the harness's native recurring-task
-facility, backs idle work off from 15 to 60 minutes, and pauses after three idle
-passes. Claude Code can also use `/loop /gsd-loop-build` and
-`/loop /gsd-loop-review`. A host without native repetition reports that
-scheduling is unsupported; gsd-loop does not launch a second agent process.
+lane running, invoke the scheduling skill inside that lane's session using the
+syntax above. The skill uses the harness's native recurring-task facility,
+backs idle work off from 15 to 60 minutes, and pauses after three idle passes.
+A host without native repetition reports that scheduling is unsupported;
+gsd-loop does not launch a second agent process.
 
 The installer and deterministic setup helpers are native Node.js programs
 tested on macOS, Linux, and Windows. WSL is not required. See the

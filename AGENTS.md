@@ -32,18 +32,19 @@ Rules that apply regardless of agent:
 
 ## Looping
 
-Invoke the installed skills inside the active harness:
+Invoke the installed skills inside the active harness using its native syntax:
 
-```text
-$gsd-loop-build
-$gsd-loop-review
-```
+| Harness | Build | Review | Schedule |
+|---|---|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Kimi Code | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 Run the lanes in separate harness sessions. Each direct invocation is one pass.
-Use `$gsd-loop-schedule` when the host exposes native recurring tasks; Claude
-Code can use `/loop /gsd-loop-build` or `/loop /gsd-loop-review`. If the host
-cannot repeat skills natively, stop after the pass instead of launching another
-agent process.
+Use the scheduling skill when the host exposes native recurring tasks so
+duplicate-builder, readiness, result, cadence, and idle-stop guardrails remain
+active. If the host cannot repeat skills natively, stop after the pass instead
+of launching another agent process.
 
 Honor the playbooks' idle guidance: when a pass reports an empty queue,
 lengthen the interval, and stop the loop after three consecutive idle

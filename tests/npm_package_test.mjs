@@ -134,7 +134,9 @@ try {
   assert.match(invalidProjection.stderr, /must contain GraphQL pages/);
   assert.equal(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts")), false);
   const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");
-  assert.match(scheduleSkill, /Put `\$gsd-loop-build` or `\$gsd-loop-review` in the scheduled prompt/);
+  assert.match(scheduleSkill, /Codex, Cursor, or Gemini: `\$gsd-loop-build` or `\$gsd-loop-review`/);
+  assert.match(scheduleSkill, /Claude Code: `\/gsd-loop-build` or `\/gsd-loop-review`/);
+  assert.match(scheduleSkill, /Kimi Code: `\/skill:gsd-loop-build` or `\/skill:gsd-loop-review`/);
   assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest policy EVENT IDLE_COUNT/);
   assert.doesNotMatch(scheduleSkill, /npx @opengsd\/gsd-loop@latest run/);
   const scheduleMetadata = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "agents", "openai.yaml"), "utf8");
