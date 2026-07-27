@@ -82,7 +82,7 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
-  assert.equal(metadata.version, "0.2.2");
+  assert.equal(metadata.version, "0.2.3");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
