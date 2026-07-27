@@ -82,9 +82,19 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
+  assert.equal(metadata.version, "0.2.0");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
+  const help = run(["--help"]).stdout;
+  assert.match(help, /gsd-loop init/);
+  assert.match(help, /gsd-loop doctor/);
+  assert.match(help, /gsd-loop run build\|review/);
+  assert.match(help, /gsd-loop policy/);
+  assert.equal(run(["policy", "work", "2"]).stdout.trim(), "action=continue interval_minutes=15 idle_count=0");
+  assert.equal(run(["policy", "idle", "2"]).stdout.trim(), "action=pause interval_minutes=0 idle_count=3");
+  const invalidPolicy = run(["policy", "idle", "invalid"], { allowFailure: true });
+  assert.equal(invalidPolicy.status, 2);
 
   const home = join(testRoot, "home");
   run(["install", "--home", home]);
@@ -97,8 +107,30 @@ try {
     assert.ok(existsSync(claude));
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
+  const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
+  const auditValidator = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "validate-audit-evidence.mjs");
+  assert.ok(existsSync(outcomeSync));
+  assert.ok(existsSync(auditValidator));
+  mkdirSync(join(home, "lib"));
+  writeFileSync(join(home, "lib", "outcomes.mjs"), "throw new Error('wrong runtime');\n");
+  const invalidOutcomeSync = command(process.execPath, [outcomeSync], { allowFailure: true });
+  assert.equal(invalidOutcomeSync.status, 2);
+  assert.match(invalidOutcomeSync.stderr, /requires a positive issue number/);
+  const invalidAuditValidator = command(process.execPath, [auditValidator], { allowFailure: true });
+  assert.equal(invalidAuditValidator.status, 2);
+  assert.match(invalidAuditValidator.stderr, /requires --baseline FULL_SHA/);
+  const invalidProjection = command(process.execPath, [
+    auditValidator,
+    "--baseline", "a".repeat(40),
+    "--head", "b".repeat(40),
+    "--manifest", "package-lock.json",
+  ], { allowFailure: true, input: "[]" });
+  assert.equal(invalidProjection.status, 3);
+  assert.match(invalidProjection.stderr, /must contain GraphQL pages/);
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
+  const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");
+  assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest run LANE --once/);
 
   const damagedSkill = join(home, ".agents", "skills", "gsd-loop-build");
   const danglingAdapter = join(home, ".claude", "skills", "gsd-loop-build");
@@ -138,6 +170,8 @@ try {
   const packageFiles = packMetadata.files.map(({ path }) => path);
   assert.ok(packageFiles.includes("bin/gsd-loop.mjs"));
   assert.ok(packageFiles.includes("lib/install.mjs"));
+  assert.ok(packageFiles.includes("lib/init.mjs"));
+  assert.ok(packageFiles.includes("lib/runner.mjs"));
   assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/SKILL.md"));
   assert.ok(packageFiles.includes("loop/build.md"));
   assert.equal(packageFiles.some((path) => path.startsWith("tests/")), false);

@@ -1,8 +1,10 @@
 # gsd-loop — instructions for coding agents
 
 This repository ships three agent-neutral playbooks under `loop/`. They work
-with any agent that can run shell commands and the authenticated `gh` CLI
-(Codex, Claude Code, Cursor, Gemini CLI, aider, ...).
+with any agent that can run shell commands, Node.js, and the authenticated `gh`
+CLI (Codex, Claude Code, Cursor, Gemini CLI, aider, ...). The installed review
+skill bundles its deterministic outcome synchronizer; direct one-pass use does
+not require a global `gsd-loop` command.
 
 ## Routing
 
@@ -18,31 +20,30 @@ execute it exactly:
 
 Rules that apply regardless of agent:
 
-- One pass, then stop. The playbooks are written for external repetition
-  (a loop runner, cron, or a shell `while` loop), not for improvising extra
-  iterations.
+- One pass, then stop. The playbooks are written for repetition by the portable
+  or native runner, not for improvising extra iterations.
 - Never merge, never enable auto-merge, never force-push. Humans own every
   merge.
-- The issue is the whole contract: implement only its `O-N` outcomes, treat
-  `X-N` exclusions as binding, and escalate with `gsd:escalated` instead of
-  guessing.
-- Run at most one build loop per repository. The claim lock (issue
-  assignee) is cooperative, not atomic.
+- The issue is the whole product and scope contract: implement only its `O-N`
+  outcomes, treat `X-N` exclusions as binding, and escalate with
+  `gsd:escalated` instead of guessing.
+- Run at most one build loop per repository. Portable and native runners share
+  a repository-local lane lock; the issue assignee remains the cooperative,
+  cross-host claim and is not atomic.
 
 ## Looping
 
-Claude Code users run `/loop /gsd-loop-build` and `/loop /gsd-loop-review`
-(thin skills in `.claude/skills/` point at these playbooks). Codex users can
-invoke `$gsd-loop-build`, `$gsd-loop-review`, or `$gsd-loop-schedule` from the
-repository skills in `.agents/skills/`. Codex CLI and other agents can also loop
-externally, e.g.:
+Use the portable foreground runner for durable cross-agent repetition:
 
 ```bash
-while :; do
-  codex exec "Read loop/build.md and execute one pass exactly."
-  sleep 900
-done
+npx @opengsd/gsd-loop@latest run build
+npx @opengsd/gsd-loop@latest run review
 ```
+
+Run the lanes in separate terminals. Direct `$gsd-loop-build`,
+`$gsd-loop-review`, or `/gsd-loop-*` invocations are one-pass tools, not
+durable schedulers. `$gsd-loop-schedule` remains an optional adapter for hosts
+with native recurring tasks.
 
 Honor the playbooks' idle guidance: when a pass reports an empty queue,
 lengthen the interval, and stop the loop after three consecutive idle
@@ -54,4 +55,5 @@ passes.
 - Required status checks configured on the default branch — the reviewer
   escalates every PR in a repo without required CI, by design.
 
-Verify both with `scripts/doctor.sh [owner/repo]` before the first pass.
+Verify both with `npx @opengsd/gsd-loop@latest doctor --review-ready` before
+the first review pass.
