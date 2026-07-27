@@ -168,7 +168,15 @@ Compare advisories by identifier and affected package:
 
 After the change is committed, pin the comparison evidence to the full proposed
 head SHA. Evidence without that exact SHA is stale and cannot be reused by a
-later repair commit.
+later repair commit. Normalize the evidence as one fenced JSON object: use
+schema `gsd-loop/dependency-audit-v1`; record the full default-branch baseline
+and proposed head SHAs; and include an `audits` array. Each audit names the
+sorted changed `manifests` it covers, its `directory`, the exact nonempty
+`command` argv used unchanged at both commits, and `baselineAdvisories` plus
+`headAdvisories`. Advisory entries contain only lowercase `severity`, `id`,
+and `package`; sort them by `id` then `package` and reject duplicate
+identifier/package pairs. Every changed dependency manifest or lockfile must
+appear exactly once.
 
 Read your own `git diff` and `git status` end to end. Unrelated files or
 anything secret-shaped in the diff = full stop.
@@ -186,9 +194,10 @@ body containing:
 - A compact untouched-confirmation for every `X-N`, then the line
   `Side effects beyond the contract: none`
 - Which automated checks ran, with results
-- `Dependency audit for HEAD_SHA: baseline compared — <commands and result>`
-  for any dependency manifest or lockfile change, using the full proposed head
-  SHA, or `Dependency audit: not applicable` otherwise
+- `Dependency audit for HEAD_SHA: baseline compared` followed immediately by
+  the normalized fenced JSON object for any dependency manifest or lockfile
+  change, using the full proposed head SHA, or
+  `Dependency audit: not applicable` otherwise
 - Whether the issue's manual walkthrough passed; reference it instead of
   copying every step into the PR
 - A justified risk call: Low / Medium / High

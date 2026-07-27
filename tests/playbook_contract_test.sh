@@ -13,14 +13,19 @@ if printf '%s\n' "$repair_section" | grep -q 'issue contract or repository guida
   exit 1
 fi
 
-grep -q 'gh pr view NUMBER --json files' "$REVIEW"
+grep -q 'gh pr view NUMBER --json author,baseRefOid,headRefOid,files,body,comments' "$REVIEW"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$BUILD"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$REVIEW"
-grep -q 'gh pr view NUMBER --json comments' "$REVIEW"
+grep -q 'gsd-loop/dependency-audit-v1' "$BUILD"
+grep -q 'gsd-loop/dependency-audit-v1' "$REVIEW"
+grep -q 'author.login.*PR author' "$REVIEW"
 grep -q 'comments are not verdict comments' "$REVIEW"
 grep -q 'pending-ci-NUMBER-HEAD_SHA' "$REVIEW"
 grep -q 'node OUTCOME_SYNC ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
 grep -q 'node OUTCOME_SYNC ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
+grep -q 'gh pr edit NUMBER --remove-label gsd:approved' "$REVIEW"
+grep -q 'gsd-loop linkage block for HEAD_SHA' "$REVIEW"
+grep -q 'no conditional' "$REVIEW"
 grep -q 'outcomes-invalidated' "$REVIEW"
 grep -q 'The verdict comment,' "$REVIEW"
 grep -q 'issue outcome checkboxes, and labels are the whole interface' "$REVIEW"

@@ -119,6 +119,15 @@ else if (args[0] === "label" && args[1] === "create") process.exit(0);
 else if (args[0] === "api") {
   const endpoint = args.find((arg) => arg.startsWith("repos/") || arg === "user");
   if (endpoint === "user") console.log("octocat");
+  else if (endpoint === "repos/octocat/project/labels?per_page=100") {
+    const entries = existsSync(process.env.MOCK_GH_LOG)
+      ? readFileSync(process.env.MOCK_GH_LOG, "utf8").trim().split("\\n").filter(Boolean).map(JSON.parse)
+      : [];
+    const labels = entries
+      .filter((entry) => entry[0] === "label" && entry[1] === "create" && entry[entry.indexOf("--repo") + 1] === "octocat/project")
+      .map((entry) => ({ name: entry[2] }));
+    console.log(JSON.stringify([labels]));
+  }
   else if (endpoint === "repos/octocat/project") {
     if (args.includes(".permissions.push")) console.log("true");
     else if (args.includes(".default_branch")) console.log("main");

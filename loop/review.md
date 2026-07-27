@@ -17,7 +17,7 @@ for l in gsd:approved gsd:rework gsd:escalated; do
   gh label create "$l" --color ededed 2>/dev/null || true
 done
 gh pr list --state open --limit 200 \
-  --json number,title,labels,isDraft,headRefOid,updatedAt,url
+  --json number,title,labels,isDraft,headRefName,headRefOid,updatedAt,url
 ```
 
 Drafts are out of scope. For each candidate, pull its verdict trail — the
@@ -26,7 +26,7 @@ element:
 
 ```bash
 gh pr view NUMBER --json headRefOid,comments \
-  --jq '{head: .headRefOid, verdicts: [.comments[] | select(.body | startswith("gsd-loop verdict for "))]}'
+  --jq '{head: .headRefOid, verdicts: [.comments[] | select(.body | startswith("gsd-loop verdict for "))], linkageBlocks: [.comments[] | select(.body | startswith("gsd-loop linkage block for "))]}'
 ```
 
 - Current verdict already covers the head SHA? Don't re-audit. Resolve its
@@ -35,6 +35,9 @@ gh pr view NUMBER --json headRefOid,comments \
   reinstate whatever labels the verdict dictates. Post nothing. This repairs
   a pass that died between comment, checklist, and label. One SHA, one verdict,
   ever.
+- A current `gsd-loop linkage block for HEAD_SHA` is not a verdict. Re-resolve
+  linkage. If the issue is still unlinked, repair the linkage-block labels and
+  post nothing. If linkage now exists, continue to a normal audit of that SHA.
 - New commits beyond the last verdict, or no verdict at all → auditable.
 
 Resolve the linked issue before checking CI, using the linkage rules under
@@ -43,16 +46,26 @@ before auditing it:
 
 ```bash
 node OUTCOME_SYNC ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
+test "$(gh pr view NUMBER --json headRefOid --jq .headRefOid)" = "HEAD_SHA"
+if gh pr view NUMBER --json labels --jq '.labels[].name' | grep -Fxq gsd:approved; then
+  gh pr edit NUMBER --remove-label gsd:approved
+fi
 ```
 
 `OUTCOME_SYNC` is the absolute script path resolved by the review skill. The
-command verifies the PR head and issue linkage twice, refuses malformed or
-concurrently changed issue bodies, and changes only `O-N` checkboxes in
-`## Outcomes`. If it is unavailable or fails, report the pass as blocked;
-never edit the issue body with an ad-hoc text transform. An already-pending
-checklist is a no-op. If this invalidates checked outcomes but CI is not yet
-auditable, report work with reason `outcomes-invalidated`; only an unchanged
-pending checklist counts as an idle CI wait.
+command verifies the PR head and issue linkage before and after its write,
+rejects malformed contracts, brackets the write with issue-body checks, and
+changes only `O-N` checkboxes in `## Outcomes`. GitHub has no conditional
+Update Issue mutation, so an edit in the narrow interval between the final
+pre-write body check and `gh issue edit` can still be overwritten; the
+immediate post-write check detects many such races but cannot make the update
+atomic. If the command is unavailable or fails, report the pass as blocked;
+never edit the issue body with an ad-hoc text transform. After it succeeds,
+re-fetch the head and remove `gsd:approved`; a changed head stops the pass
+before label mutation. Missing `gsd:approved` is a no-op. If this changes the
+checklist or removes the label but CI is not yet auditable, report work with
+reason `outcomes-invalidated`; only an unchanged pending checklist with no
+stale approval label counts as an idle CI wait.
 
 Cheap gate before the expensive read: a PR whose required checks are still
 running, or whose mergeability reads `UNKNOWN`, isn't auditable yet — count
@@ -80,9 +93,15 @@ gh pr view NUMBER --json closingIssuesReferences \
 ```
 
 - No linked issue → there is no contract, so there is nothing to audit
-  against. If the branch is `gsd/NNN-*`, post a verdict whose single blocking
-  finding is `[BUG] no linked issue`. Any other branch means a human authored
-  it — apply `gsd:escalated` instead; human PRs aren't the loop's to judge.
+  against and no issue checklist to synchronize. For a `gsd/NNN-*` branch,
+  post one SHA-pinned `gsd-loop linkage block for HEAD_SHA` comment whose
+  single finding is `[BUG] no linked issue`, but only when that exact marker
+  is absent. Re-fetch the head, then add `gsd:escalated` and remove
+  `gsd:approved` and `gsd:rework`. A pass that finds the marker repairs those
+  labels without another comment. The comment closes with "Link the issue,
+  then remove `gsd:escalated`." For any other branch, apply the same labels
+  without a loop-authored comment; human PRs aren't the loop's to judge.
+  Stop without entering "Deliver the verdict."
 - Linked issue closed, and not by this PR's own merge → the contract was
   withdrawn underneath the PR. `gsd:escalated`.
 - Otherwise read the full issue with comments, the complete diff, and every
@@ -93,28 +112,52 @@ data paths, scope creep, security holes, absent loading/error handling, and
 code a future agent won't be able to safely modify. Unrelated improvement
 ideas stay out of the verdict unless severe.
 
-List the changed paths and read the PR body before accepting its test evidence:
+List the changed paths, base and head SHAs, PR author, body, and comments before
+accepting dependency evidence:
 
 ```bash
-gh pr view NUMBER --json files,body --jq '{files: [.files[].path], body: .body}'
+gh pr view NUMBER --json author,baseRefOid,headRefOid,files,body,comments \
+  --jq '{author: .author.login, base: .baseRefOid, head: .headRefOid, files: [.files[].path], body: .body, comments: [.comments[] | {author: .author.login, body: .body, isMinimized: .isMinimized}]}'
 ```
 
 If a dependency manifest or lockfile changed, require branch-head evidence that
 the default-branch baseline and proposed branch were audited with the same
 machine-readable command and compared by advisory identifier and affected
-package. The PR body or a later builder repair comment must contain
-`Dependency audit for HEAD_SHA: baseline compared` with the full current
-`headRefOid`, commands, and result. Evidence pinned to any other SHA is stale.
-When the PR body does not carry current-head evidence, fetch every comment body
-explicitly:
+package. The PR body or a non-minimized comment by the PR author must contain
+`Dependency audit for HEAD_SHA: baseline compared`, immediately followed by
+one fenced JSON object with this schema:
 
-```bash
-gh pr view NUMBER --json comments --jq '.comments[].body'
+```json
+{
+  "schema": "gsd-loop/dependency-audit-v1",
+  "baseline": "BASE_REF_OID",
+  "head": "HEAD_REF_OID",
+  "audits": [{
+    "manifests": ["path/to/lockfile"],
+    "directory": ".",
+    "command": ["package-manager", "audit", "--json"],
+    "baselineAdvisories": [{"id": "GHSA-...", "package": "name", "severity": "high"}],
+    "headAdvisories": [{"id": "GHSA-...", "package": "name", "severity": "high"}]
+  }]
+}
 ```
 
-Do not reuse the verdict-only projection from candidate selection. Repair
-comments are not verdict comments. Find the exact current-head marker in the
-full output and audit its commands and result.
+Reject evidence unless `schema` matches exactly; `baseline` and `head` equal
+the fetched full `baseRefOid` and `headRefOid`; every changed dependency
+manifest or lockfile appears in exactly one `manifests` array; every command is
+a nonempty argv array used unchanged at both commits from the stated directory;
+and both advisory arrays contain only `id`, `package`, and lowercase
+`severity`, sorted by `id` then `package`, with no duplicate identifier/package
+pairs. Compare the two arrays by the `id` and `package` pair. Treat malformed,
+partial, unsorted, duplicate, or extra-field data as incomparable.
+
+The PR body inherits the PR author's GitHub identity. For comment evidence,
+use the full author-bearing projection above and accept only a non-minimized
+comment whose `author.login` exactly equals the PR author's login; never accept
+an identity claimed inside comment text. Do not reuse the verdict-only
+projection from candidate selection. Repair comments are not verdict comments.
+Find the exact current-head marker and its adjacent JSON object in the trusted
+body or comment and validate every field before using it.
 
 Missing, stale, or incomparable evidence is `[SEC]` and blocks approval. A new
 high or critical advisory attributable to the diff is also `[SEC]`; route it

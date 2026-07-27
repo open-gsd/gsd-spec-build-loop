@@ -58,6 +58,14 @@ assert.throws(
   /malformed outcome O-2/,
 );
 assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n- [y] O-2 — bad marker\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n- [] O-2 — empty marker\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n\n## Outcomes\n\n- [ ] O-2 — second\n", "complete"),
   /multiple Outcomes sections/,
 );
