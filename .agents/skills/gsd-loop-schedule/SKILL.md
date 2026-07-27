@@ -20,8 +20,10 @@ explain that this scheduling skill is unsupported there. Do not start a shell
    lane-specific idle count to zero.
 5. Put the lane skill in the scheduled prompt using the current host's native
    invocation syntax:
-   - Codex, Cursor, or Gemini: `$gsd-loop-build` or `$gsd-loop-review`
+   - Codex: `$gsd-loop-build` or `$gsd-loop-review`
    - Claude Code: `/gsd-loop-build` or `/gsd-loop-review`
+   - Cursor: `/gsd-loop-build` or `/gsd-loop-review`
+   - Gemini CLI: `Use the gsd-loop-build skill` or `Use the gsd-loop-review skill`
    - Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`
    Run exactly one playbook pass per wake and require its final
    `GSD_LOOP_RESULT` line. A missing or malformed result is `blocked`, never

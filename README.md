@@ -8,8 +8,8 @@ The loop is three agent-neutral playbooks in `loop/` that any coding agent can
 execute (Codex, Claude Code, Cursor, Gemini CLI, ...). They use Node.js and an
 authenticated `gh` CLI; the installed review skill bundles its deterministic
 outcome synchronizer, so direct one-pass use does not require a global
-`gsd-loop` command. Repository skills live in `.agents/skills/`, with
-compatibility shims in `.claude/skills/`.
+`gsd-loop` command. The installer keeps canonical skills in `.agents/skills/`
+and adds native adapters for hosts that use their own global skill directory.
 
 ```
  idea ──spec skill──▶ issue ──human: gsd:ready──▶ queue
@@ -59,21 +59,15 @@ labels, and can configure an existing successful CI check as required when
 GitHub supports repository rulesets. It does not choose, launch, or configure
 an agent harness.
 
-In an empty directory it can also create a private GitHub repository named
-after that directory. Unattended setup never guesses this external action:
-
-```bash
-npx @opengsd/gsd-loop@latest init --yes \
-  --create-repo --repo OWNER/NAME --visibility private
-```
-
 Start a new harness session after bootstrap. All ongoing work runs as skills
 inside that harness:
 
 | Agent | Spec | Build one pass | Review one pass | Schedule |
 |---|---|---|---|---|
-| Codex, Cursor, Gemini | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
 | Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
 | Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 After the spec files an issue, read it and add `gsd:ready`. Build and review
