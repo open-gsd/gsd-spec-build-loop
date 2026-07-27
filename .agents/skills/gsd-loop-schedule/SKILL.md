@@ -5,14 +5,11 @@ description: Create or update a native recurring task that repeatedly runs one-p
 
 Use the host's native recurring-task tool. In Codex, use the native
 scheduled-task tool. If the host has no recurring-task capability, stop and
-give the portable foreground alternative:
-`npx @opengsd/gsd-loop@latest run build` (or `review`). Do not start a shell
-`while` loop.
+explain that this scheduling skill is unsupported there. Do not start a shell
+`while` loop or launch a separate agent process.
 
 1. Resolve the repository root and `owner/repo`. Schedule exactly one lane in
    the current chat: build by default, or review when explicitly requested.
-   Require repository-local initialization under Git's common directory; when
-   it is absent, stop with `npx @opengsd/gsd-loop@latest init`.
 2. Run `npx @opengsd/gsd-loop@latest doctor` before build scheduling. Add
    `--review-ready` before review scheduling. Do not create or update a review
    task when that stricter check fails.
@@ -21,11 +18,14 @@ give the portable foreground alternative:
    different active builder targets the same repository, stop and identify it.
 4. Attach the task to the current chat, start at 15 minutes, and initialize its
    lane-specific idle count to zero.
-5. Put `npx @opengsd/gsd-loop@latest run LANE --once` in the scheduled prompt,
-   replacing `LANE` with `build` or `review`. This invokes the same repository
-   lock, consent check, doctor gate, and result parser as the foreground runner.
-   Run exactly one pass per wake. A nonzero exit or missing summary is
-   `blocked`, never inferred from prose.
+5. Put the lane skill in the scheduled prompt using the current host's native
+   invocation syntax:
+   - Codex, Cursor, or Gemini: `$gsd-loop-build` or `$gsd-loop-review`
+   - Claude Code: `/gsd-loop-build` or `/gsd-loop-review`
+   - Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`
+   Run exactly one playbook pass per wake and require its final
+   `GSD_LOOP_RESULT` line. A missing or malformed result is `blocked`, never
+   inferred from prose.
 6. After each pass, run
    `npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT`.
    Persist the returned count in task context and immediately apply its action

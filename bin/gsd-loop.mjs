@@ -8,7 +8,6 @@ import { CliError, UsageError } from "../lib/errors.mjs";
 import { initialize, parseInitArguments } from "../lib/init.mjs";
 import { install, parseInstallArguments } from "../lib/install.mjs";
 import { parseOutcomeArguments, syncIssueOutcomes } from "../lib/outcomes.mjs";
-import { runLane, schedulerDecision } from "../lib/runner.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const metadata = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
@@ -20,10 +19,12 @@ function usage() {
   gsd-loop init [options]
   gsd-loop doctor [--review-ready] [--json] [--repo OWNER/NAME]
   gsd-loop outcomes ISSUE complete|pending --repo OWNER/NAME --pr NUMBER --head SHA
-  gsd-loop run build|review [--agent NAME] [--once]
   gsd-loop policy work|idle|blocked IDLE_COUNT
 
-Install skills, prepare a repository, and keep one-pass work lanes running.
+Install skills and prepare a repository. Run work inside your agent harness:
+  Codex, Cursor, Gemini: $gsd-loop-build or $gsd-loop-review
+  Claude Code:          /gsd-loop-build or /gsd-loop-review
+  Kimi Code:            /skill:gsd-loop-build or /skill:gsd-loop-review
 
 Install options:
   --home PATH                       install beneath an alternate home directory
@@ -36,12 +37,7 @@ Init options:
   --create-repo                     allow creation in an empty directory
   --visibility private|public       visibility for a created repository
   --required-check NAME             successful CI check to require
-  --runner NAME                     codex,claude,cursor,gemini
   --yes                             apply an unambiguous preview without prompting
-
-Run options:
-  --agent NAME                      override the configured runner
-  --once                            execute one pass without sleeping
 
 General options:
   -h, --help                        show help
@@ -63,19 +59,21 @@ function parseDoctorArguments(values) {
   return options;
 }
 
-function parseRunArguments(values) {
-  const lane = values.shift();
-  const options = { lane, agent: null, once: false };
-  for (let index = 0; index < values.length; index += 1) {
-    const value = values[index];
-    if (value === "--once") options.once = true;
-    else if (value === "--agent") {
-      options.agent = values[index + 1];
-      if (!options.agent || options.agent.startsWith("--")) throw new UsageError("--agent requires a value");
-      index += 1;
-    } else throw new UsageError(`unknown option: ${value}`);
+function schedulerDecision(event, idleCount) {
+  if (event === "work") {
+    return { action: "continue", intervalMinutes: 15, idleCount: 0 };
   }
-  return options;
+  if (event === "idle") {
+    const nextIdleCount = Math.min(idleCount + 1, 3);
+    if (nextIdleCount >= 3) {
+      return { action: "pause", intervalMinutes: 0, idleCount: nextIdleCount };
+    }
+    return { action: "continue", intervalMinutes: 60, idleCount: nextIdleCount };
+  }
+  if (event === "blocked") {
+    return { action: "pause", intervalMinutes: 0, idleCount };
+  }
+  throw new UsageError("event must be work, idle, or blocked");
 }
 
 try {
@@ -107,9 +105,6 @@ try {
     const changed = syncIssueOutcomes({ cwd: process.cwd(), ...options });
     const state = changed ? options.state : `already ${options.state}`;
     console.log(`issue #${options.issue} outcomes: ${state}`);
-  } else if (command === "run") {
-    const options = parseRunArguments(argumentsList);
-    process.exitCode = await runLane({ cwd: process.cwd(), ...options });
   } else if (command === "policy") {
     if (argumentsList.length !== 2 || !/^\d+$/.test(argumentsList[1])) {
       throw new UsageError("policy requires work|idle|blocked and a non-negative idle count");

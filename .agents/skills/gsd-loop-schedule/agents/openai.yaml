@@ -1,4 +1,4 @@
 interface:
   display_name: "GSD Loop Schedule"
-  short_description: "Keep builder and reviewer passes running"
-  default_prompt: "Use $gsd-loop-schedule to keep the GSD build and review loops running."
+  short_description: "Schedule one builder or reviewer lane"
+  default_prompt: "Use $gsd-loop-schedule to schedule one GSD build or review lane."

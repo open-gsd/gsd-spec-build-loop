@@ -82,15 +82,20 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
-  assert.equal(metadata.version, "0.2.0");
+  assert.equal(metadata.version, "0.2.1");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
   const help = run(["--help"]).stdout;
   assert.match(help, /gsd-loop init/);
   assert.match(help, /gsd-loop doctor/);
-  assert.match(help, /gsd-loop run build\|review/);
+  assert.doesNotMatch(help, /gsd-loop run build\|review/);
+  assert.match(help, /\$gsd-loop-build/);
+  assert.match(help, /\/gsd-loop-review/);
   assert.match(help, /gsd-loop policy/);
+  const removedRunner = run(["run", "build"], { allowFailure: true });
+  assert.equal(removedRunner.status, 2);
+  assert.match(removedRunner.stderr, /unknown command: run/);
   assert.equal(run(["policy", "work", "2"]).stdout.trim(), "action=continue interval_minutes=15 idle_count=0");
   assert.equal(run(["policy", "idle", "2"]).stdout.trim(), "action=pause interval_minutes=0 idle_count=3");
   const invalidPolicy = run(["policy", "idle", "invalid"], { allowFailure: true });
@@ -127,10 +132,16 @@ try {
   ], { allowFailure: true, input: "[]" });
   assert.equal(invalidProjection.status, 3);
   assert.match(invalidProjection.stderr, /must contain GraphQL pages/);
-  assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
-  assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
+  assert.equal(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts")), false);
   const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");
-  assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest run LANE --once/);
+  assert.match(scheduleSkill, /Codex, Cursor, or Gemini: `\$gsd-loop-build` or `\$gsd-loop-review`/);
+  assert.match(scheduleSkill, /Claude Code: `\/gsd-loop-build` or `\/gsd-loop-review`/);
+  assert.match(scheduleSkill, /Kimi Code: `\/skill:gsd-loop-build` or `\/skill:gsd-loop-review`/);
+  assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest policy EVENT IDLE_COUNT/);
+  assert.doesNotMatch(scheduleSkill, /npx @opengsd\/gsd-loop@latest run/);
+  const scheduleMetadata = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "agents", "openai.yaml"), "utf8");
+  assert.match(scheduleMetadata, /schedule one GSD build or review lane/);
+  assert.doesNotMatch(scheduleMetadata, /build and review loops/);
 
   const damagedSkill = join(home, ".agents", "skills", "gsd-loop-build");
   const danglingAdapter = join(home, ".claude", "skills", "gsd-loop-build");
@@ -169,9 +180,10 @@ try {
 
   const packageFiles = packMetadata.files.map(({ path }) => path);
   assert.ok(packageFiles.includes("bin/gsd-loop.mjs"));
+  assert.ok(packageFiles.includes("docs/install.md"));
   assert.ok(packageFiles.includes("lib/install.mjs"));
   assert.ok(packageFiles.includes("lib/init.mjs"));
-  assert.ok(packageFiles.includes("lib/runner.mjs"));
+  assert.equal(packageFiles.includes("lib/runner.mjs"), false);
   assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/SKILL.md"));
   assert.ok(packageFiles.includes("loop/build.md"));
   assert.equal(packageFiles.some((path) => path.startsWith("tests/")), false);

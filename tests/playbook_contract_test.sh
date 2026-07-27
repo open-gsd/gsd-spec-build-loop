@@ -8,6 +8,9 @@ ROOT=$(git rev-parse --show-toplevel)
 BUILD="$ROOT/loop/build.md"
 REVIEW="$ROOT/loop/review.md"
 SCHEDULE="$ROOT/.agents/skills/gsd-loop-schedule/SKILL.md"
+AGENT_GUIDE="$ROOT/AGENTS.md"
+README="$ROOT/README.md"
+INSTALL_GUIDE="$ROOT/docs/install.md"
 
 repair_section=$(sed -n '/^## Repair queue takes priority/,/^## Choose an issue/p' "$BUILD")
 printf '%s\n' "$repair_section" | grep -q 'dependency manifest or lockfile'
@@ -44,11 +47,21 @@ grep -q 'outcomes-invalidated' "$REVIEW"
 grep -q 'The verdict comment,' "$REVIEW"
 grep -q 'issue outcome checkboxes, and labels are the whole interface' "$REVIEW"
 
-grep -q 'npx @opengsd/gsd-loop@latest run LANE --once' "$SCHEDULE"
+grep -q 'Codex, Cursor, or Gemini: `$gsd-loop-build` or `$gsd-loop-review`' "$SCHEDULE"
+grep -q 'Claude Code: `/gsd-loop-build` or `/gsd-loop-review`' "$SCHEDULE"
+grep -q 'Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`' "$SCHEDULE"
 grep -q 'npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT' "$SCHEDULE"
-if grep -q 'Put `$gsd-loop-build` or `$gsd-loop-review` in the scheduled prompt' "$SCHEDULE"; then
-  echo 'native scheduling must not bypass the portable runner lock' >&2
+if grep -q 'npx @opengsd/gsd-loop@latest run' "$SCHEDULE"; then
+  echo 'native scheduling must invoke installed skills instead of a subprocess runner' >&2
   exit 1
 fi
+for guide in "$AGENT_GUIDE" "$README" "$INSTALL_GUIDE"; do
+  grep -q '/gsd-loop-schedule' "$guide"
+  grep -q '/skill:gsd-loop-schedule' "$guide"
+  if grep -q '/loop /gsd-loop-' "$guide"; then
+    echo 'documentation must route recurring work through the scheduling skill' >&2
+    exit 1
+  fi
+done
 
 echo 'playbook contracts passed'

@@ -20,30 +20,31 @@ execute it exactly:
 
 Rules that apply regardless of agent:
 
-- One pass, then stop. The playbooks are written for repetition by the portable
-  or native runner, not for improvising extra iterations.
+- One pass, then stop. The playbooks are written for harness-native repetition,
+  not for improvising extra iterations.
 - Never merge, never enable auto-merge, never force-push. Humans own every
   merge.
 - The issue is the whole product and scope contract: implement only its `O-N`
   outcomes, treat `X-N` exclusions as binding, and escalate with
   `gsd:escalated` instead of guessing.
-- Run at most one build loop per repository. Portable and native runners share
-  a repository-local lane lock; the issue assignee remains the cooperative,
-  cross-host claim and is not atomic.
+- Run at most one build loop per repository. The issue assignee is the
+  cooperative, cross-host claim and is not atomic.
 
 ## Looping
 
-Use the portable foreground runner for durable cross-agent repetition:
+Invoke the installed skills inside the active harness using its native syntax:
 
-```bash
-npx @opengsd/gsd-loop@latest run build
-npx @opengsd/gsd-loop@latest run review
-```
+| Harness | Build | Review | Schedule |
+|---|---|---|---|
+| Codex, Cursor, Gemini | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Kimi Code | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
-Run the lanes in separate terminals. Direct `$gsd-loop-build`,
-`$gsd-loop-review`, or `/gsd-loop-*` invocations are one-pass tools, not
-durable schedulers. `$gsd-loop-schedule` remains an optional adapter for hosts
-with native recurring tasks.
+Run the lanes in separate harness sessions. Each direct invocation is one pass.
+Use the scheduling skill when the host exposes native recurring tasks so
+duplicate-builder, readiness, result, cadence, and idle-stop guardrails remain
+active. If the host cannot repeat skills natively, stop after the pass instead
+of launching another agent process.
 
 Honor the playbooks' idle guidance: when a pass reports an empty queue,
 lengthen the interval, and stop the loop after three consecutive idle
