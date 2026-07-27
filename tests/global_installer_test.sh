@@ -30,6 +30,15 @@ if node "$outcome_sync" >"$TEST_ROOT/outcomes.out" 2>"$TEST_ROOT/outcomes.err"; 
   exit 1
 fi
 grep -q 'requires a positive issue number' "$TEST_ROOT/outcomes.err"
+if printf '[]' | node "$audit_validator" \
+  --baseline aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --head bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+  --manifest package-lock.json \
+  >"$TEST_ROOT/audit.out" 2>"$TEST_ROOT/audit.err"; then
+  echo 'audit validator must reject an empty projection' >&2
+  exit 1
+fi
+grep -q 'must contain GraphQL pages' "$TEST_ROOT/audit.err"
 test -f "$install_root/.agents/skills/gsd-loop-spec/playbook.md"
 test -x "$install_root/.agents/skills/gsd-loop-schedule/scripts/doctor.sh"
 test -x "$install_root/.agents/skills/gsd-loop-schedule/scripts/scheduler-policy.sh"

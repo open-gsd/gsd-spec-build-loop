@@ -119,6 +119,14 @@ try {
   const invalidAuditValidator = command(process.execPath, [auditValidator], { allowFailure: true });
   assert.equal(invalidAuditValidator.status, 2);
   assert.match(invalidAuditValidator.stderr, /requires --baseline FULL_SHA/);
+  const invalidProjection = command(process.execPath, [
+    auditValidator,
+    "--baseline", "a".repeat(40),
+    "--head", "b".repeat(40),
+    "--manifest", "package-lock.json",
+  ], { allowFailure: true, input: "[]" });
+  assert.equal(invalidProjection.status, 3);
+  assert.match(invalidProjection.stderr, /must contain GraphQL pages/);
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
   const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");

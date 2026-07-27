@@ -3,6 +3,7 @@ import {
   parseAuditArguments,
   parseAuditEvidence,
   validateAuditEvidence,
+  validateAuditProjection,
 } from "../lib/audit-evidence.mjs";
 
 const baseline = "a".repeat(40);
@@ -32,6 +33,37 @@ const valid = {
     }],
   }],
 };
+const marker = `Dependency audit for ${head}: baseline compared`;
+
+function evidenceBody(evidence) {
+  return `${marker}\n\`\`\`json\n${JSON.stringify(evidence, null, 2)}\n\`\`\``;
+}
+
+function projectionPage({
+  author = "builder",
+  body = "",
+  comments = [],
+  hasNextPage = false,
+  baseRefOid = baseline,
+  headRefOid = head,
+} = {}) {
+  return {
+    data: {
+      repository: {
+        pullRequest: {
+          author: { login: author },
+          body,
+          baseRefOid,
+          headRefOid,
+          comments: {
+            nodes: comments,
+            pageInfo: { hasNextPage, endCursor: hasNextPage ? "cursor" : null },
+          },
+        },
+      },
+    },
+  };
+}
 
 assert.deepEqual(parseAuditArguments([
   "--baseline", baseline,
@@ -40,6 +72,12 @@ assert.deepEqual(parseAuditArguments([
 ]), expected);
 assert.throws(() => parseAuditEvidence("{"), /valid JSON/);
 assert.deepEqual(validateAuditEvidence(valid, expected), {
+  status: "pass",
+  newHighCritical: [],
+});
+assert.deepEqual(validateAuditProjection([
+  projectionPage({ body: evidenceBody(valid) }),
+], expected), {
   status: "pass",
   newHighCritical: [],
 });
@@ -58,6 +96,65 @@ assert.deepEqual(validateAuditEvidence(high, expected), {
     severity: "high",
   }],
 });
+
+const paginated = [
+  projectionPage({
+    body: evidenceBody(valid),
+    comments: [{
+      author: { login: "stranger" },
+      body: evidenceBody(high),
+      isMinimized: false,
+    }],
+    hasNextPage: true,
+  }),
+  projectionPage({
+    body: evidenceBody(valid),
+    comments: [{
+      author: { login: "builder" },
+      body: evidenceBody(high),
+      isMinimized: false,
+    }],
+  }),
+];
+assert.deepEqual(validateAuditProjection(paginated, expected), {
+  status: "blocking",
+  newHighCritical: [{
+    id: "GHSA-2222",
+    package: "new-package",
+    severity: "high",
+  }],
+});
+
+assert.throws(
+  () => validateAuditProjection([
+    projectionPage({
+      comments: [{
+        author: { login: "stranger" },
+        body: evidenceBody(valid),
+        isMinimized: false,
+      }],
+    }),
+  ], expected),
+  /no current-head marker/,
+);
+assert.throws(
+  () => validateAuditProjection([
+    projectionPage({
+      comments: [{
+        author: { login: "builder" },
+        body: evidenceBody(valid),
+        isMinimized: true,
+      }],
+    }),
+  ], expected),
+  /no current-head marker/,
+);
+assert.throws(
+  () => validateAuditProjection([
+    projectionPage({ body: evidenceBody(valid), hasNextPage: true }),
+  ], expected),
+  /missing comment pages/,
+);
 
 const stale = structuredClone(valid);
 stale.head = "c".repeat(40);

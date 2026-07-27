@@ -78,6 +78,18 @@ assert.throws(
   /malformed outcome checklist entry/,
 );
 assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n* [ ] unrelated task\n", "complete"),
+  /malformed outcome checklist entry/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n+ [ ] unrelated task\n", "complete"),
+  /malformed outcome checklist entry/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n1. [ ] unrelated task\n", "complete"),
+  /malformed outcome checklist entry/,
+);
+assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n\n## Outcomes\n\n- [ ] O-2 — second\n", "complete"),
   /multiple Outcomes sections/,
 );
@@ -93,7 +105,10 @@ function run(program, argumentsList, options = {}) {
       stdout: JSON.stringify({
         headRefOid: "abc123",
         body: "Closes #1",
-        closingIssuesReferences: [{ number: 1 }],
+        closingIssuesReferences: [{
+          number: 1,
+          repository: { nameWithOwner: "octocat/project" },
+        }],
       }),
       stderr: "",
     };
@@ -142,7 +157,10 @@ function noOpRun(program, argumentsList) {
       stdout: JSON.stringify({
         headRefOid: "abc123",
         body: "Closes #1",
-        closingIssuesReferences: [{ number: 1 }],
+        closingIssuesReferences: [{
+          number: 1,
+          repository: { nameWithOwner: "octocat/project" },
+        }],
       }),
       stderr: "",
     };
@@ -191,7 +209,10 @@ function unlinkedRun(program, argumentsList) {
       stdout: JSON.stringify({
         headRefOid: "abc123",
         body: "Closes #1",
-        closingIssuesReferences: [{ number: 1 }],
+        closingIssuesReferences: [{
+          number: 1,
+          repository: { nameWithOwner: "octocat/project" },
+        }],
       }),
       stderr: "",
     };
@@ -210,6 +231,37 @@ assert.throws(
     run: unlinkedRun,
   }),
   /issue #99 is not linked to PR #2/,
+);
+
+function crossRepositoryRun(program, argumentsList) {
+  if (argumentsList[0] === "pr") {
+    return {
+      status: 0,
+      stdout: JSON.stringify({
+        headRefOid: "abc123",
+        body: "",
+        closingIssuesReferences: [{
+          number: 1,
+          repository: { nameWithOwner: "other/project" },
+        }],
+      }),
+      stderr: "",
+    };
+  }
+  return { status: 1, stdout: "", stderr: "issue access must not occur" };
+}
+
+assert.throws(
+  () => syncIssueOutcomes({
+    cwd: "/tmp/project",
+    repo: "octocat/project",
+    issue: 1,
+    pullRequest: 2,
+    expectedHead: "abc123",
+    state: "complete",
+    run: crossRepositoryRun,
+  }),
+  /issue #1 is not linked to PR #2/,
 );
 
 function negatedFallbackRun(program, argumentsList) {

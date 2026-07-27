@@ -68,9 +68,11 @@ reviewer identity, then pull its most recent trusted verdict:
 ```bash
 REVIEWER_LOGIN=$(gh api user --jq .login)
 ISSUE=LINKED_ISSUE
+gh pr view NUMBER --json headRefOid --jq .headRefOid
 REVIEWER_LOGIN="$REVIEWER_LOGIN" ISSUE="$ISSUE" \
-  gh pr view NUMBER --json headRefOid,comments \
-  --jq '{head: .headRefOid, verdict: ([.comments[] | select(.author.login == env.REVIEWER_LOGIN and ((.body | split("\n")[0]) | startswith("gsd-loop verdict for ")) and ((.body | split("\n")[0]) | endswith(" issue #" + env.ISSUE)))] | last)}'
+  gh api --paginate --slurp \
+  "repos/OWNER/REPO/issues/NUMBER/comments?per_page=100" \
+  --jq '[.[][] | select(.user.login == env.REVIEWER_LOGIN and ((.body | split("\n")[0]) | startswith("gsd-loop verdict for ")) and ((.body | split("\n")[0]) | endswith(" issue #" + env.ISSUE)))] | last'
 ```
 
 - A verdict's first line must pin both its SHA and linked issue as

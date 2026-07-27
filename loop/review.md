@@ -20,13 +20,28 @@ gh pr list --state open --limit 200 \
   --json number,title,labels,isDraft,headRefName,headRefOid,updatedAt,url
 ```
 
-Drafts are out of scope. Resolve the authenticated reviewer identity, then pull
-the full author-bearing comment trail:
+Drafts are out of scope. Resolve the authenticated reviewer identity, then
+retrieve the complete author-bearing comment trail with GraphQL pagination:
 
 ```bash
 REVIEWER_LOGIN=$(gh api user --jq .login)
-REVIEWER_LOGIN="$REVIEWER_LOGIN" gh pr view NUMBER --json headRefOid,comments \
-  --jq '{head: .headRefOid, comments: [.comments[] | select(.author.login == env.REVIEWER_LOGIN) | {author: .author.login, body: .body}]}'
+gh api graphql --paginate --slurp \
+  -F owner=OWNER -F name=REPO -F number=NUMBER \
+  -f query='
+    query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+      repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+          author { login }
+          body
+          baseRefOid
+          headRefOid
+          comments(first: 100, after: $endCursor) {
+            nodes { author { login } body isMinimized }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }' > PR_EVIDENCE
 ```
 
 Resolve current linkage before interpreting the trail. Search every comment
@@ -34,9 +49,10 @@ authored by `REVIEWER_LOGIN`, not only the last matching comment:
 
 ```bash
 VERDICT_HEADER="gsd-loop verdict for HEAD_SHA issue #ISSUE"
-REVIEWER_LOGIN="$REVIEWER_LOGIN" VERDICT_HEADER="$VERDICT_HEADER" \
-  gh pr view NUMBER --json comments \
-  --jq '[.comments[] | select(.author.login == env.REVIEWER_LOGIN and ((.body | split("\n")[0]) == env.VERDICT_HEADER))]'
+jq --arg reviewer "$REVIEWER_LOGIN" --arg header "$VERDICT_HEADER" \
+  '[.[].data.repository.pullRequest.comments.nodes[]
+    | select(.author.login == $reviewer and ((.body | split("\n")[0]) == $header))]' \
+  PR_EVIDENCE
 ```
 
 - An exact first line `gsd-loop verdict for HEAD_SHA issue #ISSUE` covering
@@ -104,8 +120,11 @@ gate and outcome invalidation described above:
 
 ```bash
 gh pr view NUMBER --json closingIssuesReferences \
-  --jq '.closingIssuesReferences[].number'
+  --jq '.closingIssuesReferences[] | {number, repository: .repository.nameWithOwner}'
 ```
+
+Only a reference whose repository identity matches `OWNER/REPO` and whose
+number matches `ISSUE` establishes linkage.
 
 - No linked issue → there is no contract, so there is nothing to audit
   against and no issue checklist to synchronize. For a `gsd/NNN-*` branch,
@@ -128,12 +147,12 @@ data paths, scope creep, security holes, absent loading/error handling, and
 code a future agent won't be able to safely modify. Unrelated improvement
 ideas stay out of the verdict unless severe.
 
-List the changed paths, base and head SHAs, PR author, body, and comments before
-accepting dependency evidence:
+List the changed paths before accepting dependency evidence. The paginated
+`PR_EVIDENCE` projection above already pins the base/head SHAs, PR author, body,
+and every comment with its author and minimization state:
 
 ```bash
-gh pr view NUMBER --json author,baseRefOid,headRefOid,files,body,comments \
-  --jq '{author: .author.login, base: .baseRefOid, head: .headRefOid, files: [.files[].path], body: .body, comments: [.comments[] | {author: .author.login, body: .body, isMinimized: .isMinimized}]}'
+gh pr view NUMBER --json files --jq '[.files[].path]'
 ```
 
 If a dependency manifest or lockfile changed, require branch-head evidence that
@@ -167,28 +186,24 @@ and both advisory arrays contain only `id`, `package`, and lowercase
 pairs. Compare the two arrays by the `id` and `package` pair. Treat malformed,
 partial, unsorted, duplicate, or extra-field data as incomparable.
 
-The PR body inherits the PR author's GitHub identity. For comment evidence,
-use the full author-bearing projection above and accept only a non-minimized
-comment whose `author.login` exactly equals the PR author's login; never accept
-an identity claimed inside comment text. Do not reuse the verdict-only
-projection from candidate selection. Repair comments are not verdict comments.
-Find the exact current-head marker and its adjacent JSON object in the trusted
-body or comment and validate every field before using it.
-
-Extract only that adjacent JSON object and pipe it to the bundled validator,
-passing every changed dependency manifest or lockfile:
+Pass the full author-bearing `PR_EVIDENCE` projection to the bundled validator,
+along with every changed dependency manifest or lockfile:
 
 ```bash
 node AUDIT_VALIDATOR --baseline BASE_REF_OID --head HEAD_REF_OID \
-  --manifest PATH [--manifest PATH ...] < AUDIT_JSON
+  --manifest PATH [--manifest PATH ...] < PR_EVIDENCE
 ```
 
 `AUDIT_VALIDATOR` is the absolute script path resolved by the review skill.
-Its JSON result is `pass` only when schema, SHAs, exact manifest coverage,
-sorting, uniqueness, advisory comparison, and all other deterministic checks
-succeed. Invalid evidence exits blocked and is `[SEC]`. A `blocking` result
-lists new high/critical advisories and is `[SEC]`. Do not reproduce or override
-these deterministic decisions by inspection.
+It verifies pagination completeness and consistent base/head/author/body
+provenance across pages; selects only the latest current-head marker in the PR
+body or a non-minimized comment by the PR author; extracts its immediately
+adjacent JSON fence; then validates schema, SHAs, exact manifest coverage,
+sorting, uniqueness, and advisory comparison. Its JSON result is `pass` only
+when every check succeeds. Invalid or missing trusted evidence exits blocked
+and is `[SEC]`. A `blocking` result lists new high/critical advisories and is
+`[SEC]`. Do not preselect evidence or reproduce these deterministic decisions
+by inspection.
 
 Missing, stale, or incomparable evidence is `[SEC]` and blocks approval. A new
 high or critical advisory attributable to the diff is also `[SEC]`; route it

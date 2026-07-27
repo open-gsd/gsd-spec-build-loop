@@ -9,13 +9,13 @@ const modulePath = existsSync(bundledModule) ? bundledModule : sourceModule;
 const {
   parseAuditArguments,
   parseAuditEvidence,
-  validateAuditEvidence,
+  validateAuditProjection,
 } = await import(pathToFileURL(modulePath));
 
 try {
   const options = parseAuditArguments(process.argv.slice(2));
-  const evidence = parseAuditEvidence(readFileSync(0, "utf8"));
-  const result = validateAuditEvidence(evidence, options);
+  const projection = parseAuditEvidence(readFileSync(0, "utf8"));
+  const result = validateAuditProjection(projection, options);
   console.log(JSON.stringify(result));
   if (result.status === "blocking") process.exitCode = 3;
 } catch (error) {
