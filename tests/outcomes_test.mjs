@@ -74,7 +74,19 @@ assert.throws(
   /malformed outcome O-2/,
 );
 assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n  O-2 — missing checkbox\n- [ ] O-1 — first\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n1. O-2 — missing checkbox\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n  O-2 — missing checkbox\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\nNotes\n  O-2 must not be ignored.\n", "complete"),
   /malformed outcome O-2/,
 );
 assert.throws(
