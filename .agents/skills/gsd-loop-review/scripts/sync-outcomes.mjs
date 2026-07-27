@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const sourceModule = fileURLToPath(new URL("../../../../lib/outcomes.mjs", import.meta.url));
 const bundledModule = fileURLToPath(new URL("./runtime/outcomes.mjs", import.meta.url));
-const modulePath = existsSync(sourceModule) ? sourceModule : bundledModule;
+const modulePath = existsSync(bundledModule) ? bundledModule : sourceModule;
 const { parseOutcomeArguments, syncIssueOutcomes } = await import(pathToFileURL(modulePath));
 
 try {

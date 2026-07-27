@@ -149,6 +149,7 @@ assert.equal(syncIssueOutcomes({
   run: noOpRun,
 }), false);
 assert.equal(noOpCalls.filter(([commandName]) => commandName === "pr").length, 2);
+assert.equal(noOpCalls.filter(([commandName]) => commandName === "issue").length, 2);
 
 assert.throws(
   () => syncIssueOutcomes({
@@ -187,6 +188,34 @@ assert.throws(
     expectedHead: "abc123",
     state: "complete",
     run: unlinkedRun,
+  }),
+  /issue #99 is not linked to PR #2/,
+);
+
+function negatedFallbackRun(program, argumentsList) {
+  if (argumentsList[0] === "pr") {
+    return {
+      status: 0,
+      stdout: JSON.stringify({
+        headRefOid: "abc123",
+        body: "This does not close #99.",
+        closingIssuesReferences: [],
+      }),
+      stderr: "",
+    };
+  }
+  return { status: 1, stdout: "", stderr: "issue access must not occur" };
+}
+
+assert.throws(
+  () => syncIssueOutcomes({
+    cwd: "/tmp/project",
+    repo: "octocat/project",
+    issue: 99,
+    pullRequest: 2,
+    expectedHead: "abc123",
+    state: "complete",
+    run: negatedFallbackRun,
   }),
   /issue #99 is not linked to PR #2/,
 );
