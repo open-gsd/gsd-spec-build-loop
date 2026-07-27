@@ -161,16 +161,23 @@ npx @opengsd/gsd-loop@latest install --dry-run
 npx @opengsd/gsd-loop@latest install
 ```
 
-Select hosts or native adapter behavior when necessary:
+Select which hosts receive native adapters or choose adapter behavior when
+necessary:
 
 ```bash
 npx @opengsd/gsd-loop@latest install --agents codex,cursor,gemini,kimi
 npx @opengsd/gsd-loop@latest install --adapter-mode copy
 ```
 
-Reinstallation updates only paths marked as installer-owned. A conflicting
-unowned skill path stops the entire preflight before anything is replaced. Use
-`--home PATH` only for an alternate user profile or isolated test root.
+The canonical four-skill bundle is always installed because every adapter
+references it and Codex and Kimi use it directly. `--agents` limits the native
+adapter directories added for Claude, Cursor, and Gemini.
+
+Before writing, the installer preflights the canonical bundle and every
+selected adapter destination. A conflicting unowned path stops the installation
+before anything is replaced. Each replacement is staged beside its destination
+and restores that destination from its backup if the replacement fails.
+Use `--home PATH` only for an alternate user profile or isolated test root.
 
 On native Windows, the canonical skill directory is
 `%USERPROFILE%\.agents\skills`. Claude, Cursor, and Gemini adapters are
@@ -204,6 +211,7 @@ python3 scripts/install-global.py
   and select the check when prompted.
 - **Native scheduling is unavailable:** run the build or review skill manually
   for another bounded pass. Do not substitute an external agent launcher.
-- **Claude symlink creation fails:** rerun with `--adapter-mode copy`.
+- **Native adapter symlink creation fails:** rerun with
+  `--adapter-mode copy`.
 - **The installer refuses a path:** preserve and inspect it. gsd-loop never
   overwrites an unowned destination.

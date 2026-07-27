@@ -54,9 +54,7 @@ passes.
 
 ## Prerequisites
 
-- `gh` authenticated with write access to the target repository.
-- Required status checks configured on the default branch — the reviewer
-  escalates every PR in a repo without required CI, by design.
-
-Verify both with `npx @opengsd/gsd-loop@latest doctor --review-ready` before
-the first review pass.
+Repository onboarding and readiness checks are owned by the
+[README](README.md) and [installation guide](docs/install.md). After bootstrap,
+use the installed skill invocations above. The scheduling skill performs its
+lane-specific readiness check before creating a task.

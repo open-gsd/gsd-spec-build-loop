@@ -8,7 +8,7 @@ The loop is three agent-neutral playbooks in `loop/` that any coding agent can
 execute (Codex, Claude Code, Cursor, Gemini CLI, ...). They use Node.js and an
 authenticated `gh` CLI; the installed review skill bundles its deterministic
 outcome synchronizer, so direct one-pass use does not require a global
-`gsd-loop` command. The installer keeps canonical skills in `.agents/skills/`
+`gsd-loop` command. The installer keeps canonical skills in `~/.agents/skills/`
 and adds native adapters for hosts that use their own global skill directory.
 
 ```
