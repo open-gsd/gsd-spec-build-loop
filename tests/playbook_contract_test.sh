@@ -66,6 +66,11 @@ for guide in "$AGENT_GUIDE" "$README" "$INSTALL_GUIDE"; do
     exit 1
   fi
 done
+grep -Fq '| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |' "$AGENT_GUIDE"
+grep -Fq '| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |' "$AGENT_GUIDE"
 if [ "$(grep -c 'npx @opengsd/gsd-loop@latest init' "$README")" -ne 1 ]; then
   echo 'README must contain exactly one npm bootstrap command' >&2
   exit 1

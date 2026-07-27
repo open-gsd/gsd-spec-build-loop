@@ -121,6 +121,35 @@ grep -q 'refusing to overwrite unowned path' "$cursor_conflict_output"
 grep -q 'preserve me' "$cursor_conflict_root/.cursor/skills/gsd-loop-review/user-file"
 test ! -e "$cursor_conflict_root/.agents"
 
+cursor_root_conflict="$TEST_ROOT/cursor-root-conflict"
+"$INSTALLER" --home "$cursor_root_conflict" --agents codex
+printf 'old canonical\n' > "$cursor_root_conflict/.agents/skills/gsd-loop-build/SKILL.md"
+rm -r "$cursor_root_conflict/.agents/skills/gsd-loop-spec"
+mkdir -p "$cursor_root_conflict/.cursor"
+printf 'preserve root\n' > "$cursor_root_conflict/.cursor/skills"
+if "$INSTALLER" --home "$cursor_root_conflict" --agents cursor >"$TEST_ROOT/cursor-root-conflict.out" 2>&1; then
+  echo 'an occupied Cursor adapter root must block installation' >&2
+  exit 1
+fi
+grep -q 'refusing to overwrite unowned path' "$TEST_ROOT/cursor-root-conflict.out"
+[ "$(cat "$cursor_root_conflict/.cursor/skills")" = 'preserve root' ]
+[ "$(cat "$cursor_root_conflict/.agents/skills/gsd-loop-build/SKILL.md")" = 'old canonical' ]
+test ! -e "$cursor_root_conflict/.agents/skills/gsd-loop-spec"
+
+gemini_parent_conflict="$TEST_ROOT/gemini-parent-conflict"
+"$INSTALLER" --home "$gemini_parent_conflict" --agents codex
+printf 'old canonical\n' > "$gemini_parent_conflict/.agents/skills/gsd-loop-build/SKILL.md"
+rm -r "$gemini_parent_conflict/.agents/skills/gsd-loop-spec"
+printf 'preserve parent\n' > "$gemini_parent_conflict/.gemini"
+if "$INSTALLER" --home "$gemini_parent_conflict" --agents gemini >"$TEST_ROOT/gemini-parent-conflict.out" 2>&1; then
+  echo 'an occupied Gemini adapter parent must block installation' >&2
+  exit 1
+fi
+grep -q 'refusing to overwrite unowned path' "$TEST_ROOT/gemini-parent-conflict.out"
+[ "$(cat "$gemini_parent_conflict/.gemini")" = 'preserve parent' ]
+[ "$(cat "$gemini_parent_conflict/.agents/skills/gsd-loop-build/SKILL.md")" = 'old canonical' ]
+test ! -e "$gemini_parent_conflict/.agents/skills/gsd-loop-spec"
+
 aliased_root="$TEST_ROOT/aliased"
 mkdir -p "$aliased_root/.agents/skills" "$aliased_root/.claude"
 ln -s "$aliased_root/.agents/skills" "$aliased_root/.claude/skills"

@@ -34,13 +34,13 @@ Rules that apply regardless of agent:
 
 Invoke the installed skills inside the active harness using its native syntax:
 
-| Harness | Build | Review | Schedule |
-|---|---|---|---|
-| Codex | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
-| Claude Code | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Cursor | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Gemini CLI | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
-| Kimi Code | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
+| Harness | Spec | Build | Review | Schedule |
+|---|---|---|---|---|
+| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
+| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 Run the lanes in separate harness sessions. Each direct invocation is one pass.
 Use the scheduling skill when the host exposes native recurring tasks so

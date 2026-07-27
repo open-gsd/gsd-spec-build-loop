@@ -90,11 +90,26 @@ try {
   assert.match(help, /gsd-loop init/);
   assert.match(help, /gsd-loop doctor/);
   assert.doesNotMatch(help, /gsd-loop run build\|review/);
-  assert.match(help, /Codex:.*\$gsd-loop-build/);
-  assert.match(help, /Claude Code:.*\/gsd-loop-build/);
-  assert.match(help, /Cursor:.*\/gsd-loop-build/);
-  assert.match(help, /Gemini CLI:.*Use the gsd-loop-build skill/);
-  assert.match(help, /Kimi Code:.*\/skill:gsd-loop-build/);
+  assert.match(
+    help,
+    /Codex:.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
+    /Claude Code:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
+    /Cursor:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
+    /Gemini CLI:.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
+  );
+  assert.match(
+    help,
+    /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
+  );
   assert.match(help, /native adapter behavior/);
   assert.match(help, /gsd-loop policy/);
   const removedRunner = run(["run", "build"], { allowFailure: true });
@@ -173,6 +188,55 @@ try {
   assert.ok(existsSync(join(geminiHome, ".gemini", "skills", "gsd-loop-spec")));
   assert.equal(existsSync(join(geminiHome, ".claude")), false);
   assert.equal(existsSync(join(geminiHome, ".cursor")), false);
+
+  const cursorRootConflictHome = join(testRoot, "cursor-root-conflict-home");
+  run(["install", "--home", cursorRootConflictHome, "--agents", "codex"]);
+  const cursorCanonicalBuild = join(
+    cursorRootConflictHome,
+    ".agents",
+    "skills",
+    "gsd-loop-build",
+    "SKILL.md",
+  );
+  const cursorCanonicalSpec = join(cursorRootConflictHome, ".agents", "skills", "gsd-loop-spec");
+  writeFileSync(cursorCanonicalBuild, "old canonical\n");
+  rmSync(cursorCanonicalSpec, { recursive: true });
+  mkdirSync(join(cursorRootConflictHome, ".cursor"), { recursive: true });
+  const cursorRootConflict = join(cursorRootConflictHome, ".cursor", "skills");
+  writeFileSync(cursorRootConflict, "preserve root\n");
+  const cursorRootFailed = run(
+    ["install", "--home", cursorRootConflictHome, "--agents", "cursor"],
+    { allowFailure: true },
+  );
+  assert.notEqual(cursorRootFailed.status, 0);
+  assert.match(cursorRootFailed.stderr, /refusing to overwrite unowned path/);
+  assert.equal(readFileSync(cursorRootConflict, "utf8"), "preserve root\n");
+  assert.equal(readFileSync(cursorCanonicalBuild, "utf8"), "old canonical\n");
+  assert.equal(existsSync(cursorCanonicalSpec), false);
+
+  const geminiParentConflictHome = join(testRoot, "gemini-parent-conflict-home");
+  run(["install", "--home", geminiParentConflictHome, "--agents", "codex"]);
+  const geminiCanonicalBuild = join(
+    geminiParentConflictHome,
+    ".agents",
+    "skills",
+    "gsd-loop-build",
+    "SKILL.md",
+  );
+  const geminiCanonicalSpec = join(geminiParentConflictHome, ".agents", "skills", "gsd-loop-spec");
+  writeFileSync(geminiCanonicalBuild, "old canonical\n");
+  rmSync(geminiCanonicalSpec, { recursive: true });
+  const geminiParentConflict = join(geminiParentConflictHome, ".gemini");
+  writeFileSync(geminiParentConflict, "preserve parent\n");
+  const geminiParentFailed = run(
+    ["install", "--home", geminiParentConflictHome, "--agents", "gemini"],
+    { allowFailure: true },
+  );
+  assert.notEqual(geminiParentFailed.status, 0);
+  assert.match(geminiParentFailed.stderr, /refusing to overwrite unowned path/);
+  assert.equal(readFileSync(geminiParentConflict, "utf8"), "preserve parent\n");
+  assert.equal(readFileSync(geminiCanonicalBuild, "utf8"), "old canonical\n");
+  assert.equal(existsSync(geminiCanonicalSpec), false);
 
   const cursorConflictHome = join(testRoot, "cursor-conflict-home");
   const cursorConflict = join(cursorConflictHome, ".cursor", "skills", "gsd-loop-review");

@@ -71,10 +71,22 @@ def roots_alias(first: Path, second: Path) -> bool:
     return first.resolve() == second.resolve()
 
 
+def blocking_directory_component(path: Path) -> Path | None:
+    for component in reversed((path, *path.parents)):
+        if not path_exists(component):
+            return None
+        if not component.is_dir():
+            return component
+    return None
+
+
 def preflight_adapter_root(
     canonical_root: Path, adapter_root: Path, adapter_mode: str
 ) -> list[Path]:
     conflicts: list[Path] = []
+    blocking_component = blocking_directory_component(adapter_root)
+    if blocking_component is not None:
+        return [blocking_component]
     if roots_alias(canonical_root, adapter_root):
         return conflicts
 
@@ -104,10 +116,14 @@ def preflight(
     adapter_mode: str,
 ) -> list[Path]:
     conflicts: list[Path] = []
-    for skill in SKILLS:
-        destination = canonical_root / skill
-        if path_exists(destination) and not is_owned_directory(destination):
-            conflicts.append(destination)
+    blocking_component = blocking_directory_component(canonical_root)
+    if blocking_component is not None:
+        conflicts.append(blocking_component)
+    else:
+        for skill in SKILLS:
+            destination = canonical_root / skill
+            if path_exists(destination) and not is_owned_directory(destination):
+                conflicts.append(destination)
 
     for adapter_root in adapter_roots:
         conflicts.extend(
