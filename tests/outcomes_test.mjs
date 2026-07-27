@@ -41,6 +41,13 @@ assert.equal(transformOutcomeChecklist(issueBody, "complete"), issueBody
   .replace("- [ ] O-1", "- [x] O-1"));
 assert.equal(transformOutcomeChecklist(issueBody, "pending"), issueBody
   .replace("- [x] O-2", "- [ ] O-2"));
+const multilineOutcomeBody = `## Outcomes
+
+- [ ] O-6 — tests cover every required path, including
+  each failure case in O-5 exiting 1 without changing state.
+`;
+assert.equal(transformOutcomeChecklist(multilineOutcomeBody, "complete"), multilineOutcomeBody
+  .replace("- [ ] O-6", "- [x] O-6"));
 assert.throws(
   () => transformOutcomeChecklist("## Why\n\nNo contract.\n", "complete"),
   /Outcomes section/,
@@ -107,7 +114,10 @@ function run(program, argumentsList, options = {}) {
         body: "Closes #1",
         closingIssuesReferences: [{
           number: 1,
-          repository: { nameWithOwner: "octocat/project" },
+          repository: {
+            name: "project",
+            owner: { login: "octocat" },
+          },
         }],
       }),
       stderr: "",
