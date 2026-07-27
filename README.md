@@ -46,14 +46,15 @@ compatibility shims in `.claude/skills/`.
 
 ## Quick start
 
-From the repository you want gsd-loop to manage:
+Run one bootstrap command from the repository you want gsd-loop to manage:
 
 ```bash
 npx @opengsd/gsd-loop@latest init
 ```
 
-`init` previews one plan and asks before it changes anything. It installs or
-updates the four global skills, checks Git and GitHub access, creates the five
+This is the only user-facing step outside an agent harness. `init` previews one
+plan and asks before it changes anything. It installs or updates the four global
+skills, checks Git and GitHub access and review readiness, creates the five
 labels, and can configure an existing successful CI check as required when
 GitHub supports repository rulesets. It does not choose, launch, or configure
 an agent harness.
@@ -66,8 +67,8 @@ npx @opengsd/gsd-loop@latest init --yes \
   --create-repo --repo OWNER/NAME --visibility private
 ```
 
-Start a new harness session after installation. All work runs as skills inside
-that harness:
+Start a new harness session after bootstrap. All ongoing work runs as skills
+inside that harness:
 
 | Agent | Spec | Build one pass | Review one pass | Schedule |
 |---|---|---|---|---|
@@ -110,17 +111,11 @@ The loop is deliberately incapable of doing these:
   existing successful check when GitHub supports rulesets; it never creates a
   fake always-green workflow.
 
-Check an environment before the first run:
-
-```bash
-npx @opengsd/gsd-loop@latest doctor
-npx @opengsd/gsd-loop@latest doctor --review-ready
-```
-
-After a global installation, invoke the skills from any GitHub worktree; no
-project files need to be copied. `gsd-loop install` remains available when only
-global skill installation is wanted; `init` is the recommended repository
-onboarding command.
+The bootstrap reports missing prerequisites or review protections before the
+first skill run. After it finishes, invoke the skills from any GitHub worktree;
+no project files need to be copied. Advanced selective installation,
+unattended bootstrap, diagnostics, and recovery are documented in the
+[installation guide](docs/install.md).
 
 ## Maintainer releases
 
