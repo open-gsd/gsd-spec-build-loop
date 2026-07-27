@@ -118,6 +118,11 @@ def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
         lane = skill.removeprefix("gsd-loop-")
         if lane in {"spec", "build", "review"}:
             shutil.copy2(source_root / "loop" / f"{lane}.md", stage / "playbook.md")
+            if lane == "review":
+                runtime = stage / "scripts" / "runtime"
+                runtime.mkdir(parents=True, exist_ok=True)
+                for module in ("errors.mjs", "outcomes.mjs", "process.mjs"):
+                    shutil.copy2(source_root / "lib" / module, runtime / module)
         elif lane == "schedule":
             scripts = stage / "scripts"
             scripts.mkdir(exist_ok=True)

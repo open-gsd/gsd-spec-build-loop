@@ -53,13 +53,30 @@ assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n- O-2 — missing checkbox\n", "complete"),
   /malformed outcome O-2/,
 );
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\nO-2 — missing checkbox\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n\n## Outcomes\n\n- [ ] O-2 — second\n", "complete"),
+  /multiple Outcomes sections/,
+);
 
 const calls = [];
-const bodies = [issueBody, issueBody];
+const completedBody = transformOutcomeChecklist(issueBody, "complete");
+const bodies = [issueBody, issueBody, completedBody];
 function run(program, argumentsList, options = {}) {
   calls.push({ program, argumentsList, input: options.input });
   if (argumentsList[0] === "pr") {
-    return { status: 0, stdout: "abc123\n", stderr: "" };
+    return {
+      status: 0,
+      stdout: JSON.stringify({
+        headRefOid: "abc123",
+        body: "Closes #1",
+        closingIssuesReferences: [{ number: 1 }],
+      }),
+      stderr: "",
+    };
   }
   if (argumentsList[0] === "issue" && argumentsList[1] === "view") {
     return { status: 0, stdout: JSON.stringify({ body: bodies.shift() }), stderr: "" };
@@ -86,11 +103,52 @@ assert.deepEqual(calls.map(({ argumentsList }) => argumentsList.slice(0, 3)), [
   ["pr", "view", "2"],
   ["issue", "view", "1"],
   ["issue", "edit", "1"],
+  ["issue", "view", "1"],
+  ["pr", "view", "2"],
 ]);
-const edit = calls.at(-1);
+const edit = calls.find(({ argumentsList }) => (
+  argumentsList[0] === "issue" && argumentsList[1] === "edit"
+));
 assert.equal(edit.input, issueBody.replace("- [ ] O-1", "- [x] O-1"));
 assert.ok(edit.argumentsList.includes("--body-file"));
 assert.ok(edit.argumentsList.includes("-"));
+
+const noOpCalls = [];
+function noOpRun(program, argumentsList) {
+  noOpCalls.push(argumentsList);
+  if (argumentsList[0] === "pr") {
+    return {
+      status: 0,
+      stdout: JSON.stringify({
+        headRefOid: "abc123",
+        body: "Closes #1",
+        closingIssuesReferences: [{ number: 1 }],
+      }),
+      stderr: "",
+    };
+  }
+  if (argumentsList[0] === "issue" && argumentsList[1] === "view") {
+    return {
+      status: 0,
+      stdout: JSON.stringify({
+        body: transformOutcomeChecklist(issueBody, "complete"),
+      }),
+      stderr: "",
+    };
+  }
+  return { status: 1, stdout: "", stderr: "unexpected command" };
+}
+
+assert.equal(syncIssueOutcomes({
+  cwd: "/tmp/project",
+  repo: "octocat/project",
+  issue: 1,
+  pullRequest: 2,
+  expectedHead: "abc123",
+  state: "complete",
+  run: noOpRun,
+}), false);
+assert.equal(noOpCalls.filter(([commandName]) => commandName === "pr").length, 2);
 
 assert.throws(
   () => syncIssueOutcomes({
@@ -103,6 +161,34 @@ assert.throws(
     run,
   }),
   /head changed/,
+);
+
+function unlinkedRun(program, argumentsList) {
+  if (argumentsList[0] === "pr") {
+    return {
+      status: 0,
+      stdout: JSON.stringify({
+        headRefOid: "abc123",
+        body: "Closes #1",
+        closingIssuesReferences: [{ number: 1 }],
+      }),
+      stderr: "",
+    };
+  }
+  return { status: 1, stdout: "", stderr: "issue access must not occur" };
+}
+
+assert.throws(
+  () => syncIssueOutcomes({
+    cwd: "/tmp/project",
+    repo: "octocat/project",
+    issue: 99,
+    pullRequest: 2,
+    expectedHead: "abc123",
+    state: "complete",
+    run: unlinkedRun,
+  }),
+  /issue #99 is not linked to PR #2/,
 );
 
 console.log("outcome checklist synchronization passed");

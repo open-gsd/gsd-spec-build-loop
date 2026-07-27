@@ -42,19 +42,17 @@ Resolve the linked issue before checking CI, using the linkage rules under
 before auditing it:
 
 ```bash
-gsd-loop outcomes ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
+node OUTCOME_SYNC ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
 ```
 
-When executing the playbook from this source checkout without a globally
-installed command, use `node bin/gsd-loop.mjs outcomes ...` instead.
-
-The command verifies the PR head twice, refuses malformed or concurrently
-changed issue bodies, and changes only `O-N` checkboxes in `## Outcomes`. If it
-is unavailable or fails, report the pass as blocked; never edit the issue body
-with an ad-hoc text transform. An already-pending checklist is a no-op. If this
-invalidates checked outcomes but CI is not yet auditable, report work with
-reason `outcomes-invalidated`; only an unchanged pending checklist counts as an
-idle CI wait.
+`OUTCOME_SYNC` is the absolute script path resolved by the review skill. The
+command verifies the PR head and issue linkage twice, refuses malformed or
+concurrently changed issue bodies, and changes only `O-N` checkboxes in
+`## Outcomes`. If it is unavailable or fails, report the pass as blocked;
+never edit the issue body with an ad-hoc text transform. An already-pending
+checklist is a no-op. If this invalidates checked outcomes but CI is not yet
+auditable, report work with reason `outcomes-invalidated`; only an unchanged
+pending checklist counts as an idle CI wait.
 
 Cheap gate before the expensive read: a PR whose required checks are still
 running, or whose mergeability reads `UNKNOWN`, isn't auditable yet — count
@@ -104,12 +102,14 @@ gh pr view NUMBER --json files,body --jq '{files: [.files[].path], body: .body}'
 If a dependency manifest or lockfile changed, require branch-head evidence that
 the default-branch baseline and proposed branch were audited with the same
 machine-readable command and compared by advisory identifier and affected
-package. The PR body must contain `Dependency audit: baseline compared` with
-the commands and result. Missing, stale, or incomparable evidence is `[SEC]`
-and blocks approval. A new high or critical advisory attributable to the diff
-is also `[SEC]`; route it to `gsd:escalated` when the issue contract does not
-permit a compatible fix. Only a diff with no dependency manifest or lockfile
-changes may use `Dependency audit: not applicable`.
+package. The PR body or a later builder repair comment must contain
+`Dependency audit for HEAD_SHA: baseline compared` with the full current
+`headRefOid`, commands, and result. Evidence pinned to any other SHA is stale.
+Missing, stale, or incomparable evidence is `[SEC]` and blocks approval. A new
+high or critical advisory attributable to the diff is also `[SEC]`; route it
+to `gsd:escalated` when the issue contract does not permit a compatible fix.
+Only a diff with no dependency manifest or lockfile changes may use
+`Dependency audit: not applicable`.
 
 Blocking findings are tagged:
 
@@ -201,13 +201,15 @@ Immediately after posting the verdict and before changing labels, synchronize
 the linked issue against the same head SHA. An approval checks every outcome:
 
 ```bash
-gsd-loop outcomes ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
+node OUTCOME_SYNC ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
 ```
 
 Any blocking or escalated verdict uses `pending` instead. If synchronization
 fails after the comment is posted, stop without changing labels and report the
 pass as blocked. The next pass recognizes the SHA-pinned verdict and repairs
-the checklist and labels without posting a second verdict.
+the checklist and labels without posting a second verdict. After every
+synchronization, re-fetch `headRefOid` once more before changing labels; a head
+change stops the pass with no label mutation.
 
 Escalation is a one-way door out of automation by design: the loop won't
 look at that commit again until a human fixes the underlying cause and

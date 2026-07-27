@@ -5,10 +5,11 @@ issues, issues become PRs, PRs get audited verdicts — and every
 irreversible step stays human.
 
 The loop is three agent-neutral playbooks in `loop/` that any coding agent can
-execute (Codex, Claude Code, Cursor, Gemini CLI, ...). They use an authenticated
-`gh` CLI plus the companion `gsd-loop` command for deterministic state changes;
-the npm runner places that command on the agent's path. Repository skills live
-in `.agents/skills/`, with compatibility shims in `.claude/skills/`.
+execute (Codex, Claude Code, Cursor, Gemini CLI, ...). They use Node.js and an
+authenticated `gh` CLI; the installed review skill bundles its deterministic
+outcome synchronizer, so direct one-pass use does not require a global
+`gsd-loop` command. Repository skills live in `.agents/skills/`, with
+compatibility shims in `.claude/skills/`.
 
 ```
  idea ──/gsd-loop-spec──▶ issue ──human: gsd:ready──▶ queue

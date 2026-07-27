@@ -14,10 +14,11 @@ if printf '%s\n' "$repair_section" | grep -q 'issue contract or repository guida
 fi
 
 grep -q 'gh pr view NUMBER --json files' "$REVIEW"
-grep -q 'Dependency audit: baseline compared' "$REVIEW"
+grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$BUILD"
+grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$REVIEW"
 grep -q 'pending-ci-NUMBER-HEAD_SHA' "$REVIEW"
-grep -q 'gsd-loop outcomes ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
-grep -q 'gsd-loop outcomes ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
+grep -q 'node OUTCOME_SYNC ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
+grep -q 'node OUTCOME_SYNC ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
 grep -q 'outcomes-invalidated' "$REVIEW"
 grep -q 'The verdict comment,' "$REVIEW"
 grep -q 'issue outcome checkboxes, and labels are the whole interface' "$REVIEW"

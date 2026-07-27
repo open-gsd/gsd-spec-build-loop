@@ -21,6 +21,13 @@ done
 
 test -f "$install_root/.agents/skills/gsd-loop-build/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-review/playbook.md"
+outcome_sync="$install_root/.agents/skills/gsd-loop-review/scripts/sync-outcomes.mjs"
+test -f "$outcome_sync"
+if node "$outcome_sync" >"$TEST_ROOT/outcomes.out" 2>"$TEST_ROOT/outcomes.err"; then
+  echo 'outcome synchronizer must reject missing arguments' >&2
+  exit 1
+fi
+grep -q 'requires a positive issue number' "$TEST_ROOT/outcomes.err"
 test -f "$install_root/.agents/skills/gsd-loop-spec/playbook.md"
 test -x "$install_root/.agents/skills/gsd-loop-schedule/scripts/doctor.sh"
 test -x "$install_root/.agents/skills/gsd-loop-schedule/scripts/scheduler-policy.sh"

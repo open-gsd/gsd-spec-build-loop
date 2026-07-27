@@ -79,7 +79,9 @@ gh pr view NUMBER --json headRefOid,comments \
   default-branch baseline. If it changes a dependency manifest or lockfile,
   repeat the baseline-versus-branch audit policy under "Prove it"; repair
   commits do not inherit stale audit evidence. Push only after required gates
-  pass, then remove `gsd:rework`, comment a summary. Stop.
+  pass, then remove `gsd:rework` and comment a summary containing
+  `Dependency audit for HEAD_SHA: baseline compared — <commands and result>`,
+  using the full pushed head SHA. Stop.
 
 If a blocking item can't be fixed without crossing an `X-N` exclusion or
 making a product decision, don't. Comment the exact collision, ending with
@@ -164,6 +166,10 @@ Compare advisories by identifier and affected package:
   disclose them. New moderate findings or audit uncertainty make the risk call
   at least Medium.
 
+After the change is committed, pin the comparison evidence to the full proposed
+head SHA. Evidence without that exact SHA is stale and cannot be reused by a
+later repair commit.
+
 Read your own `git diff` and `git status` end to end. Unrelated files or
 anything secret-shaped in the diff = full stop.
 
@@ -180,8 +186,9 @@ body containing:
 - A compact untouched-confirmation for every `X-N`, then the line
   `Side effects beyond the contract: none`
 - Which automated checks ran, with results
-- `Dependency audit: baseline compared — <result>` for any dependency manifest
-  or lockfile change, or `Dependency audit: not applicable` otherwise
+- `Dependency audit for HEAD_SHA: baseline compared — <commands and result>`
+  for any dependency manifest or lockfile change, using the full proposed head
+  SHA, or `Dependency audit: not applicable` otherwise
 - Whether the issue's manual walkthrough passed; reference it instead of
   copying every step into the PR
 - A justified risk call: Low / Medium / High

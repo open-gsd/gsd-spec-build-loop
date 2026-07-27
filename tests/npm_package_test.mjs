@@ -107,6 +107,11 @@ try {
     assert.ok(existsSync(claude));
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
+  const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
+  assert.ok(existsSync(outcomeSync));
+  const invalidOutcomeSync = command(process.execPath, [outcomeSync], { allowFailure: true });
+  assert.equal(invalidOutcomeSync.status, 2);
+  assert.match(invalidOutcomeSync.stderr, /requires a positive issue number/);
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
   const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");

@@ -8,4 +8,9 @@ Resolve the repository root with `git rev-parse --show-toplevel`. Use its
 `README.md` starts with `# gsd-loop`, all three files under `loop/` exist, and
 `scripts/doctor.sh` plus `scripts/scheduler-policy.sh` exist. Otherwise, read
 `playbook.md` beside this `SKILL.md`; global installs bundle that canonical
-fallback. Execute exactly one pass.
+fallback.
+
+Before executing, resolve `OUTCOME_SYNC` to `scripts/sync-outcomes.mjs` beside
+this `SKILL.md`. Pass that absolute path wherever the playbook says
+`OUTCOME_SYNC`; installed skills bundle its runtime, so a global `gsd-loop`
+command is not required. Execute exactly one pass.
