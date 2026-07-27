@@ -16,6 +16,8 @@ fi
 grep -q 'gh pr view NUMBER --json files' "$REVIEW"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$BUILD"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$REVIEW"
+grep -q 'gh pr view NUMBER --json comments' "$REVIEW"
+grep -q 'comments are not verdict comments' "$REVIEW"
 grep -q 'pending-ci-NUMBER-HEAD_SHA' "$REVIEW"
 grep -q 'node OUTCOME_SYNC ISSUE pending --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"
 grep -q 'node OUTCOME_SYNC ISSUE complete --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$REVIEW"

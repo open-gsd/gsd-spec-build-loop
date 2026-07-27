@@ -105,6 +105,17 @@ machine-readable command and compared by advisory identifier and affected
 package. The PR body or a later builder repair comment must contain
 `Dependency audit for HEAD_SHA: baseline compared` with the full current
 `headRefOid`, commands, and result. Evidence pinned to any other SHA is stale.
+When the PR body does not carry current-head evidence, fetch every comment body
+explicitly:
+
+```bash
+gh pr view NUMBER --json comments --jq '.comments[].body'
+```
+
+Do not reuse the verdict-only projection from candidate selection. Repair
+comments are not verdict comments. Find the exact current-head marker in the
+full output and audit its commands and result.
+
 Missing, stale, or incomparable evidence is `[SEC]` and blocks approval. A new
 high or critical advisory attributable to the diff is also `[SEC]`; route it
 to `gsd:escalated` when the issue contract does not permit a compatible fix.
