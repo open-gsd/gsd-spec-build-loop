@@ -48,6 +48,15 @@ const multilineOutcomeBody = `## Outcomes
 `;
 assert.equal(transformOutcomeChecklist(multilineOutcomeBody, "complete"), multilineOutcomeBody
   .replace("- [ ] O-6", "- [x] O-6"));
+const leadingOutcomeReferenceBody = `## Outcomes
+
+- [ ] O-6 — tests cover every required path, including
+  O-5 must exit 1 without changing state.
+`;
+assert.equal(
+  transformOutcomeChecklist(leadingOutcomeReferenceBody, "complete"),
+  leadingOutcomeReferenceBody.replace("- [ ] O-6", "- [x] O-6"),
+);
 assert.throws(
   () => transformOutcomeChecklist("## Why\n\nNo contract.\n", "complete"),
   /Outcomes section/,
@@ -62,6 +71,10 @@ assert.throws(
 );
 assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\nO-2 — missing checkbox\n", "complete"),
+  /malformed outcome O-2/,
+);
+assert.throws(
+  () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n1. O-2 — missing checkbox\n", "complete"),
   /malformed outcome O-2/,
 );
 assert.throws(
