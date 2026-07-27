@@ -16,8 +16,16 @@ fi
 grep -q 'gh pr view NUMBER --json author,baseRefOid,headRefOid,files,body,comments' "$REVIEW"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$BUILD"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$REVIEW"
+if printf '%s\n' "$repair_section" | grep -q 'commands and result'; then
+  echo 'repair evidence must use normalized JSON' >&2
+  exit 1
+fi
 grep -q 'gsd-loop/dependency-audit-v1' "$BUILD"
 grep -q 'gsd-loop/dependency-audit-v1' "$REVIEW"
+grep -q 'REVIEWER_LOGIN=$(gh api user --jq .login)' "$REVIEW"
+grep -q 'gsd-loop verdict for HEAD_SHA issue #ISSUE' "$REVIEW"
+grep -q 'trusted verdict anywhere in the trail' "$REVIEW"
+grep -q 'node AUDIT_VALIDATOR --baseline BASE_REF_OID --head HEAD_REF_OID' "$REVIEW"
 grep -q 'author.login.*PR author' "$REVIEW"
 grep -q 'comments are not verdict comments' "$REVIEW"
 grep -q 'pending-ci-NUMBER-HEAD_SHA' "$REVIEW"

@@ -62,14 +62,21 @@ gh pr list --state open --label gsd:rework --limit 200 \
 Ignore anything also carrying `gsd:escalated` — those PRs have exited
 automation until a human clears them.
 
-Take the stalest remaining PR and pull its most recent verdict:
+Take the stalest remaining PR, resolve its linked issue and authenticated
+reviewer identity, then pull its most recent trusted verdict:
 
 ```bash
-gh pr view NUMBER --json headRefOid,comments \
-  --jq '{head: .headRefOid, verdict: ([.comments[] | select(.body | startswith("gsd-loop verdict for "))] | last)}'
+REVIEWER_LOGIN=$(gh api user --jq .login)
+ISSUE=LINKED_ISSUE
+REVIEWER_LOGIN="$REVIEWER_LOGIN" ISSUE="$ISSUE" \
+  gh pr view NUMBER --json headRefOid,comments \
+  --jq '{head: .headRefOid, verdict: ([.comments[] | select(.author.login == env.REVIEWER_LOGIN and ((.body | split("\n")[0]) | startswith("gsd-loop verdict for ")) and ((.body | split("\n")[0]) | endswith(" issue #" + env.ISSUE)))] | last)}'
 ```
 
-- Verdict SHA already matches the head? The label outlived its verdict
+- A verdict's first line must pin both its SHA and linked issue as
+  `gsd-loop verdict for COMMIT_SHA issue #ISSUE`; ignore comments by any other
+  author or pinned to another issue.
+- Trusted verdict SHA already matches the head? The label outlived its verdict
   (fixes were pushed but the label removal died). Drop `gsd:rework`, stop —
   the reviewer will take it from here.
 - Can't check out the branch (deleted head, vanished fork)? Comment what
@@ -80,8 +87,9 @@ gh pr view NUMBER --json headRefOid,comments \
   repeat the baseline-versus-branch audit policy under "Prove it"; repair
   commits do not inherit stale audit evidence. Push only after required gates
   pass, then remove `gsd:rework` and comment a summary containing
-  `Dependency audit for HEAD_SHA: baseline compared — <commands and result>`,
-  using the full pushed head SHA. Stop.
+  `Dependency audit for HEAD_SHA: baseline compared` immediately followed by
+  the normalized fenced `gsd-loop/dependency-audit-v1` JSON described under
+  "Prove it", using the full pushed head SHA. Stop.
 
 If a blocking item can't be fixed without crossing an `X-N` exclusion or
 making a product decision, don't. Comment the exact collision, ending with

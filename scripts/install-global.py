@@ -121,7 +121,7 @@ def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
             if lane == "review":
                 runtime = stage / "scripts" / "runtime"
                 runtime.mkdir(parents=True, exist_ok=True)
-                for module in ("errors.mjs", "outcomes.mjs", "process.mjs"):
+                for module in ("audit-evidence.mjs", "errors.mjs", "outcomes.mjs", "process.mjs"):
                     shutil.copy2(source_root / "lib" / module, runtime / module)
         elif lane == "schedule":
             scripts = stage / "scripts"

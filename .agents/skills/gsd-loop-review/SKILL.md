@@ -13,4 +13,5 @@ fallback.
 Before executing, resolve `OUTCOME_SYNC` to `scripts/sync-outcomes.mjs` beside
 this `SKILL.md`. Pass that absolute path wherever the playbook says
 `OUTCOME_SYNC`; installed skills bundle its runtime, so a global `gsd-loop`
-command is not required. Execute exactly one pass.
+command is not required. Resolve `AUDIT_VALIDATOR` the same way to
+`scripts/validate-audit-evidence.mjs`. Execute exactly one pass.

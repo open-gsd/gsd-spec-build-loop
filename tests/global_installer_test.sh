@@ -22,7 +22,9 @@ done
 test -f "$install_root/.agents/skills/gsd-loop-build/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-review/playbook.md"
 outcome_sync="$install_root/.agents/skills/gsd-loop-review/scripts/sync-outcomes.mjs"
+audit_validator="$install_root/.agents/skills/gsd-loop-review/scripts/validate-audit-evidence.mjs"
 test -f "$outcome_sync"
+test -f "$audit_validator"
 if node "$outcome_sync" >"$TEST_ROOT/outcomes.out" 2>"$TEST_ROOT/outcomes.err"; then
   echo 'outcome synchronizer must reject missing arguments' >&2
   exit 1

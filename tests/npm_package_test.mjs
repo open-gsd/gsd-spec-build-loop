@@ -108,12 +108,17 @@ try {
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
+  const auditValidator = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "validate-audit-evidence.mjs");
   assert.ok(existsSync(outcomeSync));
+  assert.ok(existsSync(auditValidator));
   mkdirSync(join(home, "lib"));
   writeFileSync(join(home, "lib", "outcomes.mjs"), "throw new Error('wrong runtime');\n");
   const invalidOutcomeSync = command(process.execPath, [outcomeSync], { allowFailure: true });
   assert.equal(invalidOutcomeSync.status, 2);
   assert.match(invalidOutcomeSync.stderr, /requires a positive issue number/);
+  const invalidAuditValidator = command(process.execPath, [auditValidator], { allowFailure: true });
+  assert.equal(invalidAuditValidator.status, 2);
+  assert.match(invalidAuditValidator.stderr, /requires --baseline FULL_SHA/);
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "doctor.sh")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-schedule", "scripts", "scheduler-policy.sh")));
   const scheduleSkill = readFileSync(join(home, ".agents", "skills", "gsd-loop-schedule", "SKILL.md"), "utf8");
