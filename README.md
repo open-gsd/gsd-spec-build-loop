@@ -5,7 +5,7 @@ issues, issues become PRs, PRs get audited verdicts — and every
 irreversible step stays human.
 
 The loop is three agent-neutral playbooks in `loop/` that any coding agent can
-execute (Codex, Claude Code, Cursor, Gemini CLI, ...). They use Node.js and an
+execute (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, ...). They use Node.js and an
 authenticated `gh` CLI; the installed build and review skills bundle the
 deterministic guards their playbooks invoke, so direct one-pass use does not
 require a global `gsd-loop` command. The installer keeps canonical skills in
@@ -69,6 +69,7 @@ inside that harness:
 | Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
+| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 After the spec files an issue, read it and add `gsd:ready`. Build and review
