@@ -40,14 +40,12 @@ grep -q 'loop/discover.md' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
 grep -q 'Optional discovery-map input' "$SPEC"
 grep -q 'carries `gsd:map`' "$SPEC"
 grep -q 'every native sub-issue is closed' "$SPEC"
-grep -q 'node DISCOVERY_PROTOCOL lock MAP --repo OWNER/REPO' "$SPEC"
-grep -q 'gsd-loop-spec-map-MAP' "$SPEC"
 grep -q 'node DISCOVERY_PROTOCOL recover-slices MAP' "$SPEC"
-grep -q 'node DISCOVERY_PROTOCOL approve-slice MAP' "$SPEC"
 grep -q 'node DISCOVERY_PROTOCOL file-slice MAP' "$SPEC"
-grep -q 'node DISCOVERY_PROTOCOL unlock MAP --repo OWNER/REPO --token LOCK_TOKEN' "$SPEC"
-if grep -q 'gsd:spec-map' "$SPEC"; then
-  echo 'filing locks must not use the canonical gsd state namespace' >&2
+grep -q 'Concurrent same-map passes are' "$SPEC"
+grep -q 'including passes authenticated as the same GitHub login' "$DISCOVER"
+if grep -Eq 'DISCOVERY_PROTOCOL (lock|unlock|approve-slice)|filing reservation|Approved sha256:' "$SPEC"; then
+  echo 'spec must use the single-pass marker recovery contract' >&2
   exit 1
 fi
 grep -q 'gsd-loop-discover MAP' "$SPEC"

@@ -225,8 +225,11 @@ title and URL, then stop without resolving a decision.
 ### Claim the map
 
 Only one discovery pass may advance a given map at a time because GitHub issue
-body edits are not conditional. Read its assignees first. If it is assigned to
-someone else, name the owner and stop. Otherwise claim it before deep reading:
+body edits are not conditional. Concurrent discovery or spec passes on the same
+map are unsupported, including passes authenticated as the same GitHub login;
+not starting a second pass is a precondition, not a transactional lock. Read
+its assignees first. If it is assigned to someone else, name the owner and
+stop. Otherwise claim it before deep reading:
 
 ```bash
 gh issue edit MAP --add-assignee @me

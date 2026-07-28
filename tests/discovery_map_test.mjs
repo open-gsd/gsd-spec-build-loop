@@ -17,6 +17,8 @@ Question: Which verified channel should carry recovery links?
 Needs: None.
 Issue: #12`,
   graduation = "Ready for `gsd-loop-spec`.",
+  outOfScope = "- Recovery by SMS.",
+  queue = "None.",
   slices,
 } = {}) {
   return `## Destination
@@ -37,7 +39,7 @@ None.
 
 ## Out of scope
 
-- Recovery by SMS.
+${outOfScope}
 
 ## Delivery slices
 
@@ -59,7 +61,7 @@ ${graduation}
 
 ## Queue issues
 
-None.
+${queue}
 `;
 }
 
@@ -101,19 +103,6 @@ try {
     ],
     queueIssues: [],
   });
-
-  const approvedPath = join(testRoot, "approved.md");
-  writeFileSync(approvedPath, mapBody().replace(
-    "## Queue issues\n\nNone.",
-    `## Queue issues\n\n- S-1 — Approved sha256:${"a".repeat(64)}`,
-  ));
-  const approved = run(["discovery-map", approvedPath]);
-  assert.equal(approved.status, 0, approved.stderr);
-  assert.deepEqual(JSON.parse(approved.stdout).queueIssues, [{
-    id: "S-1",
-    status: "approved",
-    hash: "a".repeat(64),
-  }]);
 
   const draftPath = join(testRoot, "draft.md");
   writeFileSync(draftPath, mapBody({ graduation: "Not ready.", slices: "None." }));
@@ -165,6 +154,34 @@ Needs: None.`,
   const malformed = run(["discovery-map", malformedPath]);
   assert.equal(malformed.status, 3);
   assert.match(malformed.stderr, /exactly one Delivers line and one Needs line/);
+
+  const blankTitlePath = join(testRoot, "blank-title.md");
+  writeFileSync(blankTitlePath, mapBody({
+    slices: `### S-1 — ${"   "}
+
+Delivers: A verified user can request a recovery link.
+Needs: None.`,
+  }));
+  const blankTitle = run(["discovery-map", blankTitlePath]);
+  assert.equal(blankTitle.status, 3);
+  assert.match(blankTitle.stderr, /filing-compatible title/);
+
+  const markdownTitlePath = join(testRoot, "markdown-title.md");
+  writeFileSync(markdownTitlePath, mapBody({
+    slices: `### S-1 — Support [legacy] recovery
+
+Delivers: A verified user can request a recovery link.
+Needs: None.`,
+  }));
+  const markdownTitle = run(["discovery-map", markdownTitlePath]);
+  assert.equal(markdownTitle.status, 3);
+  assert.match(markdownTitle.stderr, /filing-compatible title/);
+
+  const emptyBoundaryPath = join(testRoot, "empty-boundary.md");
+  writeFileSync(emptyBoundaryPath, mapBody({ outOfScope: "" }));
+  const emptyBoundary = run(["discovery-map", emptyBoundaryPath]);
+  assert.equal(emptyBoundary.status, 3);
+  assert.match(emptyBoundary.stderr, /Out of scope/);
 
   console.log("discovery map validation passed");
 } finally {
