@@ -22,6 +22,17 @@ case "${1:-}" in
         echo "${MOCK_MAIN_SHA:-0123456789abcdef0123456789abcdef01234567}"
         ;;
       repos/open-gsd/gsd-spec-build-loop/actions/workflows/ci.yml/runs)
+        for required_filter in \
+          "--method GET" \
+          "-f branch=main" \
+          "-f event=push" \
+          "-f head_sha=${MOCK_EXPECTED_CI_SHA:-0123456789abcdef0123456789abcdef01234567}" \
+          "-f status=completed"; do
+          case " $* " in
+            *" $required_filter "*) ;;
+            *) exit 1 ;;
+          esac
+        done
         echo "${MOCK_SUCCESSFUL_CI_RUNS:-1}"
         ;;
       repos/open-gsd/gsd-spec-build-loop/releases/tags/*)
@@ -62,24 +73,15 @@ case "${1:-}" in
   release)
     printf '%s\n' "$*" >> "$GH_LOG"
     tag=${3:-}
-    case "${2:-}" in
-      view)
-        [ -f "$GH_RELEASE_STATE" ] && [ "$(cat "$GH_RELEASE_STATE")" = "$tag" ]
-        ;;
-      create)
-        printf '%s\n' "$tag" > "$GH_RELEASE_STATE"
-        while [ "$#" -gt 0 ]; do
-          if [ "$1" = --target ]; then
-            printf '%s\n' "$2" > "$GH_RELEASE_COMMIT_STATE"
-            break
-          fi
-          shift
-        done
-        ;;
-      *)
-        exit 1
-        ;;
-    esac
+    [ "${2:-}" = create ] || exit 1
+    printf '%s\n' "$tag" > "$GH_RELEASE_STATE"
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = --target ]; then
+        printf '%s\n' "$2" > "$GH_RELEASE_COMMIT_STATE"
+        break
+      fi
+      shift
+    done
     ;;
   *)
     exit 1

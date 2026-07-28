@@ -51,6 +51,7 @@ run_publish() {
     MOCK_NPM_GIT_HEAD=${MOCK_NPM_GIT_HEAD:-$CURRENT_SHA} \
     MOCK_RELEASE_RESULT=${MOCK_RELEASE_RESULT:-missing} \
     MOCK_RELEASE_COMMIT=${MOCK_RELEASE_COMMIT:-$CURRENT_SHA} \
+    MOCK_RESOLVED_COMMIT=${MOCK_RESOLVED_COMMIT:-} \
     GITHUB_REPOSITORY=open-gsd/gsd-spec-build-loop \
     GITHUB_SHA=$CURRENT_SHA \
     GITHUB_REF=refs/heads/main \
@@ -108,6 +109,16 @@ test "$(cat "$TEST_ROOT/published.log")" = "$EXPECTED_RECOVERY"
 : > "$TEST_ROOT/published.log"
 if MOCK_NPM_VIEW_RESULT=exists MOCK_NPM_GIT_HEAD=unknown run_publish 2>/dev/null; then
   echo "publish driver accepted package metadata without commit provenance" >&2
+  exit 1
+fi
+test "$(cat "$TEST_ROOT/published.log")" = "$EXPECTED_RECOVERY"
+
+: > "$TEST_ROOT/published.log"
+if MOCK_NPM_VIEW_RESULT=exists \
+  MOCK_NPM_GIT_HEAD=$PUBLISHED_SHA \
+  MOCK_RESOLVED_COMMIT=$CURRENT_SHA \
+  run_publish 2>/dev/null; then
+  echo "publish driver accepted provenance from another repository" >&2
   exit 1
 fi
 test "$(cat "$TEST_ROOT/published.log")" = "$EXPECTED_RECOVERY"
