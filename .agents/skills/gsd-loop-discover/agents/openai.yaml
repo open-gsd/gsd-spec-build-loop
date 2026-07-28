@@ -2,4 +2,3 @@ interface:
   display_name: "GSD Loop Discover"
   short_description: "Map a large uncertain effort"
   default_prompt: "Use $gsd-loop-discover to chart or advance one discovery-map pass."
-

@@ -22,9 +22,17 @@ and never apply `gsd:ready`.
   color and description:
 
 ```bash
-gh label create gsd:map --color ededed \
-  --description "Multi-session discovery map" 2>/dev/null || true
+if ! gh label create gsd:map --color ededed \
+  --description "Multi-session discovery map" 2>/dev/null; then
+  gh label view gsd:map >/dev/null 2>&1 || {
+    echo "could not create or read gsd:map" >&2
+    exit 1
+  }
+fi
 ```
+
+This suppresses only the expected "already exists" failure. Authentication,
+permission, and network failures must stop the pass.
 
 GitHub's native sub-issue and dependency endpoints are the source of truth for
 map membership and blocking. Use API version `2026-03-10` for the commands in
@@ -78,21 +86,30 @@ gsd-loop specification.>
 
 ## Decisions so far
 
-None.
+<One low-resolution line per decision that was already settled before this map,
+including its rationale, or exactly `None.`>
 
 ## Not yet specified
 
-- <In-scope uncertainty that cannot yet be stated as a precise question, or
-  `None.`>
+<One bullet per in-scope uncertainty that cannot yet be stated as a precise
+question, or exactly `None.` with no list marker>
 
 ## Out of scope
 
-- <Explicit boundary, or `None.`>
+<One bullet per explicit boundary, or exactly `None.` with no list marker>
 
 ## Graduation
 
 Not ready.
+
+## Queue issues
+
+None.
 ```
+
+Known decisions have no child issue that owns their history, so record their
+gist and rationale directly in `## Decisions so far`. Decisions resolved by a
+later map pass use linked child issues instead.
 
 Each frontier decision is a child issue with this body:
 
@@ -184,8 +201,15 @@ Repair one incomplete transition before doing anything new:
 - map updated and decision closed, but either assignment remains — remove the
   stale assignments.
 
-Re-fetch after the repair and stop. Never post a second resolution comment for
-the same decision.
+If exactly one open child is assigned to you without a trusted resolution
+comment, resume it as this pass's chosen decision when all its blockers remain
+closed. If its blockers changed, remove its assignment, report the changed
+frontier, and stop. More than one unresolved self-assignment is inconsistent;
+list them and stop without choosing between them.
+
+Re-fetch after a state repair and stop. A resumed unresolved decision continues
+to "Resolve exactly one decision" below. Never post a second resolution comment
+for the same decision.
 
 ### Find the frontier
 

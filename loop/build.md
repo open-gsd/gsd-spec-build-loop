@@ -115,8 +115,10 @@ gh issue list --state open --label gsd:ready --limit 200 \
 (The unassigned filter is client-side on purpose — `--search "no:assignee"`
 rides a lagging index and can miss an issue you unassigned seconds ago.)
 
-Discard issues labeled `gsd:blocked` or `gsd:escalated`. Discard issues whose body says
-`Needs #N merged` unless `#N` is closed *and* its closing PR actually merged
+Discard issues labeled `gsd:map`, `gsd:blocked`, or `gsd:escalated`. A map is
+planning provenance even if someone accidentally applies `gsd:ready`; it must
+never enter the build queue. Discard issues whose body says `Needs #N merged`
+unless `#N` is closed *and* its closing PR actually merged
 (`gh issue view N --json state,closedByPullRequestsReferences`) — closure
 without merged code doesn't satisfy the dependency. Of what's left, take the
 oldest.

@@ -156,3 +156,7 @@ for the exact publisher settings and procedure.
   destination, decision history, unresolved fog, and explicit scope boundary.
   They never enter the ready queue; a cleared map must still graduate through
   the spec playbook.
+- **One writer per map.** Discovery decisions advance serially within a map
+  because GitHub issue-body updates are not conditional. This trades
+  Wayfinder-style parallel frontier work for recoverable, inspectable state;
+  separate maps may still advance independently.

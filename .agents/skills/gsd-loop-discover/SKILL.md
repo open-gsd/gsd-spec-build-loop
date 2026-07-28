@@ -9,4 +9,3 @@ Resolve the repository root with `git rev-parse --show-toplevel`. Use its
 `scripts/doctor.sh` plus `scripts/scheduler-policy.sh` exist. Otherwise, read
 `playbook.md` beside this `SKILL.md`; global installs bundle that canonical
 fallback. Execute exactly one interactive pass.
-

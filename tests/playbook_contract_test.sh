@@ -23,12 +23,16 @@ grep -q 'Ready for `gsd-loop-spec`.' "$DISCOVER"
 grep -q 'never apply `gsd:ready`' "$DISCOVER"
 grep -q 'Recover an interrupted pass' "$DISCOVER"
 grep -q 'Never post a second resolution comment' "$DISCOVER"
+grep -q 'resume it as this pass.s chosen decision' "$DISCOVER"
+grep -q 'no list marker' "$DISCOVER"
 grep -q 'loop/discover.md' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
 grep -q 'Optional discovery-map input' "$SPEC"
 grep -q 'carries `gsd:map`' "$SPEC"
 grep -q 'every native sub-issue is closed' "$SPEC"
 grep -q 'gsd-loop-discover MAP' "$SPEC"
 grep -q 'map graduation is not build' "$SPEC"
+grep -q 'human explicitly confirms' "$SPEC"
+grep -q 'Discard issues labeled `gsd:map`' "$BUILD"
 
 repair_section=$(sed -n '/^## Repair queue takes priority/,/^## Choose an issue/p' "$BUILD")
 recovery_section=$(printf '%s\n' "$repair_section" |

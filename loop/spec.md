@@ -149,10 +149,12 @@ Relay the issue number and URL exactly as returned — downstream playbooks trus
 that number, not a guess.
 
 When the source was a discovery map, comment on the map with the title and URL
-of every issue created from it. Close the map only after all approved issues in
-the series were created successfully. The new issues remain outside the build
-queue until the human applies `gsd:ready`; map graduation is not build
-authorization.
+of every issue created from it and append their named links under the map's
+`## Queue issues`. Leave the map open when later spec sessions are still needed.
+Close it only after every approved issue was created successfully **and** the
+human explicitly confirms that the linked queue issues cover the map's entire
+destination. The new issues remain outside the build queue until the human
+applies `gsd:ready`; map graduation is not build authorization.
 
 Finish by spelling out the user's role in the loop (this is the one playbook a
 human actually reads):
