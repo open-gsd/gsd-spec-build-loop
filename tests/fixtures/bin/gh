@@ -29,6 +29,21 @@ case "${1:-}" in
   label)
     printf '%s\n' gsd:ready gsd:blocked gsd:approved gsd:rework gsd:escalated
     ;;
+  release)
+    printf '%s\n' "$*" >> "$GH_LOG"
+    tag=${3:-}
+    case "${2:-}" in
+      view)
+        [ -f "$GH_RELEASE_STATE" ] && [ "$(cat "$GH_RELEASE_STATE")" = "$tag" ]
+        ;;
+      create)
+        printf '%s\n' "$tag" > "$GH_RELEASE_STATE"
+        ;;
+      *)
+        exit 1
+        ;;
+    esac
+    ;;
   *)
     exit 1
     ;;

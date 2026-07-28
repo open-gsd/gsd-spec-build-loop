@@ -2,3 +2,7 @@
 set -eu
 
 printf '%s\n' "$*" >> "$NPM_LOG"
+
+if [ "${1:-}" = view ] && [ "${MOCK_NPM_VERSION_EXISTS:-0}" != 1 ]; then
+  exit 1
+fi
