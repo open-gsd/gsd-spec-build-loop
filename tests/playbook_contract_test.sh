@@ -42,8 +42,11 @@ grep -q 'carries `gsd:map`' "$SPEC"
 grep -q 'every native sub-issue is closed' "$SPEC"
 grep -q 'node DISCOVERY_PROTOCOL recover-slices MAP' "$SPEC"
 grep -q 'node DISCOVERY_PROTOCOL file-slice MAP' "$SPEC"
+grep -q 'If it returns `approvalRequired`' "$SPEC"
 grep -q 'Concurrent same-map passes are' "$SPEC"
 grep -q 'including passes authenticated as the same GitHub login' "$DISCOVER"
+grep -q 'unchanged slice retains both its permanent ID and its' "$DISCOVER"
+grep -q 'deliberate full renumbering' "$DISCOVER"
 if grep -Eq 'DISCOVERY_PROTOCOL (lock|unlock|approve-slice)|filing reservation|Approved sha256:' "$SPEC"; then
   echo 'spec must use the single-pass marker recovery contract' >&2
   exit 1

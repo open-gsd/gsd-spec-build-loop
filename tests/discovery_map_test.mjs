@@ -123,6 +123,26 @@ Issue: Pending.`,
   assert.equal(pending.status, 3);
   assert.match(pending.stderr, /unresolved frontier entry D-1/);
 
+  const duplicateIssuePath = join(testRoot, "duplicate-issue.md");
+  writeFileSync(duplicateIssuePath, mapBody({
+    frontier: `### D-1 — Choose recovery channel
+
+Type: Discussion
+Question: Which verified channel should carry recovery links?
+Needs: None.
+Issue: #12
+
+### D-2 — Choose reset lifetime
+
+Type: Discussion
+Question: How long should reset links remain valid?
+Needs: None.
+Issue: #12`,
+  }));
+  const duplicateIssue = run(["discovery-map", duplicateIssuePath]);
+  assert.equal(duplicateIssue.status, 3);
+  assert.match(duplicateIssue.stderr, /repeats decision issue #12/);
+
   const unready = run(["discovery-map", draftPath]);
   assert.equal(unready.status, 3);
   assert.match(unready.stderr, /not ready for gsd-loop-spec/);

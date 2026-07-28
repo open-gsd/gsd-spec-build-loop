@@ -179,7 +179,10 @@ When the source was a discovery map:
 2. Before redrafting or creating anything, run
    `node DISCOVERY_PROTOCOL recover-slices MAP --repo OWNER/REPO`.
    It validates every existing queue link and searches permanent map/slice
-   markers to recover created-but-unledgered issues in slice order.
+   markers in slice order. If it returns `approvalRequired`, show that exact
+   recovered title and body to the human, wait for explicit approval, save the
+   unchanged body to a file, and pass it to `file-slice`; recovery does not link
+   the issue before that approval.
 3. Work through missing slices in order, one at a time. Resolve every declared
    dependency to the already-filed predecessor issue number, put the exact
    `Needs #N merged` lines into that slice's complete draft, show the exact

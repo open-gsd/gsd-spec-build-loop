@@ -336,7 +336,10 @@ Discovery slice: S-1
   const filingState = {
     issues: [],
     mapBody: mapBody(),
+    approvedMergedPr: false,
+    closingPullRequests: [],
     createAttempts: 0,
+    createFailure: null,
     createdBody: draft,
     failMapUpdate: true,
     mapState: "OPEN",
@@ -349,14 +352,39 @@ Discovery slice: S-1
     }
     if (joined.includes("issue create")) {
       filingState.createAttempts += 1;
+      if (filingState.createFailure) {
+        return { status: 1, stdout: "", stderr: filingState.createFailure };
+      }
       filingState.issues.push({
         id: 601,
         number: 20,
         title: "Request recovery",
         body: filingState.createdBody,
         html_url: "https://github.com/octocat/project/issues/20",
+        state: "open",
       });
       return { status: 1, stdout: "", stderr: "response lost" };
+    }
+    if (joined.includes("issue view 20")) {
+      return {
+        status: 0,
+        stdout: JSON.stringify({
+          state: "CLOSED",
+          closedByPullRequestsReferences: filingState.closingPullRequests,
+        }),
+        stderr: "",
+      };
+    }
+    if (joined.includes("pr view 30")) {
+      return {
+        status: 0,
+        stdout: JSON.stringify({
+          state: "MERGED",
+          mergedAt: "2026-07-28T12:00:00Z",
+          labels: filingState.approvedMergedPr ? [{ name: "gsd:approved" }] : [],
+        }),
+        stderr: "",
+      };
     }
     if (joined.includes("issue view 10")) {
       return {
@@ -397,12 +425,44 @@ Discovery slice: S-1
     map,
     run: filingRun,
   }), {
-    recovered: [20],
-    missing: [],
+    approvalRequired: {
+      body: draft,
+      number: 20,
+      slice: "S-1",
+      title: "Request recovery",
+      url: "https://github.com/octocat/project/issues/20",
+    },
+    recovered: [],
+    missing: ["S-1"],
   });
+  assert.equal(filingState.mapBody.includes("issues/20"), false);
+
+  const changedRecoveryBody = `${draft}\nChanged after creation.\n`;
+  filingState.issues[0].body = changedRecoveryBody;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /recovered issue differs from the approved title or body/,
+  );
+  writeFileSync(draftPath, changedRecoveryBody);
+  const recovered = fileDiscoverySlice({
+    repo,
+    map,
+    slice: "S-1",
+    title: "Request recovery",
+    bodyPath: draftPath,
+    run: filingRun,
+  });
+  assert.equal(recovered.number, 20);
   assert.match(filingState.mapBody, /- S-1 — \[Request recovery\].*issues\/20/);
 
-  writeFileSync(draftPath, `${draft}\nHarmless redraft difference.\n`);
+  writeFileSync(draftPath, `${changedRecoveryBody}\nHarmless redraft difference.\n`);
   const filed = fileDiscoverySlice({
     repo,
     map,
@@ -414,12 +474,30 @@ Discovery slice: S-1
   assert.equal(filed.number, 20);
   assert.equal(filingState.createAttempts, 1);
 
+  filingState.issues[0].state = "closed";
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    /closed without an approved merged pull request/,
+  );
+  filingState.closingPullRequests = [{ number: 30 }];
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    /closed without an approved merged pull request/,
+  );
+  filingState.approvedMergedPr = true;
+  assert.deepEqual(
+    reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    { approvalRequired: null, recovered: [], missing: [] },
+  );
+  filingState.issues[0].state = "open";
+
   filingState.issues.push({
     id: 602,
     number: 21,
     title: "Request recovery",
     body: draft,
     html_url: "https://github.com/octocat/project/issues/21",
+    state: "open",
   });
   assert.throws(
     () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
@@ -517,6 +595,65 @@ Needs #ISSUE merged
       run: filingRun,
     }),
     /differs from the approved title or body/,
+  );
+
+  filingState.mapBody = mapBody();
+  filingState.issues = [];
+  filingState.createFailure = "GitHub rejected the issue";
+  filingState.createdBody = draft;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /GitHub rejected the issue/,
+  );
+
+  const crlfDraft = `## Why\r
+\r
+Discovery map: #10\r
+Discovery slice: S-2\r
+Needs #20 merged\r
+`;
+  filingState.mapBody = mapBody({
+    queue: "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)",
+    slices: `### S-1 — Request recovery
+
+Delivers: A user can request recovery.
+Needs: None.
+
+### S-2 — Complete recovery
+
+Delivers: A user can complete recovery.
+Needs: S-1`,
+  });
+  filingState.issues = [
+    { ...firstIssue, state: "open" },
+    {
+      id: 603,
+      number: 22,
+      title: "Complete recovery",
+      body: crlfDraft,
+      html_url: "https://github.com/octocat/project/issues/22",
+      state: "open",
+    },
+  ];
+  filingState.createFailure = null;
+  writeFileSync(draftPath, crlfDraft);
+  assert.equal(
+    fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-2",
+      title: "Complete recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }).number,
+    22,
   );
 } finally {
   rmSync(testRoot, { recursive: true, force: true });

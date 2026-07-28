@@ -360,9 +360,11 @@ Then, as one coherent update:
 4. Create only the reconciler's missing decisions and rerun it to attach them.
 5. Wire native dependency edges after every new issue has an id.
 6. Move anything revealed beyond the destination into `## Out of scope`.
-7. Add, split, merge, or reorder delivery slices when the resolved decision
-   changes the filing plan. Preserve an existing slice ID when its meaning did
-   not change.
+7. Add, split, or merge delivery slices when the resolved decision changes the
+   filing plan. An unchanged slice retains both its permanent ID and its
+   existing order. Reordering requires a deliberate full renumbering to the
+   exact `S-1` through `S-N` sequence, rewriting every `Needs` edge, and human
+   approval of that complete renumbered plan before graduation.
 8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.
