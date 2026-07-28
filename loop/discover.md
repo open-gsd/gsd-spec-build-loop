@@ -364,7 +364,19 @@ Then, as one coherent update:
    filing plan. An unchanged slice retains both its permanent ID and its
    existing order. Reordering requires a deliberate full renumbering to the
    exact `S-1` through `S-N` sequence, rewriting every `Needs` edge, and human
-   approval of that complete renumbered plan before graduation.
+   approval of that complete renumbered plan before graduation. Before writing
+   any changed slice plan, save the proposed body and run:
+
+   ```bash
+   node MAP_VALIDATOR /path/to/map-body.md --allow-not-ready
+   node DISCOVERY_PROTOCOL validate-plan MAP --repo OWNER/REPO \
+     --body-file /path/to/map-body.md
+   ```
+
+   If `validate-plan` reports a required `gsd-loop slice-plan approval`, show
+   its exact comment body to the human. Only the human may post that exact
+   digest-bound comment on the map; rerun `validate-plan` afterward. Never
+   post the approval comment for them.
 8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.
@@ -407,6 +419,11 @@ Validate that exact proposed ready body against the remote evidence:
 node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO \
   --body-file /path/to/map-body.md
 ```
+
+This validation also compares the current durable slice plan with the proposed
+one. Any reorder or renumbering requires exactly one trusted human
+`gsd-loop slice-plan approval` comment bound to both plan digests; unchanged
+slices keep their existing order and permanent IDs.
 
 Only after both validators pass, update the map with that exact proposed body,
 re-fetch it, and run `node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO`
