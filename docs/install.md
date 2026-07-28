@@ -42,6 +42,8 @@ npx @opengsd/gsd-loop@latest init
 - installs or updates all four skills;
 - verifies GitHub access;
 - creates the five `gsd:*` labels without replacing existing labels;
+- locally excludes `.gsd/scheduled_tasks.lock` so native scheduling cannot make
+  the worktree look dirty to a builder pass;
 - when one successful check is selected, creates or updates only the dedicated
   `gsd-loop required CI` ruleset.
 
@@ -199,6 +201,9 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
+- **Upgrading from `0.2.3`:** rerun `init` with version `0.2.4` to install the
+  build linkage guard and locally exclude `.gsd/scheduled_tasks.lock`. Use
+  `install` instead only when repository setup is not wanted.
 - **Upgrading from `0.2.2`:** rerun `init` or `install` with version `0.2.3` so
   review outcome synchronization recognizes the repository identity returned
   by the `gh` CLI for linked issues.

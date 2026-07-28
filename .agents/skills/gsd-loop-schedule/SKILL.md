@@ -17,7 +17,9 @@ explain that this scheduling skill is unsupported there. Do not start a shell
    scheduled tasks first. Update an exact match instead of duplicating it. If a
    different active builder targets the same repository, stop and identify it.
 4. Attach the task to the current chat, start at 15 minutes, and initialize its
-   lane-specific idle count to zero.
+   lane-specific idle count to zero. Keep any repository-local scheduler state
+   at `.gsd/scheduled_tasks.lock`; never write it under a harness-specific
+   directory such as `.claude/`.
 5. Put the lane skill in the scheduled prompt using the current host's native
    invocation syntax:
    - Codex: `$gsd-loop-build` or `$gsd-loop-review`

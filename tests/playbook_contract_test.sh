@@ -13,7 +13,11 @@ README="$ROOT/README.md"
 INSTALL_GUIDE="$ROOT/docs/install.md"
 
 repair_section=$(sed -n '/^## Repair queue takes priority/,/^## Choose an issue/p' "$BUILD")
+recovery_section=$(printf '%s\n' "$repair_section" |
+  sed -n '/Trusted verdict SHA already matches/,/Can.t check out the branch/p')
 printf '%s\n' "$repair_section" | grep -q 'dependency manifest or lockfile'
+printf '%s\n' "$recovery_section" |
+  grep -q 'node LINKAGE_SYNC ISSUE --repo OWNER/REPO --pr NUMBER --head HEAD_SHA'
 if printf '%s\n' "$repair_section" | grep -q 'issue contract or repository guidance'; then
   echo 'dependency audits must not depend on an opt-in issue contract' >&2
   exit 1
@@ -23,6 +27,8 @@ grep -q 'gh api graphql --paginate --slurp' "$REVIEW"
 grep -q 'comments(first: 100, after: $endCursor)' "$REVIEW"
 grep -q 'pageInfo { hasNextPage endCursor }' "$REVIEW"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$BUILD"
+grep -q 'node LINKAGE_SYNC ISSUE --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$BUILD"
+grep -q 'resolve `LINKAGE_SYNC` to `scripts/ensure-linkage.mjs`' "$ROOT/.agents/skills/gsd-loop-build/SKILL.md"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$REVIEW"
 printf '%s\n' "$repair_section" | grep -q 'gh api --paginate --slurp'
 if printf '%s\n' "$repair_section" | grep -q 'commands and result'; then

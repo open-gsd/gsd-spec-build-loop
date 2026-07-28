@@ -82,7 +82,7 @@ try {
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
-  assert.equal(metadata.version, "0.2.3");
+  assert.equal(metadata.version, "0.2.4");
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);
@@ -136,12 +136,17 @@ try {
     }
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
+  const linkageGuard = join(home, ".agents", "skills", "gsd-loop-build", "scripts", "ensure-linkage.mjs");
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
   const auditValidator = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "validate-audit-evidence.mjs");
+  assert.ok(existsSync(linkageGuard));
   assert.ok(existsSync(outcomeSync));
   assert.ok(existsSync(auditValidator));
   mkdirSync(join(home, "lib"));
   writeFileSync(join(home, "lib", "outcomes.mjs"), "throw new Error('wrong runtime');\n");
+  const invalidLinkageGuard = command(process.execPath, [linkageGuard], { allowFailure: true });
+  assert.equal(invalidLinkageGuard.status, 2);
+  assert.match(invalidLinkageGuard.stderr, /requires a positive issue number/);
   const invalidOutcomeSync = command(process.execPath, [outcomeSync], { allowFailure: true });
   assert.equal(invalidOutcomeSync.status, 2);
   assert.match(invalidOutcomeSync.stderr, /requires a positive issue number/);
@@ -272,6 +277,7 @@ try {
   assert.ok(packageFiles.includes("lib/init.mjs"));
   assert.equal(packageFiles.includes("lib/runner.mjs"), false);
   assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/SKILL.md"));
+  assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/scripts/ensure-linkage.mjs"));
   assert.ok(packageFiles.includes("loop/build.md"));
   assert.equal(packageFiles.some((path) => path.startsWith("tests/")), false);
 
