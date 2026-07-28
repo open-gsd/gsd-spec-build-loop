@@ -116,10 +116,10 @@ unattended bootstrap, diagnostics, and recovery are documented in the
 
 ## Maintainer releases
 
-npm releases use GitHub Actions trusted publishing rather than a stored npm
-token. See the [release guide](https://github.com/open-gsd/gsd-spec-build-loop/blob/main/docs/releasing.md)
-for the exact npm publisher settings and the manual, `main`-only release
-procedure.
+Releases use GitHub Actions trusted publishing rather than a stored npm token.
+One `main`-only workflow publishes npm and creates the matching GitHub Release.
+See the [release guide](https://github.com/open-gsd/gsd-spec-build-loop/blob/main/docs/releasing.md)
+for the exact publisher settings and procedure.
 
 ## Design notes
 

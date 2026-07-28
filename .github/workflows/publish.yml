@@ -1,10 +1,11 @@
-name: Publish npm package
+name: Publish release
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  actions: read
+  contents: write
   id-token: write
 
 jobs:
@@ -20,3 +21,5 @@ jobs:
           package-manager-cache: false
       - name: Publish package
         run: scripts/publish.sh
+        env:
+          GH_TOKEN: ${{ github.token }}

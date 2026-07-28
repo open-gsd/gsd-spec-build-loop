@@ -209,8 +209,9 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
-- **Upgrading from `0.2.3`:** rerun `init` with version `0.2.4` to install the
-  build linkage guard and Grok adapter, and locally exclude
+- **Upgrading from `0.2.3` or `0.2.4`:** rerun `init` with version `0.2.5` to
+  install the corrected Claude skill entry points. Upgrades from `0.2.3` also
+  install the build linkage guard and Grok adapter, and locally exclude
   `.gsd/scheduled_tasks.lock`. Use `install` instead only when repository setup
   is not wanted.
 - **Upgrading from `0.2.2`:** rerun `init` or `install` with version `0.2.3` so
