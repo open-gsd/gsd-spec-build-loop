@@ -192,20 +192,24 @@ When the source was a discovery map:
 4. File that unchanged approved title and body with
    `node DISCOVERY_PROTOCOL file-slice MAP --repo OWNER/REPO --slice S-N --title "TITLE" --body-file /path/to/draft.md`.
    The helper checks the open `gsd:map`, repository identity, title, unique
-   markers, and exact dependencies; searches before creation; reconciles an
-   uncertain create result; updates the queue; and verifies the write. Its
-   returned issue number is authoritative for the next slice. Repeat steps
-   3–4 until all slices are linked.
+   markers, exact dependencies, and that every linked issue remains open;
+   searches before creation; reconciles an uncertain create result; updates the
+   queue; and verifies the write. A prematurely closed slice blocks the pass
+   for human intervention; spec never interprets review or merge evidence. Its
+   returned issue number is authoritative for the next slice. Repeat steps 3–4
+   until all slices are linked.
 5. Comment on the map with the title and URL of every issue created in this
-   pass. Close the map only after every slice has a verified queue-issue entry
-   and the human explicitly confirms that the linked issues still cover the
-   map's entire destination.
+   pass. After the human explicitly confirms that the linked issues still cover
+   the map's entire destination, run
+   `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO`. It verifies
+   that every slice has a queue entry, every linked issue is still open, and
+   only then closes the map.
 
-The new issues remain outside the build queue until the human applies
-`gsd:ready` to each one; map graduation is not build authorization. The build
-lane still claims one issue per pass. Multiple ready slices are processed over
-multiple bounded passes, never by multiple simultaneous builders in one
-repository.
+Only after the map is confirmed closed does the human apply `gsd:ready` to
+each issue individually. Until then the new issues remain open but outside the
+build queue; map graduation is not build authorization. The build lane still
+claims one issue per pass. Multiple ready slices are processed over multiple
+bounded passes, never by multiple simultaneous builders in one repository.
 
 Finish by spelling out the user's role in the loop (this is the one playbook a
 human actually reads):

@@ -148,12 +148,17 @@ Delivers: <one independently observable result>
 Needs: S-1
 ```
 
-IDs are sequential and permanent. `Needs` is `None.` or a comma-separated list
-of earlier slice IDs. Each slice must fit roughly one agent-day and leave the
-repository in a useful, verifiable state. Prefer independent slices; tell the
-human when a chain is deeper than two. Together the slices must cover the
-destination without gaps or assigning the same behavior twice. A small effort
-may have one slice; never manufacture extra issues merely to create parallelism.
+While `## Graduation` is `Not ready.`, slice IDs and order are provisional and
+may be rewritten as decisions clarify the route. They freeze only when the
+human approves the complete plan and the map first graduates.
+
+IDs are always sequential. They become permanent when the map graduates.
+`Needs` is `None.` or a comma-separated list of earlier slice IDs. Each slice
+must fit roughly one agent-day and leave the repository in a useful,
+verifiable state. Prefer independent slices; tell the human when a chain is
+deeper than two. Together the slices must cover the destination without gaps
+or assigning the same behavior twice. A small effort may have one slice; never
+manufacture extra issues merely to create parallelism.
 
 Each frontier decision is a child issue with this body:
 
@@ -361,22 +366,9 @@ Then, as one coherent update:
 5. Wire native dependency edges after every new issue has an id.
 6. Move anything revealed beyond the destination into `## Out of scope`.
 7. Add, split, or merge delivery slices when the resolved decision changes the
-   filing plan. An unchanged slice retains both its permanent ID and its
-   existing order. Reordering requires a deliberate full renumbering to the
-   exact `S-1` through `S-N` sequence, rewriting every `Needs` edge, and human
-   approval of that complete renumbered plan before graduation. Before writing
-   any changed slice plan, save the proposed body and run:
-
-   ```bash
-   node MAP_VALIDATOR /path/to/map-body.md --allow-not-ready
-   node DISCOVERY_PROTOCOL validate-plan MAP --repo OWNER/REPO \
-     --body-file /path/to/map-body.md
-   ```
-
-   If `validate-plan` reports a required `gsd-loop slice-plan approval`, show
-   its exact comment body to the human. Only the human may post that exact
-   digest-bound comment on the map; rerun `validate-plan` afterward. Never
-   post the approval comment for them.
+   filing plan. While the map is `Not ready.`, renumber the complete plan to the
+   exact `S-1` through `S-N` sequence and rewrite every `Needs` edge whenever
+   order changes. These IDs become permanent only at graduation.
 8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.
@@ -413,24 +405,23 @@ validator before updating GitHub:
 node MAP_VALIDATOR /path/to/map-body.md
 ```
 
-Validate that exact proposed ready body against the remote evidence:
+After the human explicitly approves that complete proposed slice plan,
+graduate through the deterministic helper:
 
 ```bash
-node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO \
+node DISCOVERY_PROTOCOL graduate MAP --repo OWNER/REPO \
   --body-file /path/to/map-body.md
 ```
 
-This validation also compares the current durable slice plan with the proposed
-one. Any reorder or renumbering requires exactly one trusted human
-`gsd-loop slice-plan approval` comment bound to both plan digests; unchanged
-slices keep their existing order and permanent IDs.
-
-Only after both validators pass, update the map with that exact proposed body,
-re-fetch it, and run `node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO`
-again. Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside
-the active skill. While charting a not-ready map, use `--allow-not-ready`; the
-ready form above rejects missing slices, malformed fields, and dependencies
-that do not point backward. A validator failure blocks graduation.
+The helper validates the exact proposed body and all remote decision evidence,
+writes that body, re-fetches it, and validates it again. Once the remote map is
+ready, its delivery slices are immutable. If the plan must change, first change
+only `## Graduation` back to `Not ready.`, verify that write, re-chart the now
+provisional plan, and repeat the complete human approval and graduation gate.
+Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
+active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
+form above rejects missing slices, malformed fields, and dependencies that do
+not point backward. A validator failure blocks graduation.
 
 Otherwise leave it as `Not ready.`. Remove both assignments and report the map
 URL, the decision resolved, the remaining frontier, and any remaining fog.

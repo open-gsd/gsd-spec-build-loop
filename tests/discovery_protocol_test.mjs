@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateDiscoveryMap } from "../lib/discovery-map.mjs";
 import {
   fileDiscoverySlice,
   parseDiscoveryProtocolArguments,
@@ -19,6 +17,7 @@ const issueUrl = "https://github.com/octocat/project/issues/7";
 const gist = `- [Choose channel](${issueUrl}) — Use verified email.`;
 
 function mapBody({
+  graduation = "Ready for `gsd-loop-spec`.",
   issue = "#7",
   queue = "None.",
   slices = `### S-1 — Request recovery
@@ -57,7 +56,7 @@ ${slices}
 
 ## Graduation
 
-Ready for \`gsd-loop-spec\`.
+${graduation}
 
 ## Queue issues
 
@@ -89,12 +88,6 @@ function mapIssue(body, { state = "OPEN", labels = [{ name: "gsd:map" }] } = {})
 
 function pages(items) {
   return JSON.stringify([items]);
-}
-
-function slicePlanDigest(body) {
-  const slices = validateDiscoveryMap(body, { allowNotReady: true }).slices
-    .map(({ id, title, delivers, needs }) => ({ id, title, delivers, needs }));
-  return createHash("sha256").update(JSON.stringify(slices)).digest("hex");
 }
 
 assert.deepEqual(
@@ -172,20 +165,24 @@ function evidenceRunFactory({
   childUrl = issueUrl,
   duplicate = false,
   labels = [{ name: "gsd:map" }],
-  mapComments = [],
+  mapState,
   referenceTitle = "Choose channel",
   resolutionBody,
   remoteMapBody = mapBody(),
   state = "OPEN",
 } = {}) {
-  return function evidenceRun(program, argumentsList) {
+  return function evidenceRun(program, argumentsList, options = {}) {
     const joined = argumentsList.join(" ");
     if (joined.includes("issue view 10")) {
       return {
         status: 0,
-        stdout: mapIssue(remoteMapBody, { state, labels }),
+        stdout: mapIssue(mapState?.body ?? remoteMapBody, { state, labels }),
         stderr: "",
       };
+    }
+    if (joined.includes("issue edit 10") && mapState) {
+      mapState.body = options.input;
+      return { status: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("issues?state=all")) {
       return {
@@ -210,9 +207,6 @@ function evidenceRunFactory({
         }]),
         stderr: "",
       };
-    }
-    if (joined.includes("issues/10/comments?")) {
-      return { status: 0, stdout: pages(mapComments), stderr: "" };
     }
     if (joined.includes("/comments?")) {
       const comment = {
@@ -353,73 +347,40 @@ Delivers: A user can request recovery.
 Needs: None.`;
 const originalPlanBody = mapBody({ slices: originalSlices });
 const reorderedPlanBody = mapBody({ slices: reorderedSlices });
-const planApproval = `gsd-loop slice-plan approval for map #10
-
-From: sha256:${slicePlanDigest(originalPlanBody)}
-To: sha256:${slicePlanDigest(reorderedPlanBody)}`;
-assert.throws(
-  () => validateDecisionEvidence({
-    repo,
-    map,
-    mapBody: reorderedPlanBody,
-    run: evidenceRunFactory({ remoteMapBody: originalPlanBody }),
-  }),
-  /slice-plan approval/,
-);
-assert.throws(
-  () => validateDecisionEvidence({
-    repo,
-    map,
-    mapBody: reorderedPlanBody,
-    run: evidenceRunFactory({
-      mapComments: [{
-        author_association: "MEMBER",
-        user: { login: "planner-bot", type: "Bot" },
-        body: planApproval,
-      }],
-      remoteMapBody: originalPlanBody,
-    }),
-  }),
-  /trusted human comment/,
-);
-assert.equal(
-  validateDecisionEvidence({
-    repo,
-    map,
-    mapBody: reorderedPlanBody,
-    run: evidenceRunFactory({
-      mapComments: [{
-        author_association: "MEMBER",
-        user: { login: "planner", type: "User" },
-        body: planApproval,
-      }],
-      remoteMapBody: originalPlanBody,
-    }),
-  }),
-  1,
-);
 
 const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-protocol-"));
 try {
   const planPath = join(testRoot, "plan.md");
   writeFileSync(planPath, reorderedPlanBody);
+  const graduationState = {
+    body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+  };
   assert.deepEqual(
     runDiscoveryProtocol({
       bodyPath: planPath,
-      command: "validate-plan",
+      command: "graduate",
       map,
       repo,
     }, {
       run: evidenceRunFactory({
-        mapComments: [{
-          author_association: "MEMBER",
-          user: { login: "planner", type: "User" },
-          body: planApproval,
-        }],
-        remoteMapBody: originalPlanBody,
+        mapState: graduationState,
       }),
     }),
-    { approved: true },
+    { decisions: 1, slices: 2 },
+  );
+  assert.equal(graduationState.body, reorderedPlanBody);
+
+  writeFileSync(planPath, originalPlanBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: graduationState }),
+    }),
+    /ready delivery slices are immutable/,
   );
 
   const draftPath = join(testRoot, "slice.md");
@@ -436,9 +397,9 @@ Discovery slice: S-1
   const filingState = {
     issues: [],
     mapBody: mapBody(),
-    approvedMergedPr: false,
     closingPullRequests: [],
     mergedHead: "abc123",
+    reviewEvidenceQueries: 0,
     reviewerLogin: "reviewer",
     verdictComments: [],
     createAttempts: 0,
@@ -469,6 +430,7 @@ Discovery slice: S-1
       return { status: 1, stdout: "", stderr: "response lost" };
     }
     if (joined.includes("issue view 20")) {
+      filingState.reviewEvidenceQueries += 1;
       return {
         status: 0,
         stdout: JSON.stringify({
@@ -479,21 +441,23 @@ Discovery slice: S-1
       };
     }
     if (joined.includes("pr view 30")) {
+      filingState.reviewEvidenceQueries += 1;
       return {
         status: 0,
         stdout: JSON.stringify({
           state: "MERGED",
           mergedAt: "2026-07-28T12:00:00Z",
           headRefOid: filingState.mergedHead,
-          labels: filingState.approvedMergedPr ? [{ name: "gsd:approved" }] : [],
         }),
         stderr: "",
       };
     }
     if (joined.includes("api user --jq .login")) {
+      filingState.reviewEvidenceQueries += 1;
       return { status: 0, stdout: `${filingState.reviewerLogin}\n`, stderr: "" };
     }
     if (joined.includes("issues/30/comments?")) {
+      filingState.reviewEvidenceQueries += 1;
       return { status: 0, stdout: pages(filingState.verdictComments), stderr: "" };
     }
     if (joined.includes("issue view 10")) {
@@ -512,6 +476,10 @@ Discovery slice: S-1
         return { status: 1, stdout: "", stderr: "map update failed" };
       }
       filingState.mapBody = options.input;
+      return { status: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("issue close 10")) {
+      filingState.mapState = "CLOSED";
       return { status: 0, stdout: "", stderr: "" };
     }
     return { status: 1, stdout: "", stderr: `unexpected: ${joined}` };
@@ -585,48 +553,16 @@ Discovery slice: S-1
   assert.equal(filingState.createAttempts, 1);
 
   filingState.issues[0].state = "closed";
-  assert.throws(
-    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    /closed without a trusted reviewer verdict/,
-  );
   filingState.closingPullRequests = [{ number: 30 }];
-  assert.throws(
-    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    /closed without a trusted reviewer verdict/,
-  );
-  filingState.approvedMergedPr = true;
-  filingState.verdictComments = [{
-    user: { login: filingState.reviewerLogin },
-    body: "gsd-loop verdict for stale-head issue #20",
-  }];
-  assert.throws(
-    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    /trusted reviewer verdict/,
-  );
-  filingState.verdictComments = [{
-    user: { login: filingState.reviewerLogin },
-    body: `gsd-loop verdict for ${filingState.mergedHead} issue #99`,
-  }];
-  assert.throws(
-    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    /trusted reviewer verdict/,
-  );
-  filingState.verdictComments = [{
-    user: { login: "someone-else" },
-    body: `gsd-loop verdict for ${filingState.mergedHead} issue #20`,
-  }];
-  assert.throws(
-    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    /trusted reviewer verdict/,
-  );
   filingState.verdictComments = [{
     user: { login: filingState.reviewerLogin },
     body: `gsd-loop verdict for ${filingState.mergedHead} issue #20`,
   }];
-  assert.deepEqual(
-    reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    { approvalRequired: null, recovered: [], missing: [] },
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    /must remain open until discovery map completion/,
   );
+  assert.equal(filingState.reviewEvidenceQueries, 0);
   filingState.issues[0].state = "open";
 
   filingState.issues.push({
@@ -793,6 +729,17 @@ Needs: S-1`,
     }).number,
     22,
   );
+  assert.deepEqual(
+    runDiscoveryProtocol({
+      command: "complete-map",
+      map,
+      repo,
+    }, {
+      run: filingRun,
+    }),
+    { closed: true, slices: 2 },
+  );
+  assert.equal(filingState.mapState, "CLOSED");
 } finally {
   rmSync(testRoot, { recursive: true, force: true });
 }
