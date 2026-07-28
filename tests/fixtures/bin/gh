@@ -27,7 +27,8 @@ case "${1:-}" in
           "-f branch=main" \
           "-f event=push" \
           "-f head_sha=${MOCK_EXPECTED_CI_SHA:-0123456789abcdef0123456789abcdef01234567}" \
-          "-f status=completed"; do
+          "-f status=completed" \
+          '--jq [.workflow_runs[] | select(.conclusion == "success")] | length'; do
           case " $* " in
             *" $required_filter "*) ;;
             *) exit 1 ;;
