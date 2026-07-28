@@ -23,6 +23,8 @@ grep -q 'gh api graphql --paginate --slurp' "$REVIEW"
 grep -q 'comments(first: 100, after: $endCursor)' "$REVIEW"
 grep -q 'pageInfo { hasNextPage endCursor }' "$REVIEW"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$BUILD"
+grep -q 'node LINKAGE_SYNC ISSUE --repo OWNER/REPO --pr NUMBER --head HEAD_SHA' "$BUILD"
+grep -q 'resolve `LINKAGE_SYNC` to `scripts/ensure-linkage.mjs`' "$ROOT/.agents/skills/gsd-loop-build/SKILL.md"
 grep -q 'Dependency audit for HEAD_SHA: baseline compared' "$REVIEW"
 printf '%s\n' "$repair_section" | grep -q 'gh api --paginate --slurp'
 if printf '%s\n' "$repair_section" | grep -q 'commands and result'; then

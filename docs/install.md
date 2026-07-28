@@ -42,6 +42,8 @@ npx @opengsd/gsd-loop@latest init
 - installs or updates all four skills;
 - verifies GitHub access;
 - creates the five `gsd:*` labels without replacing existing labels;
+- locally excludes Claude's scheduler lock so native scheduling cannot make the
+  worktree look dirty to a builder pass;
 - when one successful check is selected, creates or updates only the dedicated
   `gsd-loop required CI` ruleset.
 

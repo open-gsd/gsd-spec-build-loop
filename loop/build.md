@@ -88,7 +88,10 @@ REVIEWER_LOGIN="$REVIEWER_LOGIN" ISSUE="$ISSUE" \
   default-branch baseline. If it changes a dependency manifest or lockfile,
   repeat the baseline-versus-branch audit policy under "Prove it"; repair
   commits do not inherit stale audit evidence. Push only after required gates
-  pass, then remove `gsd:rework` and comment a summary containing
+  pass. After any repository-required post-PR validation, re-fetch the final PR
+  head as `HEAD_SHA` and run
+  `node LINKAGE_SYNC ISSUE --repo OWNER/REPO --pr NUMBER --head HEAD_SHA`.
+  Only after that guard passes, remove `gsd:rework` and comment a summary containing
   `Dependency audit for HEAD_SHA: baseline compared` immediately followed by
   the normalized fenced `gsd-loop/dependency-audit-v1` JSON described under
   "Prove it", using the full pushed head SHA. Stop.
@@ -215,9 +218,20 @@ body containing:
 If the side-effects line would be a lie, stop and get the issue amended
 first.
 
-Drop the PR URL as an issue comment. Merge-time closure is `Closes #NNN`'s
-job — never close the issue by hand, never merge, never arm auto-merge.
-Stop.
+Repository-required post-PR validation may add a commit or rewrite PR metadata.
+After every such gate finishes, re-fetch the final PR head as `HEAD_SHA`, then
+run:
+
+```bash
+node LINKAGE_SYNC ISSUE --repo OWNER/REPO --pr NUMBER --head HEAD_SHA
+```
+
+This repeat-safe guard preserves the current PR body and restores its explicit
+`Closes #NNN` marker when another tool removed it. A stale head, concurrent body
+change, or failed verification blocks the pass. Do not report successful handoff
+until the guard passes. Then drop the PR URL as an issue comment. Merge-time
+closure is `Closes #NNN`'s job — never close the issue by hand, never merge,
+never arm auto-merge. Stop.
 
 ## Hand it back
 

@@ -386,7 +386,19 @@ else process.exit(1);
   assert.ok(existsSync(join(home, ".gemini", "skills", "gsd-loop-build", "SKILL.md")));
   assert.equal(existsSync(join(repository, ".git", "gsd-loop")), false);
   const localExclude = join(repository, ".git", "info", "exclude");
-  assert.doesNotMatch(readFileSync(localExclude, "utf8"), /\.claude\/scheduled_tasks\.lock/);
+  assert.match(readFileSync(localExclude, "utf8"), /^\.claude\/scheduled_tasks\.lock$/m);
+  const initializedAgain = runCli([
+    "init", "--yes",
+    "--repo", "octocat/project",
+    "--required-check", "test",
+    "--home", home,
+  ], { cwd: repository });
+  assert.equal(initializedAgain.status, 0, initializedAgain.stderr);
+  assert.equal(
+    readFileSync(localExclude, "utf8").split(/\r?\n/)
+      .filter((line) => line === ".claude/scheduled_tasks.lock").length,
+    1,
+  );
   assert.ok(readLog().some((args) => args[0] === "label" && args[1] === "create"));
   assert.ok(readLog().some((args) => args.includes("--method") && args.includes("POST")));
 
