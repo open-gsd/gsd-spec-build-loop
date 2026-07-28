@@ -102,6 +102,19 @@ try {
     queueIssues: [],
   });
 
+  const approvedPath = join(testRoot, "approved.md");
+  writeFileSync(approvedPath, mapBody().replace(
+    "## Queue issues\n\nNone.",
+    `## Queue issues\n\n- S-1 — Approved sha256:${"a".repeat(64)}`,
+  ));
+  const approved = run(["discovery-map", approvedPath]);
+  assert.equal(approved.status, 0, approved.stderr);
+  assert.deepEqual(JSON.parse(approved.stdout).queueIssues, [{
+    id: "S-1",
+    status: "approved",
+    hash: "a".repeat(64),
+  }]);
+
   const draftPath = join(testRoot, "draft.md");
   writeFileSync(draftPath, mapBody({ graduation: "Not ready.", slices: "None." }));
   const draft = run(["discovery-map", "--allow-not-ready", draftPath]);

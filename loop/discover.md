@@ -396,16 +396,19 @@ validator before updating GitHub:
 node MAP_VALIDATOR /path/to/map-body.md
 ```
 
-Then require the remote evidence check:
+Validate that exact proposed ready body against the remote evidence:
 
 ```bash
-node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO
+node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO \
+  --body-file /path/to/map-body.md
 ```
 
-Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
-active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
-form above rejects missing slices, malformed fields, and dependencies that do
-not point backward. A validator failure blocks graduation.
+Only after both validators pass, update the map with that exact proposed body,
+re-fetch it, and run `node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO`
+again. Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside
+the active skill. While charting a not-ready map, use `--allow-not-ready`; the
+ready form above rejects missing slices, malformed fields, and dependencies
+that do not point backward. A validator failure blocks graduation.
 
 Otherwise leave it as `Not ready.`. Remove both assignments and report the map
 URL, the decision resolved, the remaining frontier, and any remaining fog.

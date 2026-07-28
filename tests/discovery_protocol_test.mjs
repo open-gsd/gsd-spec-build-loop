@@ -4,10 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   acquireFilingLock,
+  approveDiscoverySlice,
   fileDiscoverySlice,
   filingLockName,
   parseDiscoveryProtocolArguments,
   reconcileDecisionIssues,
+  reconcileDiscoverySlices,
   releaseFilingLock,
   validateDecisionEvidence,
 } from "../lib/discovery-protocol.mjs";
@@ -17,7 +19,14 @@ const repo = "octocat/project";
 const token = "test-token";
 const gist = "- [Choose channel](https://github.com/octocat/project/issues/7) — Use verified email.";
 
-function mapBody({ issue = "#7", queue = "None." } = {}) {
+function mapBody({
+  issue = "#7",
+  queue = "None.",
+  slices = `### S-1 — Request recovery
+
+Delivers: A user can request recovery.
+Needs: None.`,
+} = {}) {
   return `## Destination
 
 Ship account recovery.
@@ -45,10 +54,7 @@ None.
 
 ## Delivery slices
 
-### S-1 — Request recovery
-
-Delivers: A user can request recovery.
-Needs: None.
+${slices}
 
 ## Graduation
 
@@ -132,6 +138,25 @@ assert.throws(
   }),
   /already active/,
 );
+assert.deepEqual(
+  acquireFilingLock({
+    repo,
+    map,
+    token,
+    run(program, argumentsList) {
+      return argumentsList[1] === "view"
+        ? {
+            status: 0,
+            stdout: JSON.stringify({
+              description: `Active gsd-loop spec filing reservation ${token}`,
+            }),
+            stderr: "",
+          }
+        : { status: 1, stdout: "", stderr: "response lost" };
+    },
+  }),
+  { label: "gsd-loop-spec-map-10", token },
+);
 assert.throws(
   () => acquireFilingLock({
     repo,
@@ -197,13 +222,18 @@ assert.deepEqual(reconcileDecisionIssues({ repo, map, run: reconcileRun }), {
 });
 assert.match(reconcileState.mapBody, /Issue: #7/);
 
-function evidenceRunFactory({ association = "MEMBER", duplicate = false } = {}) {
+function evidenceRunFactory({
+  association = "MEMBER",
+  duplicate = false,
+  resolutionBody,
+  remoteMapBody = mapBody(),
+} = {}) {
   return function evidenceRun(program, argumentsList) {
     const joined = argumentsList.join(" ");
     if (joined.includes("issue view 10")) {
       return {
         status: 0,
-        stdout: JSON.stringify({ body: mapBody(), state: "open", labels: [] }),
+        stdout: JSON.stringify({ body: remoteMapBody, state: "open", labels: [] }),
         stderr: "",
       };
     }
@@ -225,7 +255,7 @@ function evidenceRunFactory({ association = "MEMBER", duplicate = false } = {}) 
       const comment = {
         author_association: association,
         user: { login: "resolver" },
-        body: `gsd-loop decision for map #10
+        body: resolutionBody ?? `gsd-loop decision for map #10
 
 ## Resolution
 
@@ -260,6 +290,34 @@ assert.throws(
   () => validateDecisionEvidence({ repo, map, run: evidenceRunFactory({ duplicate: true }) }),
   /exactly one trusted resolution/,
 );
+assert.throws(
+  () => validateDecisionEvidence({
+    repo,
+    map,
+    run: evidenceRunFactory({
+      resolutionBody: `gsd-loop decision for map #10
+
+## Map gist
+
+${gist}`,
+    }),
+  }),
+  /Resolution, Evidence, Consequences, and Map gist/,
+);
+assert.equal(
+  validateDecisionEvidence({
+    repo,
+    map,
+    mapBody: mapBody(),
+    run: evidenceRunFactory({
+      remoteMapBody: mapBody().replace(
+        "Ready for `gsd-loop-spec`.",
+        "Not ready.",
+      ),
+    }),
+  }),
+  1,
+);
 
 const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-protocol-"));
 try {
@@ -274,7 +332,12 @@ Discovery slice: S-1
 - [ ] O-1 — A user can request recovery.
 `;
   writeFileSync(draftPath, draft);
-  const filingState = { issues: [], mapBody: mapBody(), createAttempts: 0 };
+  const filingState = {
+    issues: [],
+    mapBody: mapBody(),
+    createAttempts: 0,
+    failLedgerUpdate: false,
+  };
   function filingRun(program, argumentsList, options = {}) {
     const joined = argumentsList.join(" ");
     if (joined.includes("label view")) {
@@ -306,11 +369,52 @@ Discovery slice: S-1
       };
     }
     if (joined.includes("issue edit 10")) {
+      if (filingState.failLedgerUpdate && filingState.issues.length) {
+        filingState.failLedgerUpdate = false;
+        return { status: 1, stdout: "", stderr: "map update failed" };
+      }
       filingState.mapBody = options.input;
       return { status: 0, stdout: "", stderr: "" };
     }
     return { status: 1, stdout: "", stderr: `unexpected: ${joined}` };
   }
+  const approval = approveDiscoverySlice({
+    repo,
+    map,
+    token,
+    slice: "S-1",
+    title: "Request recovery",
+    bodyPath: draftPath,
+    run: filingRun,
+  });
+  assert.match(approval.hash, /^[0-9a-f]{64}$/);
+  assert.match(filingState.mapBody, /Approved sha256:/);
+  filingState.failLedgerUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      token,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /map update failed/,
+  );
+  assert.equal(filingState.createAttempts, 1);
+  assert.match(filingState.mapBody, /Approved sha256:/);
+  assert.deepEqual(reconcileDiscoverySlices({
+    repo,
+    map,
+    token,
+    run: filingRun,
+  }), {
+    recovered: [20],
+    pending: [],
+  });
+  assert.match(filingState.mapBody, /- S-1 — \[Request recovery\].*issues\/20/);
+  writeFileSync(draftPath, `${draft}\nHarmless redraft difference.\n`);
   const filed = fileDiscoverySlice({
     repo,
     map,
@@ -321,8 +425,6 @@ Discovery slice: S-1
     run: filingRun,
   });
   assert.equal(filed.number, 20);
-  assert.equal(filingState.createAttempts, 1);
-  assert.match(filingState.mapBody, /- S-1 — \[Request recovery\].*issues\/20/);
   fileDiscoverySlice({
     repo,
     map,
@@ -333,6 +435,110 @@ Discovery slice: S-1
     run: filingRun,
   });
   assert.equal(filingState.createAttempts, 1);
+
+  const delimiterState = { ...filingState, issues: [], mapBody: mapBody(), createAttempts: 0 };
+  function delimiterRun(program, argumentsList, options = {}) {
+    const joined = argumentsList.join(" ");
+    if (joined.includes("label view")) {
+      return {
+        status: 0,
+        stdout: JSON.stringify({ description: `Active gsd-loop spec filing reservation ${token}` }),
+        stderr: "",
+      };
+    }
+    if (joined.includes("issue view 10")) {
+      return {
+        status: 0,
+        stdout: JSON.stringify({ body: delimiterState.mapBody, state: "open", labels: [] }),
+        stderr: "",
+      };
+    }
+    if (joined.includes("issues?state=all")) {
+      return { status: 0, stdout: pages(delimiterState.issues), stderr: "" };
+    }
+    if (joined.includes("issue edit 10")) {
+      delimiterState.mapBody = options.input;
+      return { status: 0, stdout: "", stderr: "" };
+    }
+    return { status: 1, stdout: "", stderr: `unexpected: ${joined}` };
+  }
+  const bracketMap = mapBody().replace("Request recovery", "Support [legacy] recovery");
+  delimiterState.mapBody = bracketMap;
+  assert.throws(
+    () => approveDiscoverySlice({
+      repo,
+      map,
+      token,
+      slice: "S-1",
+      title: "Support [legacy] recovery",
+      bodyPath: draftPath,
+      run: delimiterRun,
+    }),
+    /unsupported Markdown delimiters/,
+  );
+
+  writeFileSync(draftPath, `${draft}\nNeeds #ISSUE merged\n`);
+  delimiterState.mapBody = mapBody();
+  assert.throws(
+    () => approveDiscoverySlice({
+      repo,
+      map,
+      token,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: delimiterRun,
+    }),
+    /malformed Needs dependency/,
+  );
+
+  const firstIssue = {
+    id: 601,
+    number: 20,
+    title: "Request recovery",
+    body: draft,
+    html_url: "https://github.com/octocat/project/issues/20",
+  };
+  delimiterState.issues = [firstIssue];
+  delimiterState.mapBody = mapBody({
+    queue: "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)",
+    slices: `### S-1 — Request recovery
+
+Delivers: A user can request recovery.
+Needs: None.
+
+### S-2 — Complete recovery
+
+Delivers: A user can complete recovery.
+Needs: S-1`,
+  });
+  writeFileSync(draftPath, `## Why
+
+Discovery map: #10
+Discovery slice: S-2
+Needs #999 merged
+`);
+  assert.throws(
+    () => approveDiscoverySlice({
+      repo,
+      map,
+      token,
+      slice: "S-2",
+      title: "Complete recovery",
+      bodyPath: draftPath,
+      run: delimiterRun,
+    }),
+    /Needs dependencies do not match/,
+  );
+
+  delimiterState.mapBody = delimiterState.mapBody.replace(
+    "https://github.com/octocat/project/issues/20",
+    "https://github.com/other/project/issues/20",
+  );
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, token, run: delimiterRun }),
+    /queue entry does not match its repository issue/,
+  );
 } finally {
   rmSync(testRoot, { recursive: true, force: true });
 }

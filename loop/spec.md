@@ -173,27 +173,31 @@ that number, not a guess.
 
 When the source was a discovery map:
 
-1. Parse `## Queue issues` first. An entry has the exact form
-   `- S-N — [TITLE](URL)`. Verify every existing link is an issue in this
-   repository whose body names the same map and slice. A missing or mismatched
-   issue is a conflict; stop instead of guessing or filing a duplicate.
-2. Draft every unfiled slice as a separate complete issue. Preserve slice
-   order, and replace each declared `Needs: S-N` edge with the corresponding
-   `Needs #ISSUE merged` line. Because slices depend only on earlier slices,
-   every required issue number is available when its dependent is filed.
-3. Show the complete draft set and dependency mapping in chat. Wait for one
-   explicit approval covering the whole set.
-4. Before creating any queue issue, run
+1. Before creating any queue issue, run
    `node DISCOVERY_PROTOCOL lock MAP --repo OWNER/REPO`. The helper atomically
    acquires `gsd-loop-spec-map-MAP`, a lock namespace outside the canonical
    `gsd:*` workflow states, distinguishes contention from API failure, and
    returns a unique ownership token. Retain that token for this pass.
-5. With the reservation held, file each approved draft in slice order with
+2. Immediately run
+   `node DISCOVERY_PROTOCOL recover-slices MAP --repo OWNER/REPO --token LOCK_TOKEN`.
+   It validates every existing queue link and recovers a created-but-unledgered
+   issue from its durable approved-draft identity before any redrafting.
+3. Work through unfiled slices in order, one at a time. Resolve every declared
+   dependency to the already-filed predecessor issue number, put the exact
+   `Needs #N merged` lines into that slice's complete draft, show that exact
+   dependency-bearing draft to the human, and wait for explicit approval.
+   Never approve a placeholder dependency or a later draft whose predecessor
+   number is not known yet.
+4. Persist that exact approval before creation with
+   `node DISCOVERY_PROTOCOL approve-slice MAP --repo OWNER/REPO --token LOCK_TOKEN --slice S-N --title "TITLE" --body-file /path/to/draft.md`.
+   The helper records a SHA-256 identity in `## Queue issues`. A later approval
+   may replace a pending identity only after the human reviews the replacement.
+5. File the same approved draft with
    `node DISCOVERY_PROTOCOL file-slice MAP --repo OWNER/REPO --token LOCK_TOKEN --slice S-N --title "TITLE" --body-file /path/to/draft.md`.
-   The helper owns marker parsing, repository-wide reconciliation, uncertain
-   create classification, map queue updates, conflict detection, and
-   post-write verification. Its returned issue number is authoritative for
-   later dependency lines.
+   The helper owns repository identity, title and marker checks, exact
+   dependency validation, uncertain-create recovery, map queue updates, and
+   post-write verification. Its returned issue number is authoritative for the
+   next slice. Repeat steps 3–5 until all slices are linked.
 6. Always release only this pass's reservation with
    `node DISCOVERY_PROTOCOL unlock MAP --repo OWNER/REPO --token LOCK_TOKEN`,
    including after a failure. The helper refuses a token belonging to another
