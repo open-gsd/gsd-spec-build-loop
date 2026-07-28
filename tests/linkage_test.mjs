@@ -49,15 +49,34 @@ import { readFileSync, writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
 const statePath = process.env.MOCK_LINKAGE_STATE;
 const state = JSON.parse(readFileSync(statePath, "utf8"));
-if (args[0] === "pr" && args[1] === "view") {
-  process.stdout.write(JSON.stringify({
+function field(name) {
+  const prefix = name + "=";
+  return args.find((argument) => argument.startsWith(prefix))?.slice(prefix.length);
+}
+function pullRequest() {
+  return {
+    id: "PR_mock",
     headRefOid: state.headRefOid,
     body: state.body,
-  }));
-} else if (args[0] === "pr" && args[1] === "edit") {
-  state.body = readFileSync(0, "utf8");
+    userContentEdits: { totalCount: state.edits },
+  };
+}
+if (args[0] === "api" && args[1] === "graphql" && field("query")?.includes("mutation")) {
+  if (state.raceBeforeUpdate) {
+    state.body = "Concurrent evidence\\n";
+    state.edits += 1;
+    state.raceBeforeUpdate = false;
+  }
+  state.body = field("body");
   state.edits += 1;
   writeFileSync(statePath, JSON.stringify(state));
+  process.stdout.write(JSON.stringify({
+    data: { updatePullRequest: { pullRequest: pullRequest() } },
+  }));
+} else if (args[0] === "api" && args[1] === "graphql") {
+  process.stdout.write(JSON.stringify({
+    data: { repository: { pullRequest: pullRequest() } },
+  }));
 } else {
   process.stderr.write("unexpected gh invocation");
   process.exit(1);
@@ -89,6 +108,17 @@ if (args[0] === "pr" && args[1] === "view") {
   assert.equal(stale.status, 3, stale.stderr);
   assert.match(stale.stderr, /head changed; linkage evidence is stale/);
   assert.equal(JSON.parse(readFileSync(statePath, "utf8")).edits, 1);
+
+  writeFileSync(statePath, JSON.stringify({
+    headRefOid: head,
+    body: "Summary\n",
+    edits: 0,
+    raceBeforeUpdate: true,
+  }));
+  const concurrent = runGuard();
+  assert.equal(concurrent.status, 3, concurrent.stderr);
+  assert.match(concurrent.stderr, /body changed during linkage update/);
+  assert.equal(JSON.parse(readFileSync(statePath, "utf8")).edits, 2);
 
   console.log("pull request linkage guard passed");
 } finally {

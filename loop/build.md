@@ -79,8 +79,11 @@ REVIEWER_LOGIN="$REVIEWER_LOGIN" ISSUE="$ISSUE" \
   `gsd-loop verdict for COMMIT_SHA issue #ISSUE`; ignore comments by any other
   author or pinned to another issue.
 - Trusted verdict SHA already matches the head? The label outlived its verdict
-  (fixes were pushed but the label removal died). Drop `gsd:rework`, stop —
-  the reviewer will take it from here.
+  (fixes were pushed but the label removal died). Re-fetch the final PR head as
+  `HEAD_SHA` and run
+  `node LINKAGE_SYNC ISSUE --repo OWNER/REPO --pr NUMBER --head HEAD_SHA`.
+  Only after that guard passes, drop `gsd:rework`, stop — the reviewer will take
+  it from here.
 - Can't check out the branch (deleted head, vanished fork)? Comment what
   happened, trade `gsd:rework` for `gsd:escalated`, stop.
 - Otherwise: address only the verdict's "Blocking" items, run the checks
