@@ -29,18 +29,27 @@ grep -q 'Recover an interrupted pass' "$DISCOVER"
 grep -q 'Never post a second resolution comment' "$DISCOVER"
 grep -q 'resume it as this pass.s chosen decision' "$DISCOVER"
 grep -q 'no list marker' "$DISCOVER"
+grep -q '## Map gist' "$DISCOVER"
+grep -q 'repos/OWNER/REPO/issues?state=all&per_page=100' "$DISCOVER"
+grep -q 'map-gist line must appear verbatim' "$DISCOVER"
 grep -q 'loop/discover.md' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
 grep -q 'Optional discovery-map input' "$SPEC"
 grep -q 'carries `gsd:map`' "$SPEC"
 grep -q 'every native sub-issue is closed' "$SPEC"
+grep -q 'repos/OWNER/REPO/issues?state=all&per_page=100' "$SPEC"
+grep -q 'gh label create "$FILING_LOCK"' "$SPEC"
+grep -q 'gh label delete "$FILING_LOCK" --yes' "$SPEC"
+grep -q 'occurs before any issue creation' "$SPEC"
 grep -q 'gsd-loop-discover MAP' "$SPEC"
 grep -q 'map graduation is not build' "$SPEC"
 grep -q 'human explicitly confirms' "$SPEC"
 grep -q 'one queue issue per unfiled delivery slice' "$SPEC"
 grep -q 'Needs #ISSUE merged' "$SPEC"
 grep -q 'Multiple ready slices are processed over' "$SPEC"
-grep -q 'resolve it to.*validate-discovery-map.mjs' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
-grep -q 'resolve it to.*validate-discovery-map.mjs' "$ROOT/.agents/skills/gsd-loop-spec/SKILL.md"
+tr '\n' ' ' < "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md" |
+  grep -q 'resolve it to.*validate-discovery-map.mjs'
+tr '\n' ' ' < "$ROOT/.agents/skills/gsd-loop-spec/SKILL.md" |
+  grep -q 'resolve it to.*validate-discovery-map.mjs'
 grep -q 'Discard issues labeled `gsd:map`' "$BUILD"
 
 repair_section=$(sed -n '/^## Repair queue takes priority/,/^## Choose an issue/p' "$BUILD")

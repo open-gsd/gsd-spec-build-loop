@@ -28,8 +28,13 @@ provenance, not as the queue contract. Verify before relying on it:
 - it belongs to this repository, is open, and carries `gsd:map`;
 - its `## Graduation` value is the single line
   **Ready for `gsd-loop-spec`.**;
-- its `## Not yet specified` value is exactly `None.`; and
-- every native sub-issue is closed.
+- its `## Not yet specified` value is exactly `None.`;
+- every native sub-issue is closed; and
+- every native sub-issue has exactly one resolution comment authored by the
+  authenticated user whose first line is exactly
+  `gsd-loop decision for map #MAP`, whose `## Map gist` section is one linked
+  line, and whose map-gist line appears verbatim under
+  `## Decisions so far`.
 
 Write the fetched map body to a temporary file and validate its delivery-slice
 structure before reading it as a contract source:
@@ -51,16 +56,27 @@ gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
   "repos/OWNER/REPO/issues/MAP/sub_issues?per_page=100"
 ```
 
+Also scan repository issues directly, without the search index:
+
+```bash
+gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
+  "repos/OWNER/REPO/issues?state=all&per_page=100"
+```
+
+Ignore pull requests. If an issue has the exact discovery-decision body shape
+and an exact `## Map` value of `#MAP` but is not a native sub-issue, stop and
+direct the user back to discovery for reconciliation.
+
 If any check fails, stop and direct the user back to `gsd-loop-discover MAP`.
 Do not silently finish the map inside the spec pass.
 
-Resolved map decisions are settled inputs: do not re-ask them unless the
-codebase now contradicts them or two resolutions conflict. Draft one queue
-issue per unfiled delivery slice. Translate that slice and its relevant map
-decisions into observable outcomes, and carry the map's `## Out of scope`
-section plus the boundaries of the other slices into binding exclusions. Each
-resulting issue still needs every section and proof surface below; a map never
-substitutes for them.
+Resolved map decisions are settled inputs. Do not re-ask them unless the
+codebase now contradicts them or two resolutions conflict.
+Draft one queue issue per unfiled delivery slice. Translate that slice and its
+relevant map decisions into observable outcomes, and carry the map's
+`## Out of scope` section plus the boundaries of the other slices into binding
+exclusions. Each resulting issue still needs every section and proof surface
+below; a map never substitutes for them.
 
 ## Learn the code first
 
@@ -179,11 +195,34 @@ When the source was a discovery map:
    every required issue number is available when its dependent is filed.
 3. Show the complete draft set and dependency mapping in chat. Wait for one
    explicit approval covering the whole set.
-4. Create approved issues in slice order. Immediately after each successful
-   creation, append `- S-N — [TITLE](URL)` under `## Queue issues` and re-fetch
-   the map. If creation or map update fails, stop; the recorded entries make a
-   later pass resume without duplicating completed work.
-5. Comment on the map with the title and URL of every issue created in this
+4. Before creating any queue issue, acquire the map's repository-wide filing
+   reservation by atomically creating the label named by
+   `FILING_LOCK="gsd:spec-map-$MAP"`. Use
+   `gh label create "$FILING_LOCK" --color ededed --description "Active gsd-loop spec filing reservation"`.
+   If creation fails, verify that exact label exists. Otherwise report the
+   authentication, permission, or network failure and stop. An existing label
+   means another pass may be filing: create no issue and stop. A human may
+   delete a stale reservation only after confirming no filing pass is active.
+   Track whether this pass created the label, and always release only its own
+   reservation with
+   `gh label delete "$FILING_LOCK" --yes` when the pass ends, including on
+   failure.
+5. With the reservation held, re-fetch the map and its queue entries, then
+   repeat every discovery-map input check and scan every repository issue using
+   the non-search-index REST listing above.
+   For each slice, match exact standalone `Discovery map: #MAP` and
+   `Discovery slice: S-N` lines. If one matching issue exists without a queue
+   entry, verify its complete body and append its link to `## Queue issues`.
+   More than one match or any mismatch is a conflict; stop. This reconciliation
+   occurs before any issue creation and makes a successful create resumable
+   even when its output or the following map update was lost.
+6. Create only slices that remain unfiled, in order. Immediately after each
+   successful creation, append `- S-N — [TITLE](URL)` under
+   `## Queue issues`, re-fetch the map, and verify the entry and issue markers.
+   If a create result is uncertain, repeat the repository scan before any
+   retry; never call `gh issue create` twice for the same slice in one pass. If
+   creation or map update fails, stop after releasing the filing reservation.
+7. Comment on the map with the title and URL of every issue created in this
    pass. Close the map only after every slice has a verified queue-issue entry
    and the human explicitly confirms that the linked issues still cover the
    map's entire destination.

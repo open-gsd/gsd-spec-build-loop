@@ -113,7 +113,13 @@ None.
 
 Known decisions have no child issue that owns their history, so record their
 gist and rationale directly in `## Decisions so far`. Decisions resolved by a
-later map pass use linked child issues instead.
+later map pass use linked child issues instead. Their trusted resolution
+comment contains a `## Map gist` section whose single line has this exact form,
+and the map copies that line verbatim:
+
+```md
+- [DECISION TITLE](DECISION URL) — <one-sentence settled answer>
+```
 
 `## Delivery slices` is the eventual filing plan, not another decision list.
 Leave it as `None.` while the route is still too uncertain. As the map clears,
@@ -196,8 +202,10 @@ gh api --method POST -H "X-GitHub-Api-Version: 2026-03-10" \
 
 Re-read the map's `sub_issues` and every decision's
 `dependencies/blocked_by`. If any relationship is missing, report the exact
-failure and stop; do not replace native relationships with prose. Relay every
-created issue by title and URL, then stop without resolving a decision.
+failure and stop; do not replace native relationships with prose. Every
+decision body retains its exact `## Map` value, so a later pass can recover a
+created issue whose native attachment failed. Relay every created issue by
+title and URL, then stop without resolving a decision.
 
 ## Advance a map
 
@@ -215,11 +223,33 @@ Immediately re-fetch. If the map closed, lost `gsd:map`, or gained another
 assignee, remove yourself and stop. Always remove yourself when the pass ends,
 including on failure.
 
+### Reconcile referenced decisions
+
+Before inspecting only native children, scan every issue in the repository
+without relying on GitHub's eventually consistent search index:
+
+```bash
+gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
+  "repos/OWNER/REPO/issues?state=all&per_page=100"
+```
+
+Ignore pull requests. A decision belonging to this map has the exact decision
+body shape above and an exact `## Map` value of `#MAP`. Reconcile every such
+issue against the map's native `sub_issues`. Attach a missing referenced
+decision, then re-fetch both sides and verify the relationship before
+continuing. If an issue is attached to another map, its body is malformed, or
+the relationship cannot be repaired, report the conflict and stop rather than
+creating a replacement. Repeat this reconciliation before creating any newly
+precise decision so an interrupted earlier pass cannot duplicate its frontier.
+
 ### Recover an interrupted pass
 
 Before choosing new work, inspect the map's closed children and every open
 child assigned to you for a resolution comment whose first line is exactly
-`gsd-loop decision for map #MAP` and whose author is the authenticated user.
+`gsd-loop decision for map #MAP`, whose author is the authenticated user, and
+whose `## Map gist` section contains exactly one line in the required linked
+format. There must be exactly one such trusted comment per resolved child, and
+its map-gist line must appear verbatim under `## Decisions so far`.
 Repair one incomplete transition before doing anything new:
 
 - resolution comment present, decision still open — synchronize its named gist
@@ -295,6 +325,10 @@ gsd-loop decision for map #MAP
 ## Consequences
 
 <What this makes decidable next and any scope effect.>
+
+## Map gist
+
+- [DECISION TITLE](DECISION URL) — <one-sentence settled answer>
 ```
 
 If no resolution was reached, leave the issue open, remove both assignments,
@@ -324,17 +358,19 @@ evidence in place for recovery.
 
 ### Graduate or stop
 
-Graduation requires all five conditions:
+Graduation requires all six conditions:
 
 1. every child decision issue is closed;
-2. `## Not yet specified` contains only `None.`; and
-3. the destination and out-of-scope boundary are still explicit;
-4. every delivery slice follows the exact format above, is independently
+2. every child has exactly one trusted resolution comment and its exact
+   `## Map gist` line appears under `## Decisions so far`;
+3. `## Not yet specified` contains only `None.`;
+4. the destination and out-of-scope boundary are still explicit;
+5. every delivery slice follows the exact format above, is independently
    verifiable, and fits roughly one agent-day; and
-5. the human confirms that the slices collectively cover the destination
+6. the human confirms that the slices collectively cover the destination
    without gaps or overlap.
 
-When all five hold, replace the `## Graduation` value with exactly:
+When all six hold, replace the `## Graduation` value with exactly:
 
 ```md
 Ready for `gsd-loop-spec`.
