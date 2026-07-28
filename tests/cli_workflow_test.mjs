@@ -171,27 +171,27 @@ else process.exit(1);
   assert.doesNotMatch(help.stdout, /gsd-loop run build\|review/);
   assert.match(
     help.stdout,
-    /Codex:.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
+    /Codex:.*\$gsd-loop-discover.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
   );
   assert.match(
     help.stdout,
-    /Claude Code:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+    /Claude Code:.*\/gsd-loop-discover.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
   );
   assert.match(
     help.stdout,
-    /Cursor:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+    /Cursor:.*\/gsd-loop-discover.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
   );
   assert.match(
     help.stdout,
-    /Gemini CLI:.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
+    /Gemini CLI:.*Use the gsd-loop-discover skill.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
   );
   assert.match(
     help.stdout,
-    /Grok Build:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+    /Grok Build:.*\/gsd-loop-discover.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
   );
   assert.match(
     help.stdout,
-    /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
+    /Kimi Code:.*\/skill:gsd-loop-discover.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
   );
   assert.match(help.stdout, /native adapter behavior/);
 

@@ -20,6 +20,34 @@ for l in gsd:ready gsd:blocked gsd:approved gsd:rework gsd:escalated; do
 done
 ```
 
+## Optional discovery-map input
+
+When the user supplies a discovery map number or URL, treat it as planning
+provenance, not as the queue contract. Verify before relying on it:
+
+- it belongs to this repository, is open, and carries `gsd:map`;
+- its `## Graduation` value is the single line
+  **Ready for `gsd-loop-spec`.**;
+- its `## Not yet specified` value is exactly `None.`; and
+- every native sub-issue is closed.
+
+List all sub-issues with the versioned endpoint, then read the complete map,
+its comments, and every closed decision issue with its resolution comments:
+
+```bash
+gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
+  "repos/OWNER/REPO/issues/MAP/sub_issues?per_page=100"
+```
+
+If any check fails, stop and direct the user back to `gsd-loop-discover MAP`.
+Do not silently finish the map inside the spec pass.
+
+Resolved map decisions are settled inputs: do not re-ask them unless the
+codebase now contradicts them or two resolutions conflict. Translate the
+destination and decisions into observable outcomes, and the map's
+`## Out of scope` section into binding exclusions. The resulting issue still
+needs every section and proof surface below; a map never substitutes for them.
+
 ## Learn the code first
 
 Before the first question, explore the codebase: locate the files this idea
@@ -66,6 +94,8 @@ The body always carries these six sections:
 ## Why
 
 The user or business problem, in a sentence or two.
+
+Discovery map: #MAP (omit when this spec did not start from a map)
 
 ## Outcomes
 
@@ -117,6 +147,12 @@ gh issue create --title "TITLE" --body-file /path/to/draft.md
 
 Relay the issue number and URL exactly as returned — downstream playbooks trust
 that number, not a guess.
+
+When the source was a discovery map, comment on the map with the title and URL
+of every issue created from it. Close the map only after all approved issues in
+the series were created successfully. The new issues remain outside the build
+queue until the human applies `gsd:ready`; map graduation is not build
+authorization.
 
 Finish by spelling out the user's role in the loop (this is the one playbook a
 human actually reads):

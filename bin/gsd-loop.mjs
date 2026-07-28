@@ -22,12 +22,12 @@ function usage() {
   gsd-loop policy work|idle|blocked IDLE_COUNT
 
 Install skills and prepare a repository. Run work inside your agent harness:
-  Codex:       $gsd-loop-spec, $gsd-loop-build, $gsd-loop-review, or $gsd-loop-schedule
-  Claude Code: /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
-  Cursor:      /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
-  Gemini CLI:  Use the gsd-loop-spec skill, Use the gsd-loop-build skill, Use the gsd-loop-review skill, or Use the gsd-loop-schedule skill
-  Grok Build:  /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
-  Kimi Code:   /skill:gsd-loop-spec, /skill:gsd-loop-build, /skill:gsd-loop-review, or /skill:gsd-loop-schedule
+  Codex:       $gsd-loop-discover, $gsd-loop-spec, $gsd-loop-build, $gsd-loop-review, or $gsd-loop-schedule
+  Claude Code: /gsd-loop-discover, /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
+  Cursor:      /gsd-loop-discover, /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
+  Gemini CLI:  Use the gsd-loop-discover skill, Use the gsd-loop-spec skill, Use the gsd-loop-build skill, Use the gsd-loop-review skill, or Use the gsd-loop-schedule skill
+  Grok Build:  /gsd-loop-discover, /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
+  Kimi Code:   /skill:gsd-loop-discover, /skill:gsd-loop-spec, /skill:gsd-loop-build, /skill:gsd-loop-review, or /skill:gsd-loop-schedule
 
 Install options:
   --home PATH                       install beneath an alternate home directory

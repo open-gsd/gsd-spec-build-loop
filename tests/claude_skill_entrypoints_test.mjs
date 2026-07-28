@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const lanes = ["spec", "build", "review", "schedule"];
+const lanes = ["discover", "spec", "build", "review", "schedule"];
 
 for (const lane of lanes) {
   const name = `gsd-loop-${lane}`;

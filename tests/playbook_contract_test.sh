@@ -5,12 +5,30 @@
 set -eu
 
 ROOT=$(git rev-parse --show-toplevel)
+DISCOVER="$ROOT/loop/discover.md"
+SPEC="$ROOT/loop/spec.md"
 BUILD="$ROOT/loop/build.md"
 REVIEW="$ROOT/loop/review.md"
 SCHEDULE="$ROOT/.agents/skills/gsd-loop-schedule/SKILL.md"
 AGENT_GUIDE="$ROOT/AGENTS.md"
 README="$ROOT/README.md"
 INSTALL_GUIDE="$ROOT/docs/install.md"
+
+grep -q '^# gsd-loop: discover' "$DISCOVER"
+grep -qi 'interactive only' "$DISCOVER"
+grep -q 'exactly one frontier decision' "$DISCOVER"
+grep -q 'sub_issues' "$DISCOVER"
+grep -q 'dependencies/blocked_by' "$DISCOVER"
+grep -q 'Ready for `gsd-loop-spec`.' "$DISCOVER"
+grep -q 'never apply `gsd:ready`' "$DISCOVER"
+grep -q 'Recover an interrupted pass' "$DISCOVER"
+grep -q 'Never post a second resolution comment' "$DISCOVER"
+grep -q 'loop/discover.md' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
+grep -q 'Optional discovery-map input' "$SPEC"
+grep -q 'carries `gsd:map`' "$SPEC"
+grep -q 'every native sub-issue is closed' "$SPEC"
+grep -q 'gsd-loop-discover MAP' "$SPEC"
+grep -q 'map graduation is not build' "$SPEC"
 
 repair_section=$(sed -n '/^## Repair queue takes priority/,/^## Choose an issue/p' "$BUILD")
 recovery_section=$(printf '%s\n' "$repair_section" |
@@ -65,6 +83,7 @@ if grep -q 'npx @opengsd/gsd-loop@latest run' "$SCHEDULE"; then
   exit 1
 fi
 for guide in "$AGENT_GUIDE" "$README" "$INSTALL_GUIDE"; do
+  grep -q 'gsd-loop-discover' "$guide"
   grep -q '/gsd-loop-schedule' "$guide"
   grep -q '/skill:gsd-loop-schedule' "$guide"
   grep -q 'Use the gsd-loop-schedule skill' "$guide"
@@ -73,12 +92,12 @@ for guide in "$AGENT_GUIDE" "$README" "$INSTALL_GUIDE"; do
     exit 1
   fi
 done
-grep -Fq '| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |' "$AGENT_GUIDE"
-grep -Fq '| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
-grep -Fq '| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
-grep -Fq '| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |' "$AGENT_GUIDE"
-grep -Fq '| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
-grep -Fq '| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Codex | `$gsd-loop-discover` | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Claude Code | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Cursor | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Gemini CLI | `Use the gsd-loop-discover skill` | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |' "$AGENT_GUIDE"
+grep -Fq '| Grok Build | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
+grep -Fq '| Kimi Code | `/skill:gsd-loop-discover` | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |' "$AGENT_GUIDE"
 if [ "$(grep -c 'npx @opengsd/gsd-loop@latest init' "$README")" -ne 1 ]; then
   echo 'README must contain exactly one npm bootstrap command' >&2
   exit 1
