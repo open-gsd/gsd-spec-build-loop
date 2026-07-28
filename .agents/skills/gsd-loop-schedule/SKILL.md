@@ -26,6 +26,7 @@ explain that this scheduling skill is unsupported there. Do not start a shell
    - Claude Code: `/gsd-loop-build` or `/gsd-loop-review`
    - Cursor: `/gsd-loop-build` or `/gsd-loop-review`
    - Gemini CLI: `Use the gsd-loop-build skill` or `Use the gsd-loop-review skill`
+   - Grok Build: `/gsd-loop-build` or `/gsd-loop-review`
    - Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`
    Run exactly one playbook pass per wake and require its final
    `GSD_LOOP_RESULT` line. A missing or malformed result is `blocked`, never

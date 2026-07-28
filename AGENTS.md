@@ -2,7 +2,7 @@
 
 This repository ships three agent-neutral playbooks under `loop/`. They work
 with any agent that can run shell commands, Node.js, and the authenticated `gh`
-CLI (Codex, Claude Code, Cursor, Gemini CLI, aider, ...). Installed skills run
+CLI (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, aider, ...). Installed skills run
 these playbooks directly; direct one-pass use does not require a global
 `gsd-loop` command.
 
@@ -40,6 +40,7 @@ Invoke the installed skills inside the active harness using its native syntax:
 | Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
+| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 Run the lanes in separate harness sessions. Each direct invocation is one pass.

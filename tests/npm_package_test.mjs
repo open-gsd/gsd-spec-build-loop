@@ -108,6 +108,10 @@ try {
   );
   assert.match(
     help,
+    /Grok Build:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help,
     /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
   );
   assert.match(help, /native adapter behavior/);
@@ -127,7 +131,7 @@ try {
     const skill = join(home, ".agents", "skills", `gsd-loop-${lane}`);
     assert.ok(existsSync(join(skill, "SKILL.md")));
     assert.ok(existsSync(join(skill, ".gsd-loop-install.json")));
-    for (const directory of [".claude", ".cursor", ".gemini"]) {
+    for (const directory of [".claude", ".cursor", ".gemini", ".grok"]) {
       const adapterRoot = join(home, directory, "skills");
       const adapter = join(adapterRoot, `gsd-loop-${lane}`);
       const marker = join(adapterRoot, `.gsd-loop-${lane}.gsd-loop-adapter.json`);
@@ -167,6 +171,7 @@ try {
   assert.match(scheduleSkill, /Claude Code: `\/gsd-loop-build` or `\/gsd-loop-review`/);
   assert.match(scheduleSkill, /Cursor: `\/gsd-loop-build` or `\/gsd-loop-review`/);
   assert.match(scheduleSkill, /Gemini CLI: `Use the gsd-loop-build skill` or `Use the gsd-loop-review skill`/);
+  assert.match(scheduleSkill, /Grok Build: `\/gsd-loop-build` or `\/gsd-loop-review`/);
   assert.match(scheduleSkill, /Kimi Code: `\/skill:gsd-loop-build` or `\/skill:gsd-loop-review`/);
   assert.match(scheduleSkill, /npx @opengsd\/gsd-loop@latest policy EVENT IDLE_COUNT/);
   assert.doesNotMatch(scheduleSkill, /npx @opengsd\/gsd-loop@latest run/);
@@ -193,6 +198,14 @@ try {
   assert.ok(existsSync(join(geminiHome, ".gemini", "skills", "gsd-loop-spec")));
   assert.equal(existsSync(join(geminiHome, ".claude")), false);
   assert.equal(existsSync(join(geminiHome, ".cursor")), false);
+
+  const grokHome = join(testRoot, "grok-home");
+  run(["install", "--home", grokHome, "--agents", "grok"]);
+  assert.ok(existsSync(join(grokHome, ".agents", "skills", "gsd-loop-spec")));
+  assert.ok(existsSync(join(grokHome, ".grok", "skills", "gsd-loop-spec")));
+  assert.equal(existsSync(join(grokHome, ".claude")), false);
+  assert.equal(existsSync(join(grokHome, ".cursor")), false);
+  assert.equal(existsSync(join(grokHome, ".gemini")), false);
 
   const cursorRootConflictHome = join(testRoot, "cursor-root-conflict-home");
   run(["install", "--home", cursorRootConflictHome, "--agents", "codex"]);

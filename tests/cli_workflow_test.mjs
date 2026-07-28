@@ -187,6 +187,10 @@ else process.exit(1);
   );
   assert.match(
     help.stdout,
+    /Grok Build:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+  );
+  assert.match(
+    help.stdout,
     /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
   );
   assert.match(help.stdout, /native adapter behavior/);

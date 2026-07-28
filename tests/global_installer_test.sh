@@ -13,7 +13,7 @@ for skill in spec build review schedule; do
   canonical="$install_root/.agents/skills/gsd-loop-$skill"
   test -f "$canonical/SKILL.md"
   test -f "$canonical/.gsd-loop-install.json"
-  for host in .claude .cursor .gemini; do
+  for host in .claude .cursor .gemini .grok; do
     adapter="$install_root/$host/skills/gsd-loop-$skill"
     test -L "$adapter"
     test -f "$install_root/$host/skills/.gsd-loop-$skill.gsd-loop-adapter.json"
@@ -65,6 +65,7 @@ test -d "$shared_root/.agents/skills/gsd-loop-build"
 test -L "$shared_root/.cursor/skills/gsd-loop-build"
 test ! -e "$shared_root/.claude"
 test ! -e "$shared_root/.gemini"
+test ! -e "$shared_root/.grok"
 
 gemini_root="$TEST_ROOT/gemini"
 "$INSTALLER" --home "$gemini_root" --agents gemini
@@ -72,10 +73,19 @@ test -d "$gemini_root/.agents/skills/gsd-loop-build"
 test -L "$gemini_root/.gemini/skills/gsd-loop-build"
 test ! -e "$gemini_root/.claude"
 test ! -e "$gemini_root/.cursor"
+test ! -e "$gemini_root/.grok"
+
+grok_root="$TEST_ROOT/grok"
+"$INSTALLER" --home "$grok_root" --agents grok
+test -d "$grok_root/.agents/skills/gsd-loop-build"
+test -L "$grok_root/.grok/skills/gsd-loop-build"
+test ! -e "$grok_root/.claude"
+test ! -e "$grok_root/.cursor"
+test ! -e "$grok_root/.gemini"
 
 copy_root="$TEST_ROOT/copy"
 "$INSTALLER" --home "$copy_root" --adapter-mode copy
-for host in .claude .cursor .gemini; do
+for host in .claude .cursor .gemini .grok; do
   test -d "$copy_root/$host/skills/gsd-loop-build"
   test ! -L "$copy_root/$host/skills/gsd-loop-build"
 done
@@ -84,7 +94,7 @@ owned_conversion_root="$TEST_ROOT/owned-conversion"
 "$INSTALLER" --home "$owned_conversion_root"
 "$INSTALLER" --home "$owned_conversion_root" --adapter-mode copy
 for skill in spec build review schedule; do
-  for host in .claude .cursor .gemini; do
+  for host in .claude .cursor .gemini .grok; do
     adapter="$owned_conversion_root/$host/skills/gsd-loop-$skill"
     test -d "$adapter"
     test ! -L "$adapter"

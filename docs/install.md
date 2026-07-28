@@ -12,12 +12,13 @@ spec, build, review, and scheduling all run inside the harness the user opened.
 | [Claude Code](https://code.claude.com/docs/en/skills) | `~/.claude/skills` adapter | `/gsd-loop-*` |
 | [Cursor](https://cursor.com/docs/skills) | `~/.cursor/skills` adapter | `/gsd-loop-*` |
 | [Gemini CLI](https://geminicli.com/docs/cli/creating-skills/) | `~/.gemini/skills` adapter | Natural-language request |
+| [Grok Build](https://docs.x.ai/build/features/skills-plugins-marketplaces) | `~/.grok/skills` adapter | `/gsd-loop-*` |
 | [Kimi Code](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html) | `~/.agents/skills` | `/skill:gsd-loop-*` |
 
 `~/.agents/skills` is the canonical source for Codex and Kimi. Claude, Cursor,
-and Gemini use symlinks from their native global directories when supported and
-safe copies otherwise. Installing a skill does not install, authenticate,
-select, or launch a model or agent application.
+Gemini, and Grok use symlinks from their native global directories when
+supported and safe copies otherwise. Installing a skill does not install,
+authenticate, select, or launch a model or agent application.
 
 ## Prerequisites
 
@@ -112,6 +113,7 @@ Start a new harness session after installation. Invoke one skill per pass:
 | Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
+| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
 | Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 Spec is interactive. Build and review are unattended-safe but deliberately
@@ -167,13 +169,13 @@ Select which hosts receive native adapters or choose adapter behavior when
 necessary:
 
 ```bash
-npx @opengsd/gsd-loop@latest install --agents codex,cursor,gemini,kimi
+npx @opengsd/gsd-loop@latest install --agents codex,cursor,gemini,grok,kimi
 npx @opengsd/gsd-loop@latest install --adapter-mode copy
 ```
 
 The canonical four-skill bundle is always installed because every adapter
 references it and Codex and Kimi use it directly. `--agents` limits the native
-adapter directories added for Claude, Cursor, and Gemini.
+adapter directories added for Claude, Cursor, Gemini, and Grok.
 
 Before writing, the installer preflights the canonical bundle and every
 selected adapter destination. A conflicting unowned path stops the installation
@@ -182,9 +184,10 @@ and restores that destination from its backup if the replacement fails.
 Use `--home PATH` only for an alternate user profile or isolated test root.
 
 On native Windows, the canonical skill directory is
-`%USERPROFILE%\.agents\skills`. Claude, Cursor, and Gemini adapters are
+`%USERPROFILE%\.agents\skills`. Claude, Cursor, Gemini, and Grok adapters are
 installed under `%USERPROFILE%\.claude\skills`,
-`%USERPROFILE%\.cursor\skills`, and `%USERPROFILE%\.gemini\skills`.
+`%USERPROFILE%\.cursor\skills`, `%USERPROFILE%\.gemini\skills`, and
+`%USERPROFILE%\.grok\skills`.
 PowerShell users can preview an alternate profile without WSL:
 
 ```powershell
@@ -214,7 +217,8 @@ python3 scripts/install-global.py
   processes. Version `0.2.3` ignores their `.git/gsd-loop` state; remove that
   directory only after confirming no old runner process is active.
 - **A skill is not visible:** start a new agent session. Gemini can run
-  `/skills reload`; Cursor users should update the CLI and reopen the chat.
+  `/skills reload`; Grok can inspect `/skills`; Cursor users should update the
+  CLI and reopen the chat.
 - **Review remains blocked:** allow CI to complete successfully, rerun `init`,
   and select the check when prompted.
 - **Native scheduling is unavailable:** run the build or review skill manually

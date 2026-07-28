@@ -57,6 +57,7 @@ grep -q 'Codex: `$gsd-loop-build` or `$gsd-loop-review`' "$SCHEDULE"
 grep -q 'Claude Code: `/gsd-loop-build` or `/gsd-loop-review`' "$SCHEDULE"
 grep -q 'Cursor: `/gsd-loop-build` or `/gsd-loop-review`' "$SCHEDULE"
 grep -q 'Gemini CLI: `Use the gsd-loop-build skill` or `Use the gsd-loop-review skill`' "$SCHEDULE"
+grep -q 'Grok Build: `/gsd-loop-build` or `/gsd-loop-review`' "$SCHEDULE"
 grep -q 'Kimi Code: `/skill:gsd-loop-build` or `/skill:gsd-loop-review`' "$SCHEDULE"
 grep -q 'npx @opengsd/gsd-loop@latest policy EVENT IDLE_COUNT' "$SCHEDULE"
 if grep -q 'npx @opengsd/gsd-loop@latest run' "$SCHEDULE"; then
@@ -76,6 +77,7 @@ grep -Fq '| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | 
 grep -Fq '| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
 grep -Fq '| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
 grep -Fq '| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |' "$AGENT_GUIDE"
+grep -Fq '| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |' "$AGENT_GUIDE"
 grep -Fq '| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |' "$AGENT_GUIDE"
 if [ "$(grep -c 'npx @opengsd/gsd-loop@latest init' "$README")" -ne 1 ]; then
   echo 'README must contain exactly one npm bootstrap command' >&2
