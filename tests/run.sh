@@ -8,3 +8,4 @@ for test_file in "$ROOT"/tests/*_test.sh; do
 done
 
 node "$ROOT/tests/cli_workflow_test.mjs"
+node "$ROOT/tests/claude_skill_entrypoints_test.mjs"

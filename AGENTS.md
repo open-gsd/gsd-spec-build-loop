@@ -2,9 +2,9 @@
 
 This repository ships three agent-neutral playbooks under `loop/`. They work
 with any agent that can run shell commands, Node.js, and the authenticated `gh`
-CLI (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, aider, ...). Installed skills run
-these playbooks directly; direct one-pass use does not require a global
-`gsd-loop` command.
+CLI (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, aider, ...). Installed
+skills run these playbooks directly; direct one-pass use does not require a
+global `gsd-loop` command.
 
 ## Routing
 

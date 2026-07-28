@@ -1,8 +1,8 @@
 ---
 name: gsd-loop-build
-description: Take the oldest safe gsd:ready GitHub issue, build it, and open a PR — or repair one PR the reviewer bounced. Use when asked to run the gsd-loop builder or work the ready queue. Built for /loop; each pass completes exactly one unit of work.
+description: Build the oldest safe gsd:ready GitHub issue or repair one gsd:rework PR. Use when asked to run the gsd-loop builder, work the ready queue, or fix rework. Each invocation completes exactly one pass, then stops.
 ---
 
-Read `loop/build.md` at the repository root and execute it exactly. It is the
-canonical, agent-neutral playbook; this skill is only the Claude Code entry
-point. Under `/loop`, each iteration is one pass of the playbook.
+Read the [canonical skill](../../../.agents/skills/gsd-loop-build/SKILL.md) and
+execute it exactly. This Claude Code entry point intentionally keeps no separate
+copy of the instructions.

@@ -29,6 +29,10 @@ authenticate, select, or launch a model or agent application.
 
 The repository must eventually have a real successful CI check. gsd-loop can
 require an existing check, but it does not invent an always-green workflow.
+Creating or updating the dedicated required-CI ruleset also requires repository
+administration access or a custom role with permission to edit repository
+rules. Without that permission, setup keeps the build lane ready and leaves
+review blocked.
 
 ## Recommended onboarding
 
@@ -57,9 +61,9 @@ the first spec/build issue, wait for it to run successfully, then rerun `init`
 before starting the reviewer.
 
 GitHub repository plans do not all expose rulesets for private repositories.
-When GitHub rejects the dedicated ruleset, `init` keeps the build lane ready,
-leaves review blocked, and reports the account/repository limitation. It never
-rewrites unrelated branch protection.
+When the account plan or repository permissions prevent the dedicated ruleset,
+`init` keeps the build lane ready, leaves review blocked, and reports the
+limitation. It never rewrites unrelated branch protection.
 
 ### Start from an empty directory
 
@@ -194,8 +198,9 @@ PowerShell users can preview an alternate profile without WSL:
 npx @opengsd/gsd-loop@latest install --dry-run --home "$env:USERPROFILE\gsd-loop-profile"
 ```
 
-The Python source-checkout installer remains a skill-only fallback when Node is
-unavailable:
+The Python 3.10+ source-checkout installer remains a skill-only fallback when
+installing through npm or npx is unavailable. Node.js 18+ is still required to
+execute the bundled deterministic helpers:
 
 ```bash
 python3 scripts/install-global.py --dry-run
@@ -205,8 +210,9 @@ python3 scripts/install-global.py
 ## Troubleshooting
 
 - **Upgrading from `0.2.3`:** rerun `init` with version `0.2.4` to install the
-  build linkage guard and locally exclude `.gsd/scheduled_tasks.lock`. Use
-  `install` instead only when repository setup is not wanted.
+  build linkage guard and Grok adapter, and locally exclude
+  `.gsd/scheduled_tasks.lock`. Use `install` instead only when repository setup
+  is not wanted.
 - **Upgrading from `0.2.2`:** rerun `init` or `install` with version `0.2.3` so
   review outcome synchronization recognizes the repository identity returned
   by the `gh` CLI for linked issues.
@@ -217,8 +223,8 @@ python3 scripts/install-global.py
   processes. Version `0.2.3` ignores their `.git/gsd-loop` state; remove that
   directory only after confirming no old runner process is active.
 - **A skill is not visible:** start a new agent session. Gemini can run
-  `/skills reload`; Grok can inspect `/skills`; Cursor users should update the
-  CLI and reopen the chat.
+  `/skills reload`; Grok can inspect `/skills`; Cursor users should open a new
+  chat and reload Cursor if the skill remains absent.
 - **Review remains blocked:** allow CI to complete successfully, rerun `init`,
   and select the check when prompted.
 - **Native scheduling is unavailable:** run the build or review skill manually

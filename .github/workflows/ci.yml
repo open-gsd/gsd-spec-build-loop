@@ -31,11 +31,10 @@ jobs:
           BAD=$(grep -rhoE 'gsd:[a-z-]+' loop/ .agents/ .claude/ scripts/ .github/ISSUE_TEMPLATE/ \
             | sort -u | grep -vxE 'gsd:(ready|blocked|approved|rework|escalated)' || true)
           [ -z "$BAD" ] || { echo "unknown labels: $BAD"; exit 1; }
-      - name: agent skills point at playbooks
+      - name: canonical skills point at playbooks
         run: |
           set -e
           for s in spec build review; do
-            grep -q "loop/$s.md" ".claude/skills/gsd-loop-$s/SKILL.md"
             grep -q "loop/$s.md" ".agents/skills/gsd-loop-$s/SKILL.md"
           done
 
