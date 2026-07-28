@@ -58,17 +58,22 @@ function pullRequest() {
     id: "PR_mock",
     headRefOid: state.headRefOid,
     body: state.body,
-    userContentEdits: { totalCount: state.edits },
+    userContentEdits: {
+      totalCount: state.edits,
+      nodes: (state.editBodies ?? []).slice(-2).map((diff) => ({ diff })),
+    },
   };
 }
 if (args[0] === "api" && args[1] === "graphql" && field("query")?.includes("mutation")) {
   if (state.raceBeforeUpdate) {
     state.body = "Concurrent evidence\\n";
     state.edits += 1;
+    state.editBodies = [state.body];
     state.raceBeforeUpdate = false;
   }
   state.body = field("body");
   state.edits += 1;
+  if (state.editBodies) state.editBodies.push(state.body);
   writeFileSync(statePath, JSON.stringify(state));
   process.stdout.write(JSON.stringify({
     data: { updatePullRequest: { pullRequest: pullRequest() } },
@@ -118,7 +123,9 @@ if (args[0] === "api" && args[1] === "graphql" && field("query")?.includes("muta
   const concurrent = runGuard();
   assert.equal(concurrent.status, 3, concurrent.stderr);
   assert.match(concurrent.stderr, /body changed during linkage update/);
-  assert.equal(JSON.parse(readFileSync(statePath, "utf8")).edits, 2);
+  const concurrentState = JSON.parse(readFileSync(statePath, "utf8"));
+  assert.equal(concurrentState.body, "Concurrent evidence\n\nCloses #3\n");
+  assert.equal(concurrentState.edits, 3);
 
   console.log("pull request linkage guard passed");
 } finally {
