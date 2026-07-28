@@ -143,11 +143,15 @@ try {
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-discover", "playbook.md")));
   const discoverMapValidator = join(home, ".agents", "skills", "gsd-loop-discover", "scripts", "validate-discovery-map.mjs");
   const specMapValidator = join(home, ".agents", "skills", "gsd-loop-spec", "scripts", "validate-discovery-map.mjs");
+  const discoverProtocol = join(home, ".agents", "skills", "gsd-loop-discover", "scripts", "manage-discovery.mjs");
+  const specProtocol = join(home, ".agents", "skills", "gsd-loop-spec", "scripts", "manage-discovery.mjs");
   const linkageGuard = join(home, ".agents", "skills", "gsd-loop-build", "scripts", "ensure-linkage.mjs");
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
   const auditValidator = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "validate-audit-evidence.mjs");
   assert.ok(existsSync(discoverMapValidator));
   assert.ok(existsSync(specMapValidator));
+  assert.ok(existsSync(discoverProtocol));
+  assert.ok(existsSync(specProtocol));
   assert.ok(existsSync(linkageGuard));
   assert.ok(existsSync(outcomeSync));
   assert.ok(existsSync(auditValidator));

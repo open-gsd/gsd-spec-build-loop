@@ -12,3 +12,5 @@ fallback. Execute exactly one pass.
 
 When the playbook names `MAP_VALIDATOR`, resolve it to
 `scripts/validate-discovery-map.mjs` beside this `SKILL.md`.
+When it names `DISCOVERY_PROTOCOL`, resolve it to
+`scripts/manage-discovery.mjs` beside this `SKILL.md`.

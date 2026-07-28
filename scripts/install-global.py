@@ -159,7 +159,12 @@ def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
             if lane in {"discover", "spec"}:
                 runtime = stage / "scripts" / "runtime"
                 runtime.mkdir(parents=True, exist_ok=True)
-                for module in ("discovery-map.mjs", "errors.mjs"):
+                for module in (
+                    "discovery-map.mjs",
+                    "discovery-protocol.mjs",
+                    "errors.mjs",
+                    "process.mjs",
+                ):
                     shutil.copy2(source_root / "lib" / module, runtime / module)
             elif lane == "build":
                 runtime = stage / "scripts" / "runtime"

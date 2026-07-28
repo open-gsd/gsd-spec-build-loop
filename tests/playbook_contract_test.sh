@@ -22,6 +22,7 @@ grep -q 'dependencies/blocked_by' "$DISCOVER"
 grep -q 'Ready for `gsd-loop-spec`.' "$DISCOVER"
 grep -q 'never apply `gsd:ready`' "$DISCOVER"
 grep -q '^## Delivery slices' "$DISCOVER"
+grep -q '^## Decision frontier' "$DISCOVER"
 grep -q '^### S-1 — <queue issue title>' "$DISCOVER"
 grep -q 'node MAP_VALIDATOR /path/to/map-body.md' "$DISCOVER"
 grep -q 'collectively cover the destination' "$DISCOVER"
@@ -30,16 +31,21 @@ grep -q 'Never post a second resolution comment' "$DISCOVER"
 grep -q 'resume it as this pass.s chosen decision' "$DISCOVER"
 grep -q 'no list marker' "$DISCOVER"
 grep -q '## Map gist' "$DISCOVER"
-grep -q 'repos/OWNER/REPO/issues?state=all&per_page=100' "$DISCOVER"
 grep -q 'map-gist line must appear verbatim' "$DISCOVER"
+grep -q 'node DISCOVERY_PROTOCOL reconcile MAP --repo OWNER/REPO' "$DISCOVER"
+grep -q 'node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO' "$DISCOVER"
 grep -q 'loop/discover.md' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
 grep -q 'Optional discovery-map input' "$SPEC"
 grep -q 'carries `gsd:map`' "$SPEC"
 grep -q 'every native sub-issue is closed' "$SPEC"
-grep -q 'repos/OWNER/REPO/issues?state=all&per_page=100' "$SPEC"
-grep -q 'gh label create "$FILING_LOCK"' "$SPEC"
-grep -q 'gh label delete "$FILING_LOCK" --yes' "$SPEC"
-grep -q 'occurs before any issue creation' "$SPEC"
+grep -q 'node DISCOVERY_PROTOCOL lock MAP --repo OWNER/REPO' "$SPEC"
+grep -q 'gsd-loop-spec-map-MAP' "$SPEC"
+grep -q 'node DISCOVERY_PROTOCOL file-slice MAP' "$SPEC"
+grep -q 'node DISCOVERY_PROTOCOL unlock MAP --repo OWNER/REPO --token LOCK_TOKEN' "$SPEC"
+if grep -q 'gsd:spec-map' "$SPEC"; then
+  echo 'filing locks must not use the canonical gsd state namespace' >&2
+  exit 1
+fi
 grep -q 'gsd-loop-discover MAP' "$SPEC"
 grep -q 'map graduation is not build' "$SPEC"
 grep -q 'human explicitly confirms' "$SPEC"
@@ -50,6 +56,8 @@ tr '\n' ' ' < "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md" |
   grep -q 'resolve it to.*validate-discovery-map.mjs'
 tr '\n' ' ' < "$ROOT/.agents/skills/gsd-loop-spec/SKILL.md" |
   grep -q 'resolve it to.*validate-discovery-map.mjs'
+grep -q 'manage-discovery.mjs' "$ROOT/.agents/skills/gsd-loop-discover/SKILL.md"
+grep -q 'manage-discovery.mjs' "$ROOT/.agents/skills/gsd-loop-spec/SKILL.md"
 grep -q 'Discard issues labeled `gsd:map`' "$BUILD"
 
 repair_section=$(sed -n '/^## Repair queue takes priority/,/^## Choose an issue/p' "$BUILD")

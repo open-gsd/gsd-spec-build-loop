@@ -89,6 +89,15 @@ gsd-loop specification.>
 <One low-resolution line per decision that was already settled before this map,
 including its rationale, or exactly `None.`>
 
+## Decision frontier
+
+### D-1 — <decision issue title>
+
+Type: <Discussion, Research, Prototype, or Prerequisite>
+Question: <the precise question>
+Needs: None.
+Issue: Pending.
+
 ## Not yet specified
 
 <One bullet per in-scope uncertainty that cannot yet be stated as a precise
@@ -153,6 +162,10 @@ Each frontier decision is a child issue with this body:
 
 #MAP
 
+## Decision ID
+
+D-N
+
 ## Type
 
 <Exactly one of: Discussion, Research, Prototype, Prerequisite>
@@ -179,26 +192,26 @@ between decision issues, not a speculative execution plan. Leave an unknown in
 Show the complete map, decision issues, and dependency edges. Wait for explicit
 approval before creating anything on GitHub.
 
-### Create, relate, then stop
+### Persist, create, relate, then stop
 
-Create the map with `gh issue create --label gsd:map --body-file ...`. Create
-the approved decision issues next. For each decision, fetch its numeric REST
-`id`, then attach it to the map:
+Assign permanent sequential `D-N` ids and include the complete approved
+frontier manifest in `## Decision frontier` when creating the map. Record each
+decision's title, type, exact question, backward-only `Needs` ids, and
+`Issue: Pending.`. The map creation must succeed before child issue bodies can
+name `#MAP`, but no child creation may begin until the fetched map proves the
+entire approved manifest was persisted.
 
-```bash
-DECISION_ID=$(gh api "repos/OWNER/REPO/issues/DECISION" --jq .id)
-gh api --method POST -H "X-GitHub-Api-Version: 2026-03-10" \
-  "repos/OWNER/REPO/issues/MAP/sub_issues" -F sub_issue_id="$DECISION_ID"
-```
-
-After every child exists, wire each approved blocking edge. `BLOCKED` is the
-decision that must wait; `BLOCKER_ID` is the REST `id` of its prerequisite:
+Run the deterministic reconciler before creating a child:
 
 ```bash
-gh api --method POST -H "X-GitHub-Api-Version: 2026-03-10" \
-  "repos/OWNER/REPO/issues/BLOCKED/dependencies/blocked_by" \
-  -F issue_id="$BLOCKER_ID"
+node DISCOVERY_PROTOCOL reconcile MAP --repo OWNER/REPO
 ```
+
+Its JSON `missing` list is authoritative. Create only those decision issues
+from their persisted manifest entries, then rerun the reconciler. It matches
+the exact map and `D-N` markers, attaches orphaned issues, rejects duplicates or
+manifest conflicts, replaces `Issue: Pending.` with the verified issue number,
+and wires the manifest's approved blocking edges.
 
 Re-read the map's `sub_issues` and every decision's
 `dependencies/blocked_by`. If any relationship is missing, report the exact
@@ -225,31 +238,29 @@ including on failure.
 
 ### Reconcile referenced decisions
 
-Before inspecting only native children, scan every issue in the repository
-without relying on GitHub's eventually consistent search index:
+Before inspecting native children, run:
 
 ```bash
-gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
-  "repos/OWNER/REPO/issues?state=all&per_page=100"
+node DISCOVERY_PROTOCOL reconcile MAP --repo OWNER/REPO
 ```
 
-Ignore pull requests. A decision belonging to this map has the exact decision
-body shape above and an exact `## Map` value of `#MAP`. Reconcile every such
-issue against the map's native `sub_issues`. Attach a missing referenced
-decision, then re-fetch both sides and verify the relationship before
-continuing. If an issue is attached to another map, its body is malformed, or
-the relationship cannot be repaired, report the conflict and stop rather than
-creating a replacement. Repeat this reconciliation before creating any newly
-precise decision so an interrupted earlier pass cannot duplicate its frontier.
+The helper owns repository-wide issue enumeration, exact marker matching,
+native attachment and dependency repair, manifest synchronization, conflict
+detection, and post-write verification. A nonzero result blocks the pass. If
+its JSON reports a missing manifest entry, create that issue from the persisted
+entry before choosing new work, rerun reconciliation, and stop. Never replace
+or infer a missing decision from chat history.
 
 ### Recover an interrupted pass
 
 Before choosing new work, inspect the map's closed children and every open
 child assigned to you for a resolution comment whose first line is exactly
-`gsd-loop decision for map #MAP`, whose author is the authenticated user, and
-whose `## Map gist` section contains exactly one line in the required linked
-format. There must be exactly one such trusted comment per resolved child, and
-its map-gist line must appear verbatim under `## Decisions so far`.
+`gsd-loop decision for map #MAP`. Trusted evidence is bound to the resolution
+event: the comment author's GitHub association must be `OWNER`, `MEMBER`, or
+`COLLABORATOR`, regardless of who is authenticated in a later pass. Its
+`## Map gist` section contains exactly one line in the required linked format.
+There must be exactly one marker comment per resolved child; forged,
+untrusted, or ambiguous marker comments block the pass.
 Repair one incomplete transition before doing anything new:
 
 - resolution comment present, decision still open — synchronize its named gist
@@ -341,13 +352,15 @@ Then, as one coherent update:
 
 1. Append one named, linked gist under `## Decisions so far`.
 2. Remove fog that is now resolved or can now be stated precisely.
-3. Create newly precise decision issues and attach them as native sub-issues.
-4. Wire native dependency edges after every new issue has an id.
-5. Move anything revealed beyond the destination into `## Out of scope`.
-6. Add, split, merge, or reorder delivery slices when the resolved decision
+3. Append every newly precise decision to `## Decision frontier` with a new
+   permanent `D-N` id and `Issue: Pending.`, then verify the map update.
+4. Create only the reconciler's missing decisions and rerun it to attach them.
+5. Wire native dependency edges after every new issue has an id.
+6. Move anything revealed beyond the destination into `## Out of scope`.
+7. Add, split, merge, or reorder delivery slices when the resolved decision
    changes the filing plan. Preserve an existing slice ID when its meaning did
    not change.
-7. Close the resolved decision issue.
+8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.
 The map is the low-resolution index.
@@ -381,6 +394,12 @@ validator before updating GitHub:
 
 ```bash
 node MAP_VALIDATOR /path/to/map-body.md
+```
+
+Then require the remote evidence check:
+
+```bash
+node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO
 ```
 
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the

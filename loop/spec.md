@@ -29,12 +29,8 @@ provenance, not as the queue contract. Verify before relying on it:
 - its `## Graduation` value is the single line
   **Ready for `gsd-loop-spec`.**;
 - its `## Not yet specified` value is exactly `None.`;
-- every native sub-issue is closed; and
-- every native sub-issue has exactly one resolution comment authored by the
-  authenticated user whose first line is exactly
-  `gsd-loop decision for map #MAP`, whose `## Map gist` section is one linked
-  line, and whose map-gist line appears verbatim under
-  `## Decisions so far`.
+- every native sub-issue is closed with exactly one trusted resolution event
+  whose map-gist line appears verbatim under `## Decisions so far`.
 
 Write the fetched map body to a temporary file and validate its delivery-slice
 structure before reading it as a contract source:
@@ -48,24 +44,16 @@ active skill. Its JSON output is the authoritative slice order and dependency
 list. If validation fails, stop and direct the user back to
 `gsd-loop-discover MAP`.
 
-List all sub-issues with the versioned endpoint, then read the complete map,
-its comments, and every closed decision issue with its resolution comments:
+Run the shared remote protocol validator:
 
 ```bash
-gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
-  "repos/OWNER/REPO/issues/MAP/sub_issues?per_page=100"
+node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO
 ```
 
-Also scan repository issues directly, without the search index:
-
-```bash
-gh api --paginate --slurp -H "X-GitHub-Api-Version: 2026-03-10" \
-  "repos/OWNER/REPO/issues?state=all&per_page=100"
-```
-
-Ignore pull requests. If an issue has the exact discovery-decision body shape
-and an exact `## Map` value of `#MAP` but is not a native sub-issue, stop and
-direct the user back to discovery for reconciliation.
+It deterministically validates manifest membership, native attachments, closed
+state, trusted author association, unique resolution markers, and exact map
+gists. Trust belongs to each resolution event rather than the currently
+authenticated account.
 
 If any check fails, stop and direct the user back to `gsd-loop-discover MAP`.
 Do not silently finish the map inside the spec pass.
@@ -195,33 +183,22 @@ When the source was a discovery map:
    every required issue number is available when its dependent is filed.
 3. Show the complete draft set and dependency mapping in chat. Wait for one
    explicit approval covering the whole set.
-4. Before creating any queue issue, acquire the map's repository-wide filing
-   reservation by atomically creating the label named by
-   `FILING_LOCK="gsd:spec-map-$MAP"`. Use
-   `gh label create "$FILING_LOCK" --color ededed --description "Active gsd-loop spec filing reservation"`.
-   If creation fails, verify that exact label exists. Otherwise report the
-   authentication, permission, or network failure and stop. An existing label
-   means another pass may be filing: create no issue and stop. A human may
-   delete a stale reservation only after confirming no filing pass is active.
-   Track whether this pass created the label, and always release only its own
-   reservation with
-   `gh label delete "$FILING_LOCK" --yes` when the pass ends, including on
-   failure.
-5. With the reservation held, re-fetch the map and its queue entries, then
-   repeat every discovery-map input check and scan every repository issue using
-   the non-search-index REST listing above.
-   For each slice, match exact standalone `Discovery map: #MAP` and
-   `Discovery slice: S-N` lines. If one matching issue exists without a queue
-   entry, verify its complete body and append its link to `## Queue issues`.
-   More than one match or any mismatch is a conflict; stop. This reconciliation
-   occurs before any issue creation and makes a successful create resumable
-   even when its output or the following map update was lost.
-6. Create only slices that remain unfiled, in order. Immediately after each
-   successful creation, append `- S-N — [TITLE](URL)` under
-   `## Queue issues`, re-fetch the map, and verify the entry and issue markers.
-   If a create result is uncertain, repeat the repository scan before any
-   retry; never call `gh issue create` twice for the same slice in one pass. If
-   creation or map update fails, stop after releasing the filing reservation.
+4. Before creating any queue issue, run
+   `node DISCOVERY_PROTOCOL lock MAP --repo OWNER/REPO`. The helper atomically
+   acquires `gsd-loop-spec-map-MAP`, a lock namespace outside the canonical
+   `gsd:*` workflow states, distinguishes contention from API failure, and
+   returns a unique ownership token. Retain that token for this pass.
+5. With the reservation held, file each approved draft in slice order with
+   `node DISCOVERY_PROTOCOL file-slice MAP --repo OWNER/REPO --token LOCK_TOKEN --slice S-N --title "TITLE" --body-file /path/to/draft.md`.
+   The helper owns marker parsing, repository-wide reconciliation, uncertain
+   create classification, map queue updates, conflict detection, and
+   post-write verification. Its returned issue number is authoritative for
+   later dependency lines.
+6. Always release only this pass's reservation with
+   `node DISCOVERY_PROTOCOL unlock MAP --repo OWNER/REPO --token LOCK_TOKEN`,
+   including after a failure. The helper refuses a token belonging to another
+   pass. An existing reservation blocks issue creation; a human may clear a
+   stale one only after confirming no filing pass is active.
 7. Comment on the map with the title and URL of every issue created in this
    pass. Close the map only after every slice has a verified queue-issue entry
    and the human explicitly confirms that the linked issues still cover the

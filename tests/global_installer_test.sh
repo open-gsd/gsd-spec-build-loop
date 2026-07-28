@@ -24,6 +24,8 @@ done
 test -f "$install_root/.agents/skills/gsd-loop-build/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-review/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-discover/playbook.md"
+test -f "$install_root/.agents/skills/gsd-loop-discover/scripts/manage-discovery.mjs"
+test -f "$install_root/.agents/skills/gsd-loop-spec/scripts/manage-discovery.mjs"
 linkage_guard="$install_root/.agents/skills/gsd-loop-build/scripts/ensure-linkage.mjs"
 outcome_sync="$install_root/.agents/skills/gsd-loop-review/scripts/sync-outcomes.mjs"
 audit_validator="$install_root/.agents/skills/gsd-loop-review/scripts/validate-audit-evidence.mjs"

@@ -9,7 +9,16 @@ const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const cli = join(repositoryRoot, "bin", "gsd-loop.mjs");
 const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-discovery-"));
 
-function mapBody({ graduation = "Ready for `gsd-loop-spec`.", slices } = {}) {
+function mapBody({
+  frontier = `### D-1 — Choose recovery channel
+
+Type: Discussion
+Question: Which verified channel should carry recovery links?
+Needs: None.
+Issue: #12`,
+  graduation = "Ready for `gsd-loop-spec`.",
+  slices,
+} = {}) {
   return `## Destination
 
 Ship a complete account recovery route.
@@ -17,6 +26,10 @@ Ship a complete account recovery route.
 ## Decisions so far
 
 Email is the recovery channel because it is already verified.
+
+## Decision frontier
+
+${frontier}
 
 ## Not yet specified
 
@@ -64,6 +77,14 @@ try {
   assert.equal(valid.status, 0, valid.stderr);
   assert.deepEqual(JSON.parse(valid.stdout), {
     schema: "gsd-loop/discovery-slices-v1",
+    decisions: [{
+      id: "D-1",
+      title: "Choose recovery channel",
+      type: "Discussion",
+      question: "Which verified channel should carry recovery links?",
+      needs: [],
+      issue: 12,
+    }],
     slices: [
       {
         id: "S-1",
@@ -78,6 +99,7 @@ try {
         needs: ["S-1"],
       },
     ],
+    queueIssues: [],
   });
 
   const draftPath = join(testRoot, "draft.md");
@@ -85,6 +107,19 @@ try {
   const draft = run(["discovery-map", "--allow-not-ready", draftPath]);
   assert.equal(draft.status, 0, draft.stderr);
   assert.deepEqual(JSON.parse(draft.stdout).slices, []);
+
+  const pendingPath = join(testRoot, "pending.md");
+  writeFileSync(pendingPath, mapBody({
+    frontier: `### D-1 — Choose recovery channel
+
+Type: Discussion
+Question: Which verified channel should carry recovery links?
+Needs: None.
+Issue: Pending.`,
+  }));
+  const pending = run(["discovery-map", pendingPath]);
+  assert.equal(pending.status, 3);
+  assert.match(pending.stderr, /unresolved frontier entry D-1/);
 
   const unready = run(["discovery-map", draftPath]);
   assert.equal(unready.status, 3);
