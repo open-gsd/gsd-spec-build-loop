@@ -18,6 +18,36 @@ case "${1:-}" in
           *) exit 1 ;;
         esac
         ;;
+      repos/open-gsd/gsd-spec-build-loop/git/ref/heads/main)
+        echo "${MOCK_MAIN_SHA:-0123456789abcdef0123456789abcdef01234567}"
+        ;;
+      repos/open-gsd/gsd-spec-build-loop/actions/workflows/ci.yml/runs)
+        echo "${MOCK_SUCCESSFUL_CI_RUNS:-1}"
+        ;;
+      repos/open-gsd/gsd-spec-build-loop/releases/tags/*)
+        case "${MOCK_RELEASE_RESULT:-missing}" in
+          exists)
+            exit 0
+            ;;
+          missing)
+            echo "gh: release not found (HTTP 404)" >&2
+            exit 1
+            ;;
+          error)
+            echo "gh: service unavailable (HTTP 503)" >&2
+            exit 1
+            ;;
+          *)
+            exit 1
+            ;;
+        esac
+        ;;
+      repos/open-gsd/gsd-spec-build-loop/commits/v*)
+        echo "${MOCK_RELEASE_COMMIT:-0123456789abcdef0123456789abcdef01234567}"
+        ;;
+      repos/open-gsd/gsd-spec-build-loop/commits/*)
+        echo "${MOCK_RESOLVED_COMMIT:-${endpoint##*/}}"
+        ;;
       repos/open-gsd/gsd-spec-build-loop/rules/branches/main)
         echo "${MOCK_REQUIRED_CHECKS:-0}"
         ;;
@@ -38,6 +68,13 @@ case "${1:-}" in
         ;;
       create)
         printf '%s\n' "$tag" > "$GH_RELEASE_STATE"
+        while [ "$#" -gt 0 ]; do
+          if [ "$1" = --target ]; then
+            printf '%s\n' "$2" > "$GH_RELEASE_COMMIT_STATE"
+            break
+          fi
+          shift
+        done
         ;;
       *)
         exit 1

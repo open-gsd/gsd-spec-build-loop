@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
   id-token: write
 
@@ -20,3 +21,5 @@ jobs:
           package-manager-cache: false
       - name: Publish package
         run: scripts/publish.sh
+        env:
+          GH_TOKEN: ${{ github.token }}

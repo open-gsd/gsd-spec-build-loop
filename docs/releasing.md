@@ -44,5 +44,9 @@ The filename is case-sensitive and must be entered without the
 The workflow refuses to publish from another branch. `npm publish` runs the
 package's `prepublishOnly` tests before uploading it, and npm automatically
 generates provenance for this public package when trusted publishing succeeds.
-The publish driver is retry-safe: when either npm or GitHub already has the
-version, it skips that completed destination and repairs the missing one.
+Before publishing, the driver verifies that the selected commit is still the
+tip of `main` and that the `ci` workflow succeeded for that exact commit. It is
+retry-safe: registry and GitHub API failures stop the run, while a confirmed
+missing destination is repaired without republishing an existing package. When
+npm already has the version, its `gitHead` metadata identifies the exact commit
+that the matching GitHub Release must target.
