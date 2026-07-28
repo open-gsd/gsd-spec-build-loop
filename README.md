@@ -5,12 +5,12 @@ issues, issues become PRs, PRs get audited verdicts — and every
 irreversible step stays human.
 
 The loop is three agent-neutral playbooks in `loop/` that any coding agent can
-execute (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, ...). They use Node.js and an
-authenticated `gh` CLI; the installed build and review skills bundle the
-deterministic guards their playbooks invoke, so direct one-pass use does not
-require a global `gsd-loop` command. The installer keeps canonical skills in
-`~/.agents/skills/` and adds native adapters for hosts that use their own global
-skill directory.
+execute (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, ...). They use
+Node.js and an authenticated `gh` CLI; the installed build and review skills
+bundle the deterministic guards their playbooks invoke, so direct one-pass use
+does not require a global `gsd-loop` command. The installer keeps canonical
+skills in `~/.agents/skills/` and adds native adapters for hosts that use their
+own global skill directory.
 
 ```
  idea ──spec skill──▶ issue ──human: gsd:ready──▶ queue
@@ -56,9 +56,9 @@ npx @opengsd/gsd-loop@latest init
 This is the only user-facing step outside an agent harness. `init` previews one
 plan and asks before it changes anything. It installs or updates the four global
 skills, checks Git and GitHub access and review readiness, creates the five
-labels, and can configure an existing successful CI check as required when
-GitHub supports repository rulesets. It does not choose, launch, or configure
-an agent harness.
+labels, and can configure an existing successful CI check as required when the
+GitHub plan and repository permissions support rulesets. It does not choose,
+launch, or configure an agent harness.
 
 Start a new harness session after bootstrap. All ongoing work runs as skills
 inside that harness:
@@ -104,8 +104,9 @@ The loop is deliberately incapable of doing these:
   authenticate, select, or launch the harness.
 - **Required status checks configured** on the default branch before review.
   The reviewer refuses to treat missing CI as green. `init` configures an
-  existing successful check when GitHub supports rulesets; it never creates a
-  fake always-green workflow.
+  existing successful check when the GitHub plan and repository permissions
+  support rulesets; it never creates a fake always-green workflow. See the
+  [installation guide](docs/install.md) for plan and permission limitations.
 
 The bootstrap reports missing prerequisites or review protections before the
 first skill run. After it finishes, invoke the skills from any GitHub worktree;
