@@ -386,7 +386,16 @@ else process.exit(1);
   assert.ok(existsSync(join(home, ".gemini", "skills", "gsd-loop-build", "SKILL.md")));
   assert.equal(existsSync(join(repository, ".git", "gsd-loop")), false);
   const localExclude = join(repository, ".git", "info", "exclude");
-  assert.match(readFileSync(localExclude, "utf8"), /^\.claude\/scheduled_tasks\.lock$/m);
+  assert.match(readFileSync(localExclude, "utf8"), /^\.gsd\/scheduled_tasks\.lock$/m);
+  assert.doesNotMatch(readFileSync(localExclude, "utf8"), /^\.claude\/scheduled_tasks\.lock$/m);
+  mkdirSync(join(repository, ".gsd"), { recursive: true });
+  mkdirSync(join(repository, ".claude"), { recursive: true });
+  writeFileSync(join(repository, ".gsd", "scheduled_tasks.lock"), "gsd-loop scheduler state\n");
+  writeFileSync(join(repository, ".claude", "scheduled_tasks.lock"), "legacy scheduler state\n");
+  const schedulerStatus = command("git", ["status", "--short", "--untracked-files=all"], { cwd: repository });
+  assert.equal(schedulerStatus.status, 0, schedulerStatus.stderr);
+  assert.equal(schedulerStatus.stdout, "?? .claude/scheduled_tasks.lock\n");
+  rmSync(join(repository, ".claude"), { recursive: true, force: true });
   const initializedAgain = runCli([
     "init", "--yes",
     "--repo", "octocat/project",
@@ -396,7 +405,7 @@ else process.exit(1);
   assert.equal(initializedAgain.status, 0, initializedAgain.stderr);
   assert.equal(
     readFileSync(localExclude, "utf8").split(/\r?\n/)
-      .filter((line) => line === ".claude/scheduled_tasks.lock").length,
+      .filter((line) => line === ".gsd/scheduled_tasks.lock").length,
     1,
   );
   assert.ok(readLog().some((args) => args[0] === "label" && args[1] === "create"));
