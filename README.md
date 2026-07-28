@@ -105,9 +105,8 @@ The loop is deliberately incapable of doing these:
 - **Required status checks configured** on the default branch before review.
   The reviewer refuses to treat missing CI as green. `init` configures an
   existing successful check when the GitHub plan and repository permissions
-  support rulesets; it never creates a fake always-green workflow. Configuring
-  that ruleset requires repository administration access or a custom role with
-  permission to edit repository rules.
+  support rulesets; it never creates a fake always-green workflow. See the
+  [installation guide](docs/install.md) for plan and permission limitations.
 
 The bootstrap reports missing prerequisites or review protections before the
 first skill run. After it finishes, invoke the skills from any GitHub worktree;
