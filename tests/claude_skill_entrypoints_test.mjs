@@ -28,14 +28,20 @@ for (const [lane, script, error] of [
   ["review", "sync-outcomes.mjs", /outcomes requires a positive issue number/i],
   ["review", "validate-audit-evidence.mjs", /audit evidence requires --baseline/i],
 ]) {
-  const guard = join(
+  const skillDirectory = join(
     repositoryRoot,
     ".agents",
     "skills",
     `gsd-loop-${lane}`,
-    "scripts",
-    script,
   );
+  const canonical = readFileSync(join(skillDirectory, "SKILL.md"), "utf8");
+
+  assert.ok(
+    canonical.includes(`scripts/${script}`),
+    `gsd-loop-${lane} must invoke ${script}`,
+  );
+
+  const guard = join(skillDirectory, "scripts", script);
   const result = spawnSync(process.execPath, [guard], { encoding: "utf8" });
 
   assert.equal(result.status, 2, `${script} must reject a missing invocation`);
