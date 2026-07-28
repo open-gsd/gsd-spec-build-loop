@@ -2,8 +2,8 @@
 
 Releases use npm Trusted Publishing from GitHub Actions. The workflow publishes
 the package and creates a matching GitHub Release tagged `vVERSION` from the
-same `main` commit. It uses a short-lived OIDC identity and does not require an
-`NPM_TOKEN` secret.
+package's exact published commit. It uses a short-lived OIDC identity and does
+not require an `NPM_TOKEN` secret.
 
 ## Configure the GitHub environment
 
@@ -34,7 +34,8 @@ The filename is case-sensitive and must be entered without the
 
 ## Publish a release
 
-1. Merge the version bump and release changes into `main`.
+1. Merge a green PR containing the version bump and release changes into
+   `main`.
 2. Confirm CI is green on `main`.
 3. Open **Actions → Publish release → Run workflow**.
 4. Select `main` and run the workflow.
