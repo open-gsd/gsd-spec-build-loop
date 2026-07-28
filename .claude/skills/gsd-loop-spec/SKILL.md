@@ -1,6 +1,6 @@
 ---
 name: gsd-loop-spec
-description: Turn a rough idea into a contract-grade GitHub issue for the gsd-loop queue. Use when asked to spec an idea, write a queue-ready issue, or shape work for gsd-loop. Interactive only; never run unattended.
+description: Turn a rough idea or cleared discovery map into one or more contract-grade GitHub issues for the gsd-loop queue. Interactive only; never run unattended.
 ---
 
 Read the [canonical skill](../../../.agents/skills/gsd-loop-spec/SKILL.md) and

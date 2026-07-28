@@ -14,7 +14,7 @@ execute it exactly:
 | Ask | Playbook | Mode |
 |---|---|---|
 | "map this effort", "resolve this discovery map" | `loop/discover.md` | interactive — one chart or decision pass |
-| "spec this idea", "write a queue-ready issue" | `loop/spec.md` | interactive — a human must be present |
+| "spec this idea", "write queue-ready issues" | `loop/spec.md` | interactive — a human must be present |
 | "run the builder", "work the ready queue", "fix rework" | `loop/build.md` | unattended-safe; one pass = one unit of work |
 | "run the reviewer", "audit the PR queue" | `loop/review.md` | unattended-safe; one pass = one verdict |
 | "keep the build running", "schedule gsd-loop" | `.agents/skills/gsd-loop-schedule/SKILL.md` | schedules bounded recurring passes |

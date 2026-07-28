@@ -123,9 +123,10 @@ Start a new harness session after installation. Invoke one skill per pass:
 
 Discover and spec are interactive. Discover is optional: use it for a large
 effort that still contains decisions too foggy for a queue contract, then pass
-the cleared map to spec. Build and review are unattended-safe but deliberately
-bounded: each invocation performs one unit of work and stops. Keep build and
-review in separate sessions.
+the cleared map to spec. A map may contain several delivery slices; spec files
+one queue issue per slice, and the human approves each with `gsd:ready`. Build
+and review are unattended-safe but deliberately bounded: each invocation
+performs one unit of work and stops. Keep build and review in separate sessions.
 
 ### Keep a lane running
 

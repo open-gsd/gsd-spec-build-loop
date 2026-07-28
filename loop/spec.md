@@ -31,6 +31,18 @@ provenance, not as the queue contract. Verify before relying on it:
 - its `## Not yet specified` value is exactly `None.`; and
 - every native sub-issue is closed.
 
+Write the fetched map body to a temporary file and validate its delivery-slice
+structure before reading it as a contract source:
+
+```bash
+node MAP_VALIDATOR /path/to/map-body.md
+```
+
+Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
+active skill. Its JSON output is the authoritative slice order and dependency
+list. If validation fails, stop and direct the user back to
+`gsd-loop-discover MAP`.
+
 List all sub-issues with the versioned endpoint, then read the complete map,
 its comments, and every closed decision issue with its resolution comments:
 
@@ -43,10 +55,12 @@ If any check fails, stop and direct the user back to `gsd-loop-discover MAP`.
 Do not silently finish the map inside the spec pass.
 
 Resolved map decisions are settled inputs: do not re-ask them unless the
-codebase now contradicts them or two resolutions conflict. Translate the
-destination and decisions into observable outcomes, and the map's
-`## Out of scope` section into binding exclusions. The resulting issue still
-needs every section and proof surface below; a map never substitutes for them.
+codebase now contradicts them or two resolutions conflict. Draft one queue
+issue per unfiled delivery slice. Translate that slice and its relevant map
+decisions into observable outcomes, and carry the map's `## Out of scope`
+section plus the boundaries of the other slices into binding exclusions. Each
+resulting issue still needs every section and proof surface below; a map never
+substitutes for them.
 
 ## Learn the code first
 
@@ -96,6 +110,10 @@ The body always carries these six sections:
 The user or business problem, in a sentence or two.
 
 Discovery map: #MAP (omit when this spec did not start from a map)
+Discovery slice: S-N (omit when this spec did not start from a map)
+
+Needs #ISSUE merged (include one line per declared slice dependency, after its
+earlier issue number is known)
 
 ## Outcomes
 
@@ -138,8 +156,9 @@ Constraints on the content:
 
 ## File it
 
-Show the complete draft in chat and wait for explicit approval. Then create
-the issue, passing the body as a file so shell quoting can't mangle it:
+Without a discovery map, show the complete draft in chat and wait for explicit
+approval. Then create the issue, passing the body as a file so shell quoting
+can't mangle it:
 
 ```bash
 gh issue create --title "TITLE" --body-file /path/to/draft.md
@@ -148,13 +167,32 @@ gh issue create --title "TITLE" --body-file /path/to/draft.md
 Relay the issue number and URL exactly as returned — downstream playbooks trust
 that number, not a guess.
 
-When the source was a discovery map, comment on the map with the title and URL
-of every issue created from it and append their named links under the map's
-`## Queue issues`. Leave the map open when later spec sessions are still needed.
-Close it only after every approved issue was created successfully **and** the
-human explicitly confirms that the linked queue issues cover the map's entire
-destination. The new issues remain outside the build queue until the human
-applies `gsd:ready`; map graduation is not build authorization.
+When the source was a discovery map:
+
+1. Parse `## Queue issues` first. An entry has the exact form
+   `- S-N — [TITLE](URL)`. Verify every existing link is an issue in this
+   repository whose body names the same map and slice. A missing or mismatched
+   issue is a conflict; stop instead of guessing or filing a duplicate.
+2. Draft every unfiled slice as a separate complete issue. Preserve slice
+   order, and replace each declared `Needs: S-N` edge with the corresponding
+   `Needs #ISSUE merged` line. Because slices depend only on earlier slices,
+   every required issue number is available when its dependent is filed.
+3. Show the complete draft set and dependency mapping in chat. Wait for one
+   explicit approval covering the whole set.
+4. Create approved issues in slice order. Immediately after each successful
+   creation, append `- S-N — [TITLE](URL)` under `## Queue issues` and re-fetch
+   the map. If creation or map update fails, stop; the recorded entries make a
+   later pass resume without duplicating completed work.
+5. Comment on the map with the title and URL of every issue created in this
+   pass. Close the map only after every slice has a verified queue-issue entry
+   and the human explicitly confirms that the linked issues still cover the
+   map's entire destination.
+
+The new issues remain outside the build queue until the human applies
+`gsd:ready` to each one; map graduation is not build authorization. The build
+lane still claims one issue per pass. Multiple ready slices are processed over
+multiple bounded passes, never by multiple simultaneous builders in one
+repository.
 
 Finish by spelling out the user's role in the loop (this is the one playbook a
 human actually reads):

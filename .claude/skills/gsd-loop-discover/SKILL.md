@@ -1,6 +1,6 @@
 ---
 name: gsd-loop-discover
-description: Chart or advance one interactive discovery map for a large, uncertain effort, then hand a cleared map to gsd-loop-spec. Never runs unattended or writes product code.
+description: Chart or advance one interactive discovery map, shape it into one or more delivery slices, then hand those slices to gsd-loop-spec. Never runs unattended or writes product code.
 ---
 
 Read the [canonical skill](../../../.agents/skills/gsd-loop-discover/SKILL.md)

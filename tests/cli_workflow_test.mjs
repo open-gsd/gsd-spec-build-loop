@@ -168,6 +168,7 @@ else process.exit(1);
   const help = runCli(["--help"]);
   assert.equal(help.status, 0);
   assert.match(help.stdout, /gsd-loop init/);
+  assert.match(help.stdout, /gsd-loop discovery-map/);
   assert.doesNotMatch(help.stdout, /gsd-loop run build\|review/);
   assert.match(
     help.stdout,

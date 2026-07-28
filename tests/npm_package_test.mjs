@@ -141,14 +141,24 @@ try {
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-discover", "playbook.md")));
+  const discoverMapValidator = join(home, ".agents", "skills", "gsd-loop-discover", "scripts", "validate-discovery-map.mjs");
+  const specMapValidator = join(home, ".agents", "skills", "gsd-loop-spec", "scripts", "validate-discovery-map.mjs");
   const linkageGuard = join(home, ".agents", "skills", "gsd-loop-build", "scripts", "ensure-linkage.mjs");
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
   const auditValidator = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "validate-audit-evidence.mjs");
+  assert.ok(existsSync(discoverMapValidator));
+  assert.ok(existsSync(specMapValidator));
   assert.ok(existsSync(linkageGuard));
   assert.ok(existsSync(outcomeSync));
   assert.ok(existsSync(auditValidator));
   mkdirSync(join(home, "lib"));
   writeFileSync(join(home, "lib", "outcomes.mjs"), "throw new Error('wrong runtime');\n");
+  writeFileSync(join(home, "lib", "discovery-map.mjs"), "throw new Error('wrong runtime');\n");
+  for (const validator of [discoverMapValidator, specMapValidator]) {
+    const invalidMap = command(process.execPath, [validator], { allowFailure: true });
+    assert.equal(invalidMap.status, 2);
+    assert.match(invalidMap.stderr, /requires a map body file/);
+  }
   const invalidLinkageGuard = command(process.execPath, [linkageGuard], { allowFailure: true });
   assert.equal(invalidLinkageGuard.status, 2);
   assert.match(invalidLinkageGuard.stderr, /requires a positive issue number/);

@@ -1,6 +1,6 @@
 ---
 name: gsd-loop-spec
-description: Turn a rough idea into a contract-grade GitHub issue for the gsd-loop queue. Use when asked to spec an idea, write a queue-ready issue, or shape work for gsd-loop. Interactive only; never run unattended.
+description: Turn a rough idea or cleared discovery map into one or more contract-grade GitHub issues for the gsd-loop queue. Interactive only; never run unattended.
 ---
 
 Resolve the repository root with `git rev-parse --show-toplevel`. Use its
@@ -9,3 +9,6 @@ Resolve the repository root with `git rev-parse --show-toplevel`. Use its
 `scripts/doctor.sh` plus `scripts/scheduler-policy.sh` exist. Otherwise, read
 `playbook.md` beside this `SKILL.md`; global installs bundle that canonical
 fallback. Execute exactly one pass.
+
+When the playbook names `MAP_VALIDATOR`, resolve it to
+`scripts/validate-discovery-map.mjs` beside this `SKILL.md`.

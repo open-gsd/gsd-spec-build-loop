@@ -2,9 +2,9 @@
 
 Interactive only — this playbook charts or advances one discovery map with a
 human present. It is the optional front door for an effort that is too large
-and uncertain to turn into a queue-ready issue yet. Clear the uncertainty here;
-implementation still belongs to `loop/spec.md`, `loop/build.md`, and
-`loop/review.md`.
+and uncertain to turn into queue-ready issues yet. Clear the uncertainty and
+divide the destination into delivery slices here; implementation still belongs
+to `loop/spec.md`, `loop/build.md`, and `loop/review.md`.
 
 One invocation does one bounded pass:
 
@@ -98,6 +98,10 @@ question, or exactly `None.` with no list marker>
 
 <One bullet per explicit boundary, or exactly `None.` with no list marker>
 
+## Delivery slices
+
+None.
+
 ## Graduation
 
 Not ready.
@@ -110,6 +114,31 @@ None.
 Known decisions have no child issue that owns their history, so record their
 gist and rationale directly in `## Decisions so far`. Decisions resolved by a
 later map pass use linked child issues instead.
+
+`## Delivery slices` is the eventual filing plan, not another decision list.
+Leave it as `None.` while the route is still too uncertain. As the map clears,
+replace it with one or more slices in this exact shape:
+
+```md
+### S-1 — <queue issue title>
+
+Delivers: <one independently observable result>
+
+Needs: None.
+
+### S-2 — <queue issue title>
+
+Delivers: <one independently observable result>
+
+Needs: S-1
+```
+
+IDs are sequential and permanent. `Needs` is `None.` or a comma-separated list
+of earlier slice IDs. Each slice must fit roughly one agent-day and leave the
+repository in a useful, verifiable state. Prefer independent slices; tell the
+human when a chain is deeper than two. Together the slices must cover the
+destination without gaps or assigning the same behavior twice. A small effort
+may have one slice; never manufacture extra issues merely to create parallelism.
 
 Each frontier decision is a child issue with this body:
 
@@ -281,7 +310,10 @@ Then, as one coherent update:
 3. Create newly precise decision issues and attach them as native sub-issues.
 4. Wire native dependency edges after every new issue has an id.
 5. Move anything revealed beyond the destination into `## Out of scope`.
-6. Close the resolved decision issue.
+6. Add, split, merge, or reorder delivery slices when the resolved decision
+   changes the filing plan. Preserve an existing slice ID when its meaning did
+   not change.
+7. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.
 The map is the low-resolution index.
@@ -292,17 +324,33 @@ evidence in place for recovery.
 
 ### Graduate or stop
 
-Graduation requires all three conditions:
+Graduation requires all five conditions:
 
 1. every child decision issue is closed;
 2. `## Not yet specified` contains only `None.`; and
-3. the destination and out-of-scope boundary are still explicit.
+3. the destination and out-of-scope boundary are still explicit;
+4. every delivery slice follows the exact format above, is independently
+   verifiable, and fits roughly one agent-day; and
+5. the human confirms that the slices collectively cover the destination
+   without gaps or overlap.
 
-When all three hold, replace the `## Graduation` value with exactly:
+When all five hold, replace the `## Graduation` value with exactly:
 
 ```md
 Ready for `gsd-loop-spec`.
 ```
+
+Write the proposed body to a temporary file and run the deterministic map
+validator before updating GitHub:
+
+```bash
+node MAP_VALIDATOR /path/to/map-body.md
+```
+
+Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
+active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
+form above rejects missing slices, malformed fields, and dependencies that do
+not point backward. A validator failure blocks graduation.
 
 Otherwise leave it as `Not ready.`. Remove both assignments and report the map
 URL, the decision resolved, the remaining frontier, and any remaining fog.
@@ -311,6 +359,7 @@ URL, the decision resolved, the remaining frontier, and any remaining fog.
 
 A ready map is planning provenance, not a build contract. It must never enter
 the ready queue. The next human-invoked pass is `gsd-loop-spec MAP`, which
-translates its decisions into observable `O-N` outcomes, its scope boundary
-into `X-N` exclusions, and adds code pointers, testing notes, and a manual
-walkthrough. The human still reviews the filed issue and applies `gsd:ready`.
+turns every delivery slice into a separate issue, translates its decisions
+into observable `O-N` outcomes, carries its scope boundary into `X-N`
+exclusions, and adds code pointers, testing notes, and a manual walkthrough.
+The human still reviews each filed issue and applies `gsd:ready` individually.
