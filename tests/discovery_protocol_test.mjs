@@ -661,6 +661,8 @@ Needs: S-1`,
   const draftPath = join(testRoot, "slice.md");
   const draft = `## Why
 
+Users need a reliable way to regain access to their account.
+
 Discovery map: #10
 Discovery slice: S-1
 Discovery plan: ${planIdentity(filingPlanBody)}
@@ -668,6 +670,22 @@ Discovery plan: ${planIdentity(filingPlanBody)}
 ## Outcomes
 
 - [ ] O-1 — A user can request recovery.
+
+## Exclusions
+
+- X-1 — Completing recovery remains unchanged.
+
+## Code pointers
+
+- lib/recovery.mjs — Handles recovery requests.
+
+## Testing notes
+
+- Cover successful and rejected recovery requests.
+
+## Manual walkthrough
+
+1. Request recovery and confirm the acknowledgement appears.
 `;
   writeFileSync(draftPath, draft);
   const filingState = {
@@ -841,6 +859,35 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     recovered: [],
     missing: ["S-1", "S-2"],
   });
+  writeFileSync(
+    draftPath,
+    draft.replace(/\n## Manual walkthrough[\s\S]*$/, "\n"),
+  );
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must contain exactly these sections in order/,
+  );
+  assert.equal(filingState.createAttempts, 0);
+  writeFileSync(draftPath, draft.replace("X-1", "X-one"));
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /malformed exclusion/,
+  );
+  assert.equal(filingState.createAttempts, 0);
   writeFileSync(
     draftPath,
     draft.replace(/^Discovery plan: .*\n/m, ""),
@@ -1200,9 +1247,31 @@ Needs #ISSUE merged
 
   const crlfDraft = `## Why\r
 \r
+Users need to complete account recovery.\r
+\r
 Discovery map: #10\r
 Discovery slice: S-2\r
 Needs #20 merged\r
+\r
+## Outcomes\r
+\r
+- [ ] O-1 — A user can complete recovery.\r
+\r
+## Exclusions\r
+\r
+- X-1 — Requesting recovery remains unchanged.\r
+\r
+## Code pointers\r
+\r
+- lib/recovery.mjs — Handles recovery completion.\r
+\r
+## Testing notes\r
+\r
+- Cover successful and expired recovery links.\r
+\r
+## Manual walkthrough\r
+\r
+1. Complete recovery and confirm access is restored.\r
 `;
   filingState.mapBody = mapBody({
     queue: "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)",
