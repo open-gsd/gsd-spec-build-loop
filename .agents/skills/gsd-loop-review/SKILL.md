@@ -5,7 +5,7 @@ description: Audit one open PR against its linked issue contract and required CI
 
 Resolve the repository root with `git rev-parse --show-toplevel`. Use its
 `loop/review.md` only when the root identifies itself as the gsd-loop source:
-`README.md` starts with `# gsd-loop`, all three files under `loop/` exist, and
+`README.md` starts with `# gsd-loop`, all four files under `loop/` exist, and
 `scripts/doctor.sh` plus `scripts/scheduler-policy.sh` exist. Otherwise, read
 `playbook.md` beside this `SKILL.md`; global installs bundle that canonical
 fallback.

@@ -1,8 +1,9 @@
 # Install and initialize gsd-loop
 
-`@opengsd/gsd-loop` installs four Agent Skills and provides deterministic
+`@opengsd/gsd-loop` installs five Agent Skills and provides deterministic
 repository setup and readiness checks. The package never launches an agent;
-spec, build, review, and scheduling all run inside the harness the user opened.
+discover, spec, build, review, and scheduling all run inside the harness the
+user opened.
 
 ## Support matrix
 
@@ -44,9 +45,10 @@ npx @opengsd/gsd-loop@latest init
 
 `init` previews every planned change and asks once before it:
 
-- installs or updates all four skills;
+- installs or updates all five skills;
 - verifies GitHub access;
-- creates the five `gsd:*` labels without replacing existing labels;
+- creates the five queue/review `gsd:*` labels without replacing existing
+  labels; the first discovery pass creates `gsd:map` when needed;
 - locally excludes `.gsd/scheduled_tasks.lock` so native scheduling cannot make
   the worktree look dirty to a builder pass;
 - when one successful check is selected, creates or updates only the dedicated
@@ -111,18 +113,21 @@ npx @opengsd/gsd-loop@latest init --yes --required-check test
 
 Start a new harness session after installation. Invoke one skill per pass:
 
-| Agent | Spec | Build | Review | Schedule |
-|---|---|---|---|---|
-| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
-| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
-| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
+| Agent | Discover | Spec | Build | Review | Schedule |
+|---|---|---|---|---|---|
+| Codex | `$gsd-loop-discover` | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Cursor | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Gemini CLI | `Use the gsd-loop-discover skill` | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
+| Grok Build | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Kimi Code | `/skill:gsd-loop-discover` | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
-Spec is interactive. Build and review are unattended-safe but deliberately
-bounded: each invocation performs one unit of work and stops. Keep build and
-review in separate sessions.
+Discover and spec are interactive. Discover is optional: use it for a large
+effort that still contains decisions too foggy for a queue contract, then pass
+the cleared map to spec. A map may contain several delivery slices; spec files
+one queue issue per slice, and the human approves each with `gsd:ready`. Build
+and review are unattended-safe but deliberately bounded: each invocation
+performs one unit of work and stops. Keep build and review in separate sessions.
 
 ### Keep a lane running
 
@@ -177,7 +182,7 @@ npx @opengsd/gsd-loop@latest install --agents codex,cursor,gemini,grok,kimi
 npx @opengsd/gsd-loop@latest install --adapter-mode copy
 ```
 
-The canonical four-skill bundle is always installed because every adapter
+The canonical five-skill bundle is always installed because every adapter
 references it and Codex and Kimi use it directly. `--agents` limits the native
 adapter directories added for Claude, Cursor, Gemini, and Grok.
 

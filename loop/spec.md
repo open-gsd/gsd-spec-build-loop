@@ -11,7 +11,7 @@ owns a decision, it belongs to the user.
 ## Setup
 
 - Verify which repository you're filing into: `gh repo view --json nameWithOwner`.
-- Make sure the loop's label vocabulary exists. Safe to repeat; existing
+- Make sure the queue/review label vocabulary exists. Safe to repeat; existing
   labels keep whatever color and description a human gave them:
 
 ```bash
@@ -19,6 +19,52 @@ for l in gsd:ready gsd:blocked gsd:approved gsd:rework gsd:escalated; do
   gh label create "$l" --color ededed 2>/dev/null || true
 done
 ```
+
+## Optional discovery-map input
+
+When the user supplies a discovery map number or URL, treat it as planning
+provenance, not as the queue contract. Verify before relying on it:
+
+- it belongs to this repository, is open, and carries `gsd:map`;
+- its `## Graduation` value is the single line
+  **Ready for `gsd-loop-spec`.**;
+- its `## Not yet specified` value is exactly `None.`;
+- every native sub-issue is closed with exactly one trusted resolution event
+  whose map-gist line appears verbatim under `## Decisions so far`.
+
+Write the fetched map body to a temporary file and validate its delivery-slice
+structure before reading it as a contract source:
+
+```bash
+node MAP_VALIDATOR /path/to/map-body.md
+```
+
+Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
+active skill. Its JSON output is the authoritative slice order and dependency
+list. If validation fails, stop and direct the user back to
+`gsd-loop-discover MAP`.
+
+Run the shared remote protocol validator:
+
+```bash
+node DISCOVERY_PROTOCOL validate MAP --repo OWNER/REPO
+```
+
+It deterministically validates manifest membership, native attachments, closed
+state, trusted author association, unique resolution markers, and exact map
+gists. Trust belongs to each resolution event rather than the currently
+authenticated account.
+
+If any check fails, stop and direct the user back to `gsd-loop-discover MAP`.
+Do not silently finish the map inside the spec pass.
+
+Resolved map decisions are settled inputs. Do not re-ask them unless the
+codebase now contradicts them or two resolutions conflict.
+Draft one queue issue per unfiled delivery slice. Translate that slice and its
+relevant map decisions into observable outcomes, and carry the map's
+`## Out of scope` section plus the boundaries of the other slices into binding
+exclusions. Each resulting issue still needs every section and proof surface
+below; a map never substitutes for them.
 
 ## Learn the code first
 
@@ -67,6 +113,13 @@ The body always carries these six sections:
 
 The user or business problem, in a sentence or two.
 
+Discovery map: #MAP (omit when this spec did not start from a map)
+Discovery slice: S-N (omit when this spec did not start from a map)
+Discovery plan: PLAN_IDENTITY (include only for S-1 from `recover-slices`)
+
+Needs #ISSUE merged (include one line per declared slice dependency, after its
+earlier issue number is known)
+
 ## Outcomes
 
 - [ ] O-1 — First observable, checkable result
@@ -108,8 +161,9 @@ Constraints on the content:
 
 ## File it
 
-Show the complete draft in chat and wait for explicit approval. Then create
-the issue, passing the body as a file so shell quoting can't mangle it:
+Without a discovery map, show the complete draft in chat and wait for explicit
+approval. Then create the issue, passing the body as a file so shell quoting
+can't mangle it:
 
 ```bash
 gh issue create --title "TITLE" --body-file /path/to/draft.md
@@ -117,6 +171,57 @@ gh issue create --title "TITLE" --body-file /path/to/draft.md
 
 Relay the issue number and URL exactly as returned — downstream playbooks trust
 that number, not a guess.
+
+When the source was a discovery map:
+
+Once the first slice issue is filed, including an issue awaiting marker-based
+recovery, the map's delivery plan, slice IDs and order, destination, decisions,
+and scope are immutable.
+A later route or scope change requires a new discovery map. Never mutate or
+cancel an already-filed contract.
+
+1. Confirm no other discovery or spec pass is operating on this map, including
+   one authenticated as the same GitHub login. Concurrent same-map passes are
+   unsupported; this is an operating precondition, not a distributed lock.
+2. Before redrafting or creating anything, run
+   `node DISCOVERY_PROTOCOL recover-slices MAP --repo OWNER/REPO`.
+   It returns the frozen `planIdentity`, validates every existing queue link,
+   checks the trusted graduation event and exact trusted decision resolutions,
+   and searches permanent map/slice markers in slice order. Put
+   `Discovery plan: PLAN_IDENTITY` in the S-1 draft exactly; later slices omit
+   it. If recovery returns `approvalRequired`, show that exact recovered title
+   and body to the human, wait for explicit approval, save the unchanged body
+   to a file, and pass it to `file-slice`; recovery does not link the issue
+   before that approval.
+3. Work through missing slices in order, one at a time. Resolve every declared
+   dependency to the already-filed predecessor issue number, put the exact
+   `Needs #N merged` lines into that slice's complete draft, show the exact
+   eventual issue title and body to the human, and wait for explicit approval.
+   Never approve a placeholder dependency or a later draft whose predecessor
+   number is not known yet.
+4. File that unchanged approved title and body with
+   `node DISCOVERY_PROTOCOL file-slice MAP --repo OWNER/REPO --slice S-N --title "TITLE" --body-file /path/to/draft.md`.
+   The helper checks the open `gsd:map`, frozen plan identity, repository
+   identity, title, unique markers, exact dependencies, and that every linked
+   issue remains open; searches before creation; reconciles an uncertain create
+   result; updates the queue; and verifies the write. A prematurely closed slice
+   blocks the pass for human intervention, as does any slice labeled
+   `gsd:ready` before map completion; spec never interprets review or merge
+   evidence. Its returned issue number is authoritative for the next slice.
+   Repeat steps 3–4 until all slices are linked.
+5. Comment on the map with the title and URL of every issue created in this
+   pass. After the human explicitly confirms that the linked issues still cover
+   the map's entire destination, run
+   `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO`. It verifies
+   that every slice has a queue entry, every linked issue is still open, and
+   only then closes the map. The command is repeat-safe: if the close response
+   was lost, a retry verifies the already-closed map and reports completion.
+
+Only after the map is confirmed closed does the human apply `gsd:ready` to
+each issue individually. Until then the new issues remain open but outside the
+build queue; map graduation is not build authorization. The build lane still
+claims one issue per pass. Multiple ready slices are processed over multiple
+bounded passes, never by multiple simultaneous builders in one repository.
 
 Finish by spelling out the user's role in the loop (this is the one playbook a
 human actually reads):

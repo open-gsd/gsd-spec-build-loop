@@ -11,7 +11,13 @@ import tempfile
 from pathlib import Path
 
 
-SKILLS = ("gsd-loop-spec", "gsd-loop-build", "gsd-loop-review", "gsd-loop-schedule")
+SKILLS = (
+    "gsd-loop-discover",
+    "gsd-loop-spec",
+    "gsd-loop-build",
+    "gsd-loop-review",
+    "gsd-loop-schedule",
+)
 SUPPORTED_AGENTS = frozenset(("codex", "claude", "cursor", "gemini", "grok", "kimi"))
 MARKER = ".gsd-loop-install.json"
 MARKER_CONTENT = {"installer": "gsd-loop", "format": 1}
@@ -148,9 +154,19 @@ def stage_skill(source_root: Path, destination: Path, skill: str) -> Path:
         shutil.copytree(source_root / ".agents" / "skills" / skill, stage, dirs_exist_ok=True)
 
         lane = skill.removeprefix("gsd-loop-")
-        if lane in {"spec", "build", "review"}:
+        if lane in {"discover", "spec", "build", "review"}:
             shutil.copy2(source_root / "loop" / f"{lane}.md", stage / "playbook.md")
-            if lane == "build":
+            if lane in {"discover", "spec"}:
+                runtime = stage / "scripts" / "runtime"
+                runtime.mkdir(parents=True, exist_ok=True)
+                for module in (
+                    "discovery-map.mjs",
+                    "discovery-protocol.mjs",
+                    "errors.mjs",
+                    "process.mjs",
+                ):
+                    shutil.copy2(source_root / "lib" / module, runtime / module)
+            elif lane == "build":
                 runtime = stage / "scripts" / "runtime"
                 runtime.mkdir(parents=True, exist_ok=True)
                 for module in ("errors.mjs", "linkage.mjs", "process.mjs"):

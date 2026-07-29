@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { formatDoctor, inspectDoctor } from "../lib/doctor.mjs";
+import { parseDiscoveryArguments, validateDiscoveryMap } from "../lib/discovery-map.mjs";
 import { CliError, UsageError } from "../lib/errors.mjs";
 import { initialize, parseInitArguments } from "../lib/init.mjs";
 import { install, parseInstallArguments } from "../lib/install.mjs";
@@ -18,16 +19,17 @@ function usage() {
   gsd-loop install [options]
   gsd-loop init [options]
   gsd-loop doctor [--review-ready] [--json] [--repo OWNER/NAME]
+  gsd-loop discovery-map [--allow-not-ready] MAP_BODY_FILE
   gsd-loop outcomes ISSUE complete|pending --repo OWNER/NAME --pr NUMBER --head SHA
   gsd-loop policy work|idle|blocked IDLE_COUNT
 
 Install skills and prepare a repository. Run work inside your agent harness:
-  Codex:       $gsd-loop-spec, $gsd-loop-build, $gsd-loop-review, or $gsd-loop-schedule
-  Claude Code: /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
-  Cursor:      /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
-  Gemini CLI:  Use the gsd-loop-spec skill, Use the gsd-loop-build skill, Use the gsd-loop-review skill, or Use the gsd-loop-schedule skill
-  Grok Build:  /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
-  Kimi Code:   /skill:gsd-loop-spec, /skill:gsd-loop-build, /skill:gsd-loop-review, or /skill:gsd-loop-schedule
+  Codex:       $gsd-loop-discover, $gsd-loop-spec, $gsd-loop-build, $gsd-loop-review, or $gsd-loop-schedule
+  Claude Code: /gsd-loop-discover, /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
+  Cursor:      /gsd-loop-discover, /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
+  Gemini CLI:  Use the gsd-loop-discover skill, Use the gsd-loop-spec skill, Use the gsd-loop-build skill, Use the gsd-loop-review skill, or Use the gsd-loop-schedule skill
+  Grok Build:  /gsd-loop-discover, /gsd-loop-spec, /gsd-loop-build, /gsd-loop-review, or /gsd-loop-schedule
+  Kimi Code:   /skill:gsd-loop-discover, /skill:gsd-loop-spec, /skill:gsd-loop-build, /skill:gsd-loop-review, or /skill:gsd-loop-schedule
 
 Install options:
   --home PATH                       install beneath an alternate home directory
@@ -103,6 +105,10 @@ try {
     const report = inspectDoctor({ cwd: process.cwd(), repo: options.repo });
     console.log(options.json ? JSON.stringify(report) : formatDoctor(report));
     if (options.reviewReady && !report.reviewReady) process.exitCode = 3;
+  } else if (command === "discovery-map") {
+    const options = parseDiscoveryArguments(argumentsList);
+    const result = validateDiscoveryMap(readFileSync(options.path, "utf8"), options);
+    console.log(JSON.stringify(result));
   } else if (command === "outcomes") {
     const options = parseOutcomeArguments(argumentsList);
     const changed = syncIssueOutcomes({ cwd: process.cwd(), ...options });

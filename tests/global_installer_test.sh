@@ -9,7 +9,7 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 install_root="$TEST_ROOT/install"
 "$INSTALLER" --home "$install_root"
 
-for skill in spec build review schedule; do
+for skill in discover spec build review schedule; do
   canonical="$install_root/.agents/skills/gsd-loop-$skill"
   test -f "$canonical/SKILL.md"
   test -f "$canonical/.gsd-loop-install.json"
@@ -23,6 +23,9 @@ done
 
 test -f "$install_root/.agents/skills/gsd-loop-build/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-review/playbook.md"
+test -f "$install_root/.agents/skills/gsd-loop-discover/playbook.md"
+test -f "$install_root/.agents/skills/gsd-loop-discover/scripts/manage-discovery.mjs"
+test -f "$install_root/.agents/skills/gsd-loop-spec/scripts/manage-discovery.mjs"
 linkage_guard="$install_root/.agents/skills/gsd-loop-build/scripts/ensure-linkage.mjs"
 outcome_sync="$install_root/.agents/skills/gsd-loop-review/scripts/sync-outcomes.mjs"
 audit_validator="$install_root/.agents/skills/gsd-loop-review/scripts/validate-audit-evidence.mjs"
@@ -93,7 +96,7 @@ done
 owned_conversion_root="$TEST_ROOT/owned-conversion"
 "$INSTALLER" --home "$owned_conversion_root"
 "$INSTALLER" --home "$owned_conversion_root" --adapter-mode copy
-for skill in spec build review schedule; do
+for skill in discover spec build review schedule; do
   for host in .claude .cursor .gemini .grok; do
     adapter="$owned_conversion_root/$host/skills/gsd-loop-$skill"
     test -d "$adapter"
@@ -171,7 +174,7 @@ aliased_root="$TEST_ROOT/aliased"
 mkdir -p "$aliased_root/.agents/skills" "$aliased_root/.claude"
 ln -s "$aliased_root/.agents/skills" "$aliased_root/.claude/skills"
 "$INSTALLER" --home "$aliased_root"
-for skill in spec build review schedule; do
+for skill in discover spec build review schedule; do
   canonical="$aliased_root/.agents/skills/gsd-loop-$skill"
   test -d "$canonical"
   test ! -L "$canonical"
@@ -251,12 +254,13 @@ for skill in installer.SKILLS:
     assert (adapter / "preserve").read_text() == "old adapter\n"
 
 original_rename = Path.rename
+first_skill = installer.SKILLS[0]
 
 def fail_stage_rename(path, target):
     if (
-        path.name.startswith(".gsd-loop-spec.")
+        path.name.startswith(f".{first_skill}.")
         and ".previous-" not in path.name
-        and Path(target).name == "gsd-loop-spec"
+        and Path(target).name == first_skill
     ):
         raise OSError("replacement failed")
     return original_rename(path, target)

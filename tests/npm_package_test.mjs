@@ -92,27 +92,27 @@ try {
   assert.doesNotMatch(help, /gsd-loop run build\|review/);
   assert.match(
     help,
-    /Codex:.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
+    /Codex:.*\$gsd-loop-discover.*\$gsd-loop-spec.*\$gsd-loop-build.*\$gsd-loop-review.*\$gsd-loop-schedule/,
   );
   assert.match(
     help,
-    /Claude Code:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+    /Claude Code:.*\/gsd-loop-discover.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
   );
   assert.match(
     help,
-    /Cursor:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+    /Cursor:.*\/gsd-loop-discover.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
   );
   assert.match(
     help,
-    /Gemini CLI:.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
+    /Gemini CLI:.*Use the gsd-loop-discover skill.*Use the gsd-loop-spec skill.*Use the gsd-loop-build skill.*Use the gsd-loop-review skill.*Use the gsd-loop-schedule skill/,
   );
   assert.match(
     help,
-    /Grok Build:.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
+    /Grok Build:.*\/gsd-loop-discover.*\/gsd-loop-spec.*\/gsd-loop-build.*\/gsd-loop-review.*\/gsd-loop-schedule/,
   );
   assert.match(
     help,
-    /Kimi Code:.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
+    /Kimi Code:.*\/skill:gsd-loop-discover.*\/skill:gsd-loop-spec.*\/skill:gsd-loop-build.*\/skill:gsd-loop-review.*\/skill:gsd-loop-schedule/,
   );
   assert.match(help, /native adapter behavior/);
   assert.match(help, /gsd-loop policy/);
@@ -127,7 +127,7 @@ try {
   const home = join(testRoot, "home");
   run(["install", "--home", home]);
   run(["install", "--home", home]);
-  for (const lane of ["spec", "build", "review", "schedule"]) {
+  for (const lane of ["discover", "spec", "build", "review", "schedule"]) {
     const skill = join(home, ".agents", "skills", `gsd-loop-${lane}`);
     assert.ok(existsSync(join(skill, "SKILL.md")));
     assert.ok(existsSync(join(skill, ".gsd-loop-install.json")));
@@ -140,14 +140,29 @@ try {
     }
   }
   assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-build", "playbook.md")));
+  assert.ok(existsSync(join(home, ".agents", "skills", "gsd-loop-discover", "playbook.md")));
+  const discoverMapValidator = join(home, ".agents", "skills", "gsd-loop-discover", "scripts", "validate-discovery-map.mjs");
+  const specMapValidator = join(home, ".agents", "skills", "gsd-loop-spec", "scripts", "validate-discovery-map.mjs");
+  const discoverProtocol = join(home, ".agents", "skills", "gsd-loop-discover", "scripts", "manage-discovery.mjs");
+  const specProtocol = join(home, ".agents", "skills", "gsd-loop-spec", "scripts", "manage-discovery.mjs");
   const linkageGuard = join(home, ".agents", "skills", "gsd-loop-build", "scripts", "ensure-linkage.mjs");
   const outcomeSync = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "sync-outcomes.mjs");
   const auditValidator = join(home, ".agents", "skills", "gsd-loop-review", "scripts", "validate-audit-evidence.mjs");
+  assert.ok(existsSync(discoverMapValidator));
+  assert.ok(existsSync(specMapValidator));
+  assert.ok(existsSync(discoverProtocol));
+  assert.ok(existsSync(specProtocol));
   assert.ok(existsSync(linkageGuard));
   assert.ok(existsSync(outcomeSync));
   assert.ok(existsSync(auditValidator));
   mkdirSync(join(home, "lib"));
   writeFileSync(join(home, "lib", "outcomes.mjs"), "throw new Error('wrong runtime');\n");
+  writeFileSync(join(home, "lib", "discovery-map.mjs"), "throw new Error('wrong runtime');\n");
+  for (const validator of [discoverMapValidator, specMapValidator]) {
+    const invalidMap = command(process.execPath, [validator], { allowFailure: true });
+    assert.equal(invalidMap.status, 2);
+    assert.match(invalidMap.stderr, /requires a map body file/);
+  }
   const invalidLinkageGuard = command(process.execPath, [linkageGuard], { allowFailure: true });
   assert.equal(invalidLinkageGuard.status, 2);
   assert.match(invalidLinkageGuard.stderr, /requires a positive issue number/);
@@ -290,8 +305,10 @@ try {
   assert.ok(packageFiles.includes("lib/init.mjs"));
   assert.equal(packageFiles.includes("lib/runner.mjs"), false);
   assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/SKILL.md"));
+  assert.ok(packageFiles.includes(".agents/skills/gsd-loop-discover/SKILL.md"));
   assert.ok(packageFiles.includes(".agents/skills/gsd-loop-build/scripts/ensure-linkage.mjs"));
   assert.ok(packageFiles.includes("loop/build.md"));
+  assert.ok(packageFiles.includes("loop/discover.md"));
   assert.equal(packageFiles.some((path) => path.startsWith("tests/")), false);
 
   console.log("npm package installation passed");

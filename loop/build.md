@@ -15,7 +15,8 @@ there's nothing to race.
 - Look up the default branch —
   `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name` — and
   use what it says, whatever it says.
-- Guarantee the label vocabulary exists (repeat-safe, non-destructive):
+- Guarantee the queue/review label vocabulary exists (repeat-safe,
+  non-destructive):
 
 ```bash
 for l in gsd:ready gsd:blocked gsd:approved gsd:rework gsd:escalated; do
@@ -115,8 +116,10 @@ gh issue list --state open --label gsd:ready --limit 200 \
 (The unassigned filter is client-side on purpose — `--search "no:assignee"`
 rides a lagging index and can miss an issue you unassigned seconds ago.)
 
-Discard issues labeled `gsd:blocked` or `gsd:escalated`. Discard issues whose body says
-`Needs #N merged` unless `#N` is closed *and* its closing PR actually merged
+Discard issues labeled `gsd:map`, `gsd:blocked`, or `gsd:escalated`. A map is
+planning provenance even if someone accidentally applies `gsd:ready`; it must
+never enter the build queue. Discard issues whose body says `Needs #N merged`
+unless `#N` is closed *and* its closing PR actually merged
 (`gh issue view N --json state,closedByPullRequestsReferences`) — closure
 without merged code doesn't satisfy the dependency. Of what's left, take the
 oldest.

@@ -1,37 +1,40 @@
 # gsd-loop
 
-A human-gated agent work loop for GitHub. Ideas become contract-grade
-issues, issues become PRs, PRs get audited verdicts — and every
-irreversible step stays human.
+A human-gated agent work loop for GitHub. Foggy efforts become decision maps,
+clear ideas become contract-grade issues, issues become PRs, and PRs get
+audited verdicts — while every irreversible step stays human.
 
-The loop is three agent-neutral playbooks in `loop/` that any coding agent can
+The loop is four agent-neutral playbooks in `loop/` that any coding agent can
 execute (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, ...). They use
-Node.js and an authenticated `gh` CLI; the installed build and review skills
-bundle the deterministic guards their playbooks invoke, so direct one-pass use
-does not require a global `gsd-loop` command. The installer keeps canonical
-skills in `~/.agents/skills/` and adds native adapters for hosts that use their
-own global skill directory.
+Node.js and an authenticated `gh` CLI; the installed skills bundle the
+deterministic guards their playbooks invoke, so direct one-pass use does not
+require a global `gsd-loop` command. The installer keeps canonical skills in
+`~/.agents/skills/` and adds native adapters for hosts that use their own
+global skill directory.
 
 ```
- idea ──spec skill──▶ issue ──human: gsd:ready──▶ queue
-                                                  │
-              ┌────────────────── build lane ◀────┘
-              ▼
-             PR ◀──── fix gsd:rework items ────┐
-              │                                │
-              ▼                                │
-           review lane ── blocking? ── yes ┘  (3 strikes → gsd:escalated)
-              │
-              no
-              ▼
-        gsd:approved ──▶ human merges
+ foggy idea ──discover──▶ decision map ──slices──┐
+ clear idea ─────────────────────────────────────┴─▶ spec ─▶ issue(s)
+                                                              │ human: gsd:ready each
+                                                              ▼
+             ┌────────────────────────────── build lane ◀── queue
+             ▼
+            PR ◀──── fix gsd:rework items ────┐
+             │                                │
+             ▼                                │
+          review lane ── blocking? ── yes ────┘  (3 strikes → gsd:escalated)
+             │
+             no
+             ▼
+       gsd:approved ──▶ human merges
 ```
 
-## The three playbooks
+## The four playbooks
 
 | Playbook | Mode | One pass does |
 |---|---|---|
-| `loop/spec.md` | interactive | Interview you about a raw idea, then file a GitHub issue with an `O-N` outcome / `X-N` exclusion contract |
+| `loop/discover.md` | interactive | Chart a large uncertain effort, resolve one frontier decision, and shape the cleared destination into delivery slices |
+| `loop/spec.md` | interactive | Interview you about a raw idea, or turn a cleared map's slices into separate GitHub issues with `O-N` outcome / `X-N` exclusion contracts |
 | `loop/build.md` | unattended | Repair one `gsd:rework` PR, or claim the oldest safe `gsd:ready` issue and open a PR |
 | `loop/review.md` | unattended | Audit one PR against its issue contract and required CI, post a `gsd-loop verdict`, synchronize outcome checkboxes, set labels |
 
@@ -39,6 +42,7 @@ own global skill directory.
 
 | Label | Applied by | Cleared by | Meaning |
 |---|---|---|---|
+| `gsd:map` | discover | map closes after specification | Multi-session planning state; never a build-queue item |
 | `gsd:ready` | human | merge (issue closes) | Approved for the build queue |
 | `gsd:blocked` | builder | human | One specific question awaits an answer |
 | `gsd:rework` | reviewer | builder or reviewer | Verdict has blocking findings |
@@ -54,26 +58,31 @@ npx @opengsd/gsd-loop@latest init
 ```
 
 This is the only user-facing step outside an agent harness. `init` previews one
-plan and asks before it changes anything. It installs or updates the four global
-skills, checks Git and GitHub access and review readiness, creates the five
-labels, and can configure an existing successful CI check as required when the
-GitHub plan and repository permissions support rulesets. It does not choose,
-launch, or configure an agent harness.
+plan and asks before it changes anything. It installs or updates the five global
+skills, checks Git and GitHub access and review readiness, creates the
+queue/review labels, and can configure an existing successful CI check as
+required when the GitHub plan and repository permissions support rulesets. It
+does not choose, launch, or configure an agent harness.
 
 Start a new harness session after bootstrap. All ongoing work runs as skills
 inside that harness:
 
-| Agent | Spec | Build one pass | Review one pass | Schedule |
-|---|---|---|---|---|
-| Codex | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
-| Claude Code | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Cursor | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Gemini CLI | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
-| Grok Build | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
-| Kimi Code | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
+| Agent | Discover | Spec | Build one pass | Review one pass | Schedule |
+|---|---|---|---|---|---|
+| Codex | `$gsd-loop-discover` | `$gsd-loop-spec` | `$gsd-loop-build` | `$gsd-loop-review` | `$gsd-loop-schedule` |
+| Claude Code | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Cursor | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Gemini CLI | `Use the gsd-loop-discover skill` | `Use the gsd-loop-spec skill` | `Use the gsd-loop-build skill` | `Use the gsd-loop-review skill` | `Use the gsd-loop-schedule skill` |
+| Grok Build | `/gsd-loop-discover` | `/gsd-loop-spec` | `/gsd-loop-build` | `/gsd-loop-review` | `/gsd-loop-schedule` |
+| Kimi Code | `/skill:gsd-loop-discover` | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
-After the spec files an issue, read it and add `gsd:ready`. Build and review
-belong in separate harness sessions so their state cannot mix.
+Use discover only when an effort is too large and uncertain to specify. Each
+invocation charts a map or resolves one decision with you present. Once the map
+is clear, it records one or more delivery slices; spec files each slice as its
+own issue. For an already clear idea, start with spec directly. Read every
+filed issue and add `gsd:ready` individually. Build processes those issues over
+bounded passes. Build and review belong in separate harness sessions so their
+state cannot mix.
 
 Each build or review invocation executes exactly one bounded pass. To keep a
 lane running, invoke the scheduling skill inside that lane's session using the
@@ -145,3 +154,11 @@ for the exact publisher settings and procedure.
 - **Idle back-off.** Empty queues push the loop to its longest interval. The
   scheduling skill pauses after three idle passes because new work only appears
   when a human files, unblocks, or merges.
+- **Maps absorb uncertainty before contracts.** Discovery maps hold a durable
+  destination, decision history, unresolved fog, explicit scope boundary, and
+  delivery slices. They never enter the ready queue; spec turns each cleared
+  slice into its own contract-grade issue.
+- **One writer per map.** Discovery decisions advance serially within a map
+  because GitHub issue-body updates are not conditional. This trades
+  Wayfinder-style parallel frontier work for recoverable, inspectable state;
+  separate maps may still advance independently.
