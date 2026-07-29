@@ -51,18 +51,27 @@ global skill directory.
 
 ## Quick start
 
-Run one bootstrap command from the repository you want gsd-loop to manage:
+Install the five skills at any time, including before you create or connect a
+GitHub repository:
+
+```bash
+npx @opengsd/gsd-loop@latest install
+```
+
+Skill installation does not require a GitHub repository or an authenticated
+`gh` CLI. Once the repository is on GitHub, run its bootstrap from the local
+checkout:
 
 ```bash
 npx @opengsd/gsd-loop@latest init
 ```
 
-This is the only user-facing step outside an agent harness. `init` previews one
-plan and asks before it changes anything. It installs or updates the five global
-skills, checks Git and GitHub access and review readiness, creates the
-queue/review labels, and can configure an existing successful CI check as
-required when the GitHub plan and repository permissions support rulesets. It
-does not choose, launch, or configure an agent harness.
+`init` is the combined convenience path: it previews one plan and asks before
+it changes anything. It installs or updates the five global skills, checks Git
+and GitHub access and review readiness, creates the queue/review labels, and can
+configure an existing successful CI check as required when the GitHub plan and
+repository permissions support rulesets. It does not choose, launch, or
+configure an agent harness.
 
 Start a new harness session after bootstrap. All ongoing work runs as skills
 inside that harness:

@@ -43,6 +43,7 @@ function runCli(argumentsList, options = {}) {
       MOCK_CHECK_QUERY_FAIL: options.checkQueryFail ? "1" : "0",
       MOCK_RULES_QUERY_FAIL: options.rulesQueryFail ? "1" : "0",
       MOCK_RULES_QUERY_FORBIDDEN: options.rulesQueryForbidden ? "1" : "0",
+      MOCK_NO_GIT_REMOTE: options.noGitRemote ? "1" : "0",
       MOCK_AGENT_AUTH_FAIL: options.agentAuthFail ? "1" : "0",
       MOCK_DEFAULT_CHECKS: JSON.stringify(options.defaultChecks ?? options.checks ?? [{ name: "test", conclusion: "success", app: { id: 15368, slug: "github-actions" } }]),
       MOCK_PR_CHECKS: JSON.stringify(options.prChecks ?? []),
@@ -91,6 +92,10 @@ const args = process.argv.slice(2);
 appendFileSync(process.env.MOCK_GH_LOG, JSON.stringify(args) + "\\n");
 if (args[0] === "--version") console.log("gh version 2.80.0");
 else if (args[0] === "auth" && args[1] === "status") process.exit(0);
+else if (args[0] === "repo" && args[1] === "view" && process.env.MOCK_NO_GIT_REMOTE === "1") {
+  console.error("no git remotes found");
+  process.exit(1);
+}
 else if (args[0] === "repo" && args[1] === "view") console.log("octocat/project");
 else if (args[0] === "pr" && args[1] === "list" && process.env.MOCK_PR_LIST_FAIL === "1") process.exit(1);
 else if (args[0] === "pr" && args[1] === "list") console.log(JSON.stringify(
@@ -256,6 +261,14 @@ else process.exit(1);
   const repository = join(testRoot, "project");
   const home = join(testRoot, "home");
   initializeRepository(repository);
+
+  const noRemote = runCli([
+    "init", "--yes",
+    "--home", join(testRoot, "no-remote-home"),
+  ], { cwd: repository, noGitRemote: true });
+  assert.equal(noRemote.status, 1);
+  assert.match(noRemote.stderr, /no GitHub repository is connected/i);
+  assert.match(noRemote.stderr, /npx @opengsd\/gsd-loop@latest install/);
 
   writeFileSync(ghLog, "");
   const mismatchedRepository = runCli([
