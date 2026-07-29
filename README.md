@@ -51,18 +51,25 @@ global skill directory.
 
 ## Quick start
 
-Run one bootstrap command from the repository you want gsd-loop to manage:
+Install the five skills at any time, including before you create or connect a
+GitHub repository:
+
+```bash
+npx @opengsd/gsd-loop@latest install
+```
+
+Once the repository is on GitHub, run its bootstrap from the local checkout:
 
 ```bash
 npx @opengsd/gsd-loop@latest init
 ```
 
-This is the only user-facing step outside an agent harness. `init` previews one
-plan and asks before it changes anything. It installs or updates the five global
-skills, checks Git and GitHub access and review readiness, creates the
-queue/review labels, and can configure an existing successful CI check as
-required when the GitHub plan and repository permissions support rulesets. It
-does not choose, launch, or configure an agent harness.
+`init` is the combined convenience path: it previews one plan and asks before
+it changes anything. It installs or updates the five global skills, checks Git
+and GitHub access and review readiness, creates the queue/review labels, and can
+configure an existing successful CI check as required when the GitHub plan and
+repository permissions support rulesets. It does not choose, launch, or
+configure an agent harness.
 
 Start a new harness session after bootstrap. All ongoing work runs as skills
 inside that harness:
@@ -109,20 +116,17 @@ The loop is deliberately incapable of doing these:
 
 ## Requirements
 
-- Node.js 18+, Git, and the `gh` CLI authenticated with push access.
-- A supported agent harness with shell access. Installation does not install,
-  authenticate, select, or launch the harness.
-- **Required status checks configured** on the default branch before review.
-  The reviewer refuses to treat missing CI as green. `init` configures an
-  existing successful check when the GitHub plan and repository permissions
-  support rulesets; it never creates a fake always-green workflow. See the
-  [installation guide](docs/install.md) for plan and permission limitations.
+Standalone installation, repository setup, and skill execution have separate
+prerequisites; see the [installation guide](docs/install.md) for the complete
+requirements. Before review, the default branch must have **required status
+checks configured**. The reviewer refuses to treat missing CI as green. `init`
+configures an existing successful check when the GitHub plan and repository
+permissions support rulesets; it never creates a fake always-green workflow.
 
 The bootstrap reports missing prerequisites or review protections before the
 first skill run. After it finishes, invoke the skills from any GitHub worktree;
-no project files need to be copied. Advanced selective installation,
-unattended bootstrap, diagnostics, and recovery are documented in the
-[installation guide](docs/install.md).
+no project files need to be copied. The installation guide also covers
+selective installation, unattended bootstrap, diagnostics, and recovery.
 
 ## Maintainer releases
 

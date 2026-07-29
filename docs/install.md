@@ -23,19 +23,41 @@ authenticate, select, or launch a model or agent application.
 
 ## Prerequisites
 
-- Node.js 18 or newer, including `npm` and `npx`.
-- Git with a configured author name and email.
-- The [`gh` CLI](https://cli.github.com/) authenticated with push access.
-- One supported agent harness with shell access.
+Standalone skill installation requires Node.js 18 or newer, including `npm`
+and `npx`. It does not require Git, a GitHub repository, an authenticated `gh`
+CLI, or an installed agent harness. Using the skills requires a supported
+agent harness with shell access.
 
-The repository must eventually have a real successful CI check. gsd-loop can
-require an existing check, but it does not invent an always-green workflow.
+`init` and repository setup additionally require:
+
+- Git;
+- the [`gh` CLI](https://cli.github.com/) authenticated with push access.
+
+Creating a repository also requires a configured Git author name and email.
+
+Before review, the repository must have a real successful CI check. gsd-loop
+can require an existing check, but it does not invent an always-green workflow.
 Creating or updating the dedicated required-CI ruleset also requires repository
 administration access or a custom role with permission to edit repository
 rules. Without that permission, setup keeps the build lane ready and leaves
 review blocked.
 
-## Recommended onboarding
+## Choose an onboarding path
+
+### Install before GitHub
+
+Install the five skills before creating or connecting a GitHub repository:
+
+```bash
+npx @opengsd/gsd-loop@latest install --dry-run
+npx @opengsd/gsd-loop@latest install
+```
+
+This command does not prepare labels, CI rules, or repository-local state.
+After the repository is on GitHub, run `init` from its local checkout to finish
+repository setup.
+
+### Install and initialize together
 
 Run this inside an existing GitHub worktree:
 
@@ -111,7 +133,8 @@ npx @opengsd/gsd-loop@latest init --yes --required-check test
 
 ## Run skills inside the harness
 
-Start a new harness session after installation. Invoke one skill per pass:
+After installation and repository setup, start a new harness session. Invoke
+one skill per pass:
 
 | Agent | Discover | Spec | Build | Review | Schedule |
 |---|---|---|---|---|---|
@@ -165,14 +188,7 @@ Exit status `0` means the requested readiness level passed, `1` is an
 operational failure, `2` is invalid usage, and `3` means setup is safely waiting
 for human action.
 
-## Install skills only
-
-Use `install` when repository setup is not wanted:
-
-```bash
-npx @opengsd/gsd-loop@latest install --dry-run
-npx @opengsd/gsd-loop@latest install
-```
+## Skill installation options
 
 Select which hosts receive native adapters or choose adapter behavior when
 necessary:
