@@ -429,7 +429,7 @@ destination, decisions, and scope are immutable. Any later route or scope
 change requires a new discovery map; never mutate or cancel the already-filed
 contracts. Spec binds the graduated plan identity into S-1, and every later
 graduation retry, recovery, filing step, and map completion verifies it against
-the trusted graduation event and current trusted decision resolutions.
+the latest trusted graduation event and current trusted decision resolutions.
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
 form above rejects missing slices, malformed fields, and dependencies that do

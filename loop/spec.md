@@ -186,7 +186,7 @@ cancel an already-filed contract.
 2. Before redrafting or creating anything, run
    `node DISCOVERY_PROTOCOL recover-slices MAP --repo OWNER/REPO`.
    It returns the frozen `planIdentity`, validates every existing queue link,
-   checks the trusted graduation event and exact trusted decision resolutions,
+   checks the latest trusted graduation event and exact trusted decision resolutions,
    and searches permanent map/slice markers in slice order. Put
    `Discovery plan: PLAN_IDENTITY` in the S-1 draft exactly; later slices omit
    it. If recovery returns `approvalRequired`, show that exact recovered title

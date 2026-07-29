@@ -508,6 +508,50 @@ Discovery plan: ${planIdentity(reorderedPlanBody)}`],
   );
   assert.equal(directReadyEditState.edits, 0);
 
+  const historicalGraduationState = {
+    body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+    edits: 0,
+  };
+  writeFileSync(planPath, reorderedPlanBody);
+  runDiscoveryProtocol({
+    bodyPath: planPath,
+    command: "graduate",
+    map,
+    repo,
+  }, {
+    run: evidenceRunFactory({ mapState: historicalGraduationState }),
+  });
+  const alternatePlanBody = reorderedPlanBody.replace(
+    "Ship account recovery.",
+    "Ship password recovery.",
+  );
+  historicalGraduationState.body = alternatePlanBody.replace(
+    "Ready for `gsd-loop-spec`.",
+    "Not ready.",
+  );
+  writeFileSync(planPath, alternatePlanBody);
+  runDiscoveryProtocol({
+    bodyPath: planPath,
+    command: "graduate",
+    map,
+    repo,
+  }, {
+    run: evidenceRunFactory({ mapState: historicalGraduationState }),
+  });
+  historicalGraduationState.body = reorderedPlanBody;
+  writeFileSync(planPath, reorderedPlanBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: historicalGraduationState }),
+    }),
+    /differs from its approved graduation evidence/,
+  );
+
   writeFileSync(planPath, originalPlanBody);
   assert.throws(
     () => runDiscoveryProtocol({
