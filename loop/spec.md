@@ -52,7 +52,10 @@ terminal completion retry: run
 `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO` and stop. Do not
 run the standalone `validate` command, recovery, drafting, or filing against a
 closed map. If the queue is incomplete, stop and report the invalid closed
-state.
+state. During this terminal retry, linked slices may already be closed, carry
+`gsd:ready`, or have uniformly completed outcome checkboxes. The helper still
+validates their exact contracts, dependencies, queue links, and frozen plan;
+these allowances never apply while the map is open.
 
 Run the shared remote protocol validator:
 
@@ -159,6 +162,8 @@ Constraints on the content:
 - Outcomes and exclusions carry permanent `O-N` / `X-N` ids. Downstream, the
   builder implements exactly the `O` list and the reviewer audits against it;
   the `X` list is the fence neither may cross.
+- Every `O-N` checkbox has a non-empty description after the em dash. An empty
+  outcome is not a contract and blocks filing or outcome synchronization.
 - An outcome that can't be met without violating an exclusion is a
   contradiction — settle it with the user before filing, never after.
 - Cap each issue at roughly one agent-day. Larger ideas become an ordered
@@ -226,7 +231,8 @@ cancel an already-filed contract.
    `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO`. It verifies
    that every slice has a queue entry, every linked issue is still open, and
    only then closes the map. The command is repeat-safe: if the close response
-   was lost, a retry verifies the already-closed map and reports completion.
+   was lost or the linked slices progressed afterward, a retry applies the
+   terminal validation rules above and reports completion.
 
 Only after the map is confirmed closed does the human apply `gsd:ready` to
 each issue individually. Until then the new issues remain open but outside the
