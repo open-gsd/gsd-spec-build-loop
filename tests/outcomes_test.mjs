@@ -99,16 +99,6 @@ assert.throws(
   () => transformOutcomeChecklist("## Why\n\nNo contract.\n", "complete"),
   /Outcomes section/,
 );
-for (const outcome of [
-  "- [ ] O-1",
-  "- [ ] O-1 —",
-  "- [ ] O-1 —   ",
-]) {
-  assert.throws(
-    () => transformOutcomeChecklist(`## Outcomes\n\n${outcome}\n`, "complete"),
-    /outcome O-1 has no description/,
-  );
-}
 assert.throws(
   () => transformOutcomeChecklist("## Outcomes\n\n- [ ] O-1 — first\n- [ ] O-1 — duplicate\n", "complete"),
   /duplicate outcome O-1/,

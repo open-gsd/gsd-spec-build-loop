@@ -875,6 +875,22 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     /must contain exactly these sections in order/,
   );
   assert.equal(filingState.createAttempts, 0);
+  writeFileSync(
+    draftPath,
+    draft.replace("- [ ] O-1 — A user can request recovery.", "- [ ] O-1"),
+  );
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /outcome O-1 has no description/,
+  );
+  assert.equal(filingState.createAttempts, 0);
   writeFileSync(draftPath, draft.replace("X-1", "X-one"));
   assert.throws(
     () => fileDiscoverySlice({
