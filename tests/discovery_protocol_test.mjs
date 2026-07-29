@@ -225,6 +225,9 @@ function evidenceRunFactory({
     if (joined.includes("issue edit 10") && mapState) {
       mapState.edits += 1;
       mapState.body = options.input;
+      if (mapState.referenceTitleAfterMapUpdate) {
+        mapState.referenceTitle = mapState.referenceTitleAfterMapUpdate;
+      }
       return { status: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("issue comment 10") && mapState) {
@@ -242,7 +245,7 @@ function evidenceRunFactory({
         status: 0,
         stdout: pages([{
           number: 7,
-          title: referenceTitle,
+          title: mapState?.referenceTitle ?? referenceTitle,
           body: decisionBody(),
           html_url: issueUrl,
         }, ...extraIssues]),
@@ -518,6 +521,25 @@ Discovery plan: ${planIdentity(reorderedPlanBody)}`],
   );
   assert.equal(directReadyEditState.edits, 0);
 
+  const changedDecisionDuringGraduation = {
+    body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+    edits: 0,
+    referenceTitle: "Choose channel",
+    referenceTitleAfterMapUpdate: "Changed channel",
+  };
+  writeFileSync(planPath, reorderedPlanBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: changedDecisionDuringGraduation }),
+    }),
+    /conflicts with the frontier manifest/,
+  );
+
   const historicalGraduationState = {
     body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
     edits: 0,
@@ -671,6 +693,8 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     closeAttempts: 0,
     closeResponseLost: false,
     closeSliceAfterMapUpdate: false,
+    changeDecisionAfterMapUpdate: false,
+    decisionTitle: "Choose channel",
     failMapUpdate: true,
     mapState: "OPEN",
     mapLabels: [{ name: "gsd:map" }],
@@ -683,7 +707,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
         status: 0,
         stdout: pages([{
           number: 7,
-          title: "Choose channel",
+          title: filingState.decisionTitle,
           body: decisionBody(),
           html_url: issueUrl,
         }, ...filingState.issues]),
@@ -785,6 +809,10 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
         return { status: 1, stdout: "", stderr: "map update failed" };
       }
       filingState.mapBody = options.input;
+      if (filingState.changeDecisionAfterMapUpdate) {
+        filingState.decisionTitle = "Changed channel";
+        filingState.changeDecisionAfterMapUpdate = false;
+      }
       if (filingState.closeSliceAfterMapUpdate) {
         filingState.issues.at(-1).state = "closed";
         filingState.closeSliceAfterMapUpdate = false;
@@ -860,6 +888,23 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
   filingState.mapBody = filingPlanBody;
   filingState.issues = [];
   filingState.createAttempts = 0;
+
+  filingState.changeDecisionAfterMapUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /conflicts with the frontier manifest/,
+  );
+  filingState.mapBody = filingPlanBody;
+  filingState.issues = [];
+  filingState.createAttempts = 0;
+  filingState.decisionTitle = "Choose channel";
   filingState.failMapUpdate = true;
 
   filingState.repositoryIssueQueries = 0;
