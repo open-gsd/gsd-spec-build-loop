@@ -44,5 +44,5 @@ Build and review require separate chats and separate scheduled tasks so their
 state cannot mix. If the user requests both, schedule the current lane only and
 tell them to invoke this skill in a second chat for the other lane.
 
-Never schedule the interactive spec lane. Never merge, enable auto-merge,
-force-push, or run more than one builder for the same repository.
+Never schedule the interactive discover or spec lanes. Never merge, enable
+auto-merge, force-push, or run more than one builder for the same repository.
