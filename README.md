@@ -118,14 +118,19 @@ The loop is deliberately incapable of doing these:
 
 ## Requirements
 
-- Node.js 18+, Git, and the `gh` CLI authenticated with push access.
-- A supported agent harness with shell access. Installation does not install,
-  authenticate, select, or launch the harness.
-- **Required status checks configured** on the default branch before review.
-  The reviewer refuses to treat missing CI as green. `init` configures an
-  existing successful check when the GitHub plan and repository permissions
-  support rulesets; it never creates a fake always-green workflow. See the
-  [installation guide](docs/install.md) for plan and permission limitations.
+Standalone skill installation requires Node.js 18+ with `npm` and `npx`, plus
+a supported agent harness with shell access. It does not require Git, a GitHub
+repository, or an authenticated `gh` CLI, and it does not install,
+authenticate, select, or launch the harness.
+
+`init` and repository setup additionally require Git with a configured author
+name and email and the `gh` CLI authenticated with push access. Before review,
+the default branch must have **required status checks configured**. The
+reviewer refuses to treat missing CI as green. `init` configures an existing
+successful check when the GitHub plan and repository permissions support
+rulesets; it never creates a fake always-green workflow. See the
+[installation guide](docs/install.md) for repository creation, plan, and
+permission details.
 
 The bootstrap reports missing prerequisites or review protections before the
 first skill run. After it finishes, invoke the skills from any GitHub worktree;

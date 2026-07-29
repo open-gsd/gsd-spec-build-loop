@@ -23,13 +23,20 @@ authenticate, select, or launch a model or agent application.
 
 ## Prerequisites
 
-- Node.js 18 or newer, including `npm` and `npx`.
-- Git with a configured author name and email.
-- The [`gh` CLI](https://cli.github.com/) authenticated with push access.
-- One supported agent harness with shell access.
+Standalone skill installation requires:
 
-The repository must eventually have a real successful CI check. gsd-loop can
-require an existing check, but it does not invent an always-green workflow.
+- Node.js 18 or newer, including `npm` and `npx`;
+- one supported agent harness with shell access.
+
+It does not require Git, a GitHub repository, or an authenticated `gh` CLI.
+
+`init` and repository setup additionally require:
+
+- Git with a configured author name and email;
+- the [`gh` CLI](https://cli.github.com/) authenticated with push access.
+
+Before review, the repository must have a real successful CI check. gsd-loop
+can require an existing check, but it does not invent an always-green workflow.
 Creating or updating the dedicated required-CI ruleset also requires repository
 administration access or a custom role with permission to edit repository
 rules. Without that permission, setup keeps the build lane ready and leaves
