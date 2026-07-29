@@ -115,6 +115,7 @@ The user or business problem, in a sentence or two.
 
 Discovery map: #MAP (omit when this spec did not start from a map)
 Discovery slice: S-N (omit when this spec did not start from a map)
+Discovery plan: PLAN_IDENTITY (include only for S-1 from `recover-slices`)
 
 Needs #ISSUE merged (include one line per declared slice dependency, after its
 earlier issue number is known)
@@ -184,11 +185,13 @@ cancel an already-filed contract.
    unsupported; this is an operating precondition, not a distributed lock.
 2. Before redrafting or creating anything, run
    `node DISCOVERY_PROTOCOL recover-slices MAP --repo OWNER/REPO`.
-   It validates every existing queue link and searches permanent map/slice
-   markers in slice order. If it returns `approvalRequired`, show that exact
-   recovered title and body to the human, wait for explicit approval, save the
-   unchanged body to a file, and pass it to `file-slice`; recovery does not link
-   the issue before that approval.
+   It returns the frozen `planIdentity`, validates every existing queue link,
+   and searches permanent map/slice markers in slice order. Put
+   `Discovery plan: PLAN_IDENTITY` in the S-1 draft exactly; later slices omit
+   it. If recovery returns `approvalRequired`, show that exact recovered title
+   and body to the human, wait for explicit approval, save the unchanged body
+   to a file, and pass it to `file-slice`; recovery does not link the issue
+   before that approval.
 3. Work through missing slices in order, one at a time. Resolve every declared
    dependency to the already-filed predecessor issue number, put the exact
    `Needs #N merged` lines into that slice's complete draft, show the exact
@@ -197,14 +200,14 @@ cancel an already-filed contract.
    number is not known yet.
 4. File that unchanged approved title and body with
    `node DISCOVERY_PROTOCOL file-slice MAP --repo OWNER/REPO --slice S-N --title "TITLE" --body-file /path/to/draft.md`.
-   The helper checks the open `gsd:map`, repository identity, title, unique
-   markers, exact dependencies, and that every linked issue remains open;
-   searches before creation; reconciles an uncertain create result; updates the
-   queue; and verifies the write. A prematurely closed slice blocks the pass
-   for human intervention, as does any slice labeled `gsd:ready` before map
-   completion; spec never interprets review or merge evidence. Its returned
-   issue number is authoritative for the next slice. Repeat steps 3–4 until all
-   slices are linked.
+   The helper checks the open `gsd:map`, frozen plan identity, repository
+   identity, title, unique markers, exact dependencies, and that every linked
+   issue remains open; searches before creation; reconciles an uncertain create
+   result; updates the queue; and verifies the write. A prematurely closed slice
+   blocks the pass for human intervention, as does any slice labeled
+   `gsd:ready` before map completion; spec never interprets review or merge
+   evidence. Its returned issue number is authoritative for the next slice.
+   Repeat steps 3–4 until all slices are linked.
 5. Comment on the map with the title and URL of every issue created in this
    pass. After the human explicitly confirms that the linked issues still cover
    the map's entire destination, run

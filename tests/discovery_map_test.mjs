@@ -203,6 +203,12 @@ Needs: None.`,
   assert.equal(emptyBoundary.status, 3);
   assert.match(emptyBoundary.stderr, /Out of scope/);
 
+  const blankQueuePath = join(testRoot, "blank-queue.md");
+  writeFileSync(blankQueuePath, mapBody({ queue: "   " }));
+  const blankQueue = run(["discovery-map", blankQueuePath]);
+  assert.equal(blankQueue.status, 3);
+  assert.match(blankQueue.stderr, /Queue issues must be None/);
+
   console.log("discovery map validation passed");
 } finally {
   rmSync(testRoot, { recursive: true, force: true });

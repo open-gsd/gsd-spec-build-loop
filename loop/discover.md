@@ -426,7 +426,8 @@ provisional plan, and repeat the complete human approval and graduation gate.
 Once the first slice issue is filed, the delivery plan, slice IDs and order,
 destination, decisions, and scope are immutable. Any later route or scope
 change requires a new discovery map; never mutate or cancel the already-filed
-contracts.
+contracts. Spec binds the graduated plan identity into S-1, and every later
+graduation retry, recovery, filing step, and map completion verifies it.
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
 form above rejects missing slices, malformed fields, and dependencies that do

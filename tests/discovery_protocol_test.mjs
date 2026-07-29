@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -88,6 +89,14 @@ function mapIssue(body, { state = "OPEN", labels = [{ name: "gsd:map" }] } = {})
 
 function pages(items) {
   return JSON.stringify([items]);
+}
+
+function planIdentity(body) {
+  const normalized = body.replace(
+    /((?:^|\r?\n)## Queue issues\r?\n\r?\n)[\s\S]*$/,
+    "$1None.",
+  );
+  return `sha256:${createHash("sha256").update(normalized).digest("hex")}`;
 }
 
 assert.deepEqual(
@@ -511,11 +520,23 @@ try {
   );
   assert.equal(graduationState.edits, 1);
 
+  const filingPlanBody = mapBody({
+    slices: `### S-1 — Request recovery
+
+Delivers: A user can request recovery.
+Needs: None.
+
+### S-2 — Complete recovery
+
+Delivers: A user can complete recovery.
+Needs: S-1`,
+  });
   const draftPath = join(testRoot, "slice.md");
   const draft = `## Why
 
 Discovery map: #10
 Discovery slice: S-1
+Discovery plan: ${planIdentity(filingPlanBody)}
 
 ## Outcomes
 
@@ -524,7 +545,7 @@ Discovery slice: S-1
   writeFileSync(draftPath, draft);
   const filingState = {
     issues: [],
-    mapBody: mapBody(),
+    mapBody: filingPlanBody,
     closingPullRequests: [],
     mergedHead: "abc123",
     reviewEvidenceQueries: 0,
@@ -620,6 +641,34 @@ Discovery slice: S-1
     return { status: 1, stdout: "", stderr: `unexpected: ${joined}` };
   }
 
+  assert.deepEqual(reconcileDiscoverySlices({
+    repo,
+    map,
+    run: filingRun,
+  }), {
+    approvalRequired: null,
+    planIdentity: planIdentity(filingPlanBody),
+    recovered: [],
+    missing: ["S-1", "S-2"],
+  });
+  writeFileSync(
+    draftPath,
+    draft.replace(/^Discovery plan: .*\n/m, ""),
+  );
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /S-1 must carry Discovery plan:/,
+  );
+  assert.equal(filingState.createAttempts, 0);
+  writeFileSync(draftPath, draft);
+
   assert.throws(
     () => fileDiscoverySlice({
       repo,
@@ -645,8 +694,9 @@ Discovery slice: S-1
       title: "Request recovery",
       url: "https://github.com/octocat/project/issues/20",
     },
+    planIdentity: planIdentity(filingPlanBody),
     recovered: [],
-    missing: ["S-1"],
+    missing: ["S-1", "S-2"],
   });
   assert.equal(filingState.mapBody.includes("issues/20"), false);
 
@@ -674,6 +724,54 @@ Discovery slice: S-1
   });
   assert.equal(recovered.number, 20);
   assert.match(filingState.mapBody, /- S-1 — \[Request recovery\].*issues\/20/);
+
+  const frozenMapBody = filingState.mapBody;
+  filingState.mapBody = frozenMapBody.replace(
+    "Ship account recovery.",
+    "Ship a changed account recovery route.",
+  );
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    /frozen discovery plan identity/,
+  );
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /frozen discovery plan identity/,
+  );
+  assert.throws(
+    () => runDiscoveryProtocol({
+      command: "complete-map",
+      map,
+      repo,
+    }, {
+      run: filingRun,
+    }),
+    /frozen discovery plan identity/,
+  );
+  writeFileSync(planPath, filingState.mapBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({
+        extraIssues: [filingState.issues[0]],
+        mapState: { body: filingState.mapBody, edits: 0 },
+      }),
+    }),
+    /frozen discovery plan identity/,
+  );
+  assert.equal(filingState.closeAttempts, 0);
+  filingState.mapBody = frozenMapBody;
 
   writeFileSync(draftPath, `${changedRecoveryBody}\nHarmless redraft difference.\n`);
   const filed = fileDiscoverySlice({
@@ -747,18 +845,6 @@ Discovery slice: S-1
   filingState.mapLabels = [{ name: "gsd:map" }];
 
   const firstIssue = filingState.issues[0];
-  filingState.mapBody = mapBody({
-    queue: "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)",
-    slices: `### S-1 — Request recovery
-
-Delivers: A user can request recovery.
-Needs: None.
-
-### S-2 — Complete recovery
-
-Delivers: A user can complete recovery.
-Needs: S-1`,
-  });
   filingState.issues = [firstIssue];
   writeFileSync(draftPath, `## Why
 
@@ -796,7 +882,7 @@ Needs #ISSUE merged
     /malformed Needs dependency/,
   );
 
-  filingState.mapBody = mapBody();
+  filingState.mapBody = filingPlanBody;
   filingState.issues = [];
   filingState.createdBody = `${draft}\nUnexpected mutation.\n`;
   writeFileSync(draftPath, draft);
@@ -812,7 +898,7 @@ Needs #ISSUE merged
     /differs from the approved title or body/,
   );
 
-  filingState.mapBody = mapBody();
+  filingState.mapBody = filingPlanBody;
   filingState.issues = [];
   filingState.createFailure = "GitHub rejected the issue";
   filingState.createdBody = draft;
