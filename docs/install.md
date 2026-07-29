@@ -35,7 +35,23 @@ administration access or a custom role with permission to edit repository
 rules. Without that permission, setup keeps the build lane ready and leaves
 review blocked.
 
-## Recommended onboarding
+## Choose an onboarding path
+
+### Install before GitHub
+
+Install the five skills before creating or connecting a GitHub repository:
+
+```bash
+npx @opengsd/gsd-loop@latest install --dry-run
+npx @opengsd/gsd-loop@latest install
+```
+
+Skill installation does not require a GitHub repository or an authenticated
+`gh` CLI. It does not prepare labels, CI rules, or repository-local state.
+After the repository is on GitHub, run `init` from its local checkout to finish
+repository setup.
+
+### Install and initialize together
 
 Run this inside an existing GitHub worktree:
 
@@ -165,14 +181,7 @@ Exit status `0` means the requested readiness level passed, `1` is an
 operational failure, `2` is invalid usage, and `3` means setup is safely waiting
 for human action.
 
-## Install skills only
-
-Use `install` when repository setup is not wanted:
-
-```bash
-npx @opengsd/gsd-loop@latest install --dry-run
-npx @opengsd/gsd-loop@latest install
-```
+## Skill installation options
 
 Select which hosts receive native adapters or choose adapter behavior when
 necessary:
