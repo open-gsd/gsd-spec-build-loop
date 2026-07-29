@@ -153,10 +153,14 @@ Needs: S-1
 While `## Graduation` is `Not ready.`, slice IDs and order are provisional.
 When the plan changes, ask the human to approve a complete replacement already
 expressed in valid sequential `S-N` order with backward-only `Needs`.
-Do not automatically reorder, renumber, or rewrite `Needs`. The plan freezes
-when the human approves it and the map first graduates.
+Do not automatically reorder, renumber, or rewrite `Needs`. Graduation binds
+the approved plan to the active identity. Returning an unfiled map to
+`Not ready.` makes the plan provisional again; filing the first slice freezes
+it permanently.
 
-IDs are always sequential. They become permanent when the map graduates.
+IDs are always sequential. IDs become permanent only at graduation of the plan
+that reaches filing; an explicit pre-filing re-chart makes them provisional
+again.
 `Needs` is `None.` or a comma-separated list of earlier slice IDs. Each slice
 must fit roughly one agent-day and leave the repository in a useful,
 verifiable state. Prefer independent slices; tell the human when a chain is
@@ -380,7 +384,8 @@ Then, as one coherent update:
 7. When the resolved decision changes the filing plan, present the human with
    a complete replacement plan that already uses the exact `S-1` through
    `S-N` sequence and valid backward-only `Needs`. Do not automatically reorder,
-   renumber, or rewrite the plan. These IDs become permanent only at graduation.
+   renumber, or rewrite the plan. Follow the graduation and pre-filing re-chart
+   rule above for ID permanence.
 8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.

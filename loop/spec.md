@@ -50,8 +50,9 @@ If the fetched map is already closed, the validator output must show exactly
 one queue issue for every delivery slice. A closed map is valid only for this
 terminal completion retry: run
 `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO` and stop. Do not
-run remote validation, recovery, drafting, or filing against a closed map. If
-the queue is incomplete, stop and report the invalid closed state.
+run the standalone `validate` command, recovery, drafting, or filing against a
+closed map. If the queue is incomplete, stop and report the invalid closed
+state.
 
 Run the shared remote protocol validator:
 
