@@ -11,25 +11,25 @@ The user or business problem, in a sentence or two.
 
 ## Outcomes
 
-- [ ] O-1 —
-- [ ] O-2 —
+- [ ] O-1 — First observable, checkable result
+- [ ] O-2 — Second observable, checkable result
 
 ## Exclusions
 
-- X-1 —
-- X-2 —
+- X-1 — Behavior that must survive this change untouched
+- X-2 — Work deliberately deferred or ruled out
 
 ## Code pointers
 
-- path/to/file —
+- path/to/file.ts — its role in this change
 
 ## Testing notes
 
--
+- What deserves automated or manual coverage
 
 ## Manual walkthrough
 
-1.
+1. Step-by-step instructions a stranger could follow to confirm every outcome
 
 <!--
 Keep it to one agent-day of work. Depends on another issue? Add a
