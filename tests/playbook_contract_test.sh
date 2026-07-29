@@ -47,6 +47,8 @@ grep -q 'Concurrent same-map passes are' "$SPEC"
 grep -q 'including passes authenticated as the same GitHub login' "$DISCOVER"
 grep -q 'IDs become permanent only at graduation' "$DISCOVER"
 grep -q 'Do not automatically reorder, renumber, or rewrite' "$DISCOVER"
+grep -q 'Once the first slice issue is filed' "$DISCOVER"
+grep -q 'requires a new discovery map' "$SPEC"
 grep -q 'node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO' "$SPEC"
 if grep -Eq 'DISCOVERY_PROTOCOL (lock|unlock|approve-slice)|filing reservation|Approved sha256:' "$SPEC"; then
   echo 'spec must use the single-pass marker recovery contract' >&2

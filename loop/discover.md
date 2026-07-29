@@ -419,9 +419,14 @@ The helper validates the exact proposed body and all remote decision evidence,
 writes that body, re-fetches it, and validates it again. Initial graduation
 also requires `## Queue issues` to be exactly `None.`; no prelinked slice can
 bypass spec's exact draft and human approval gate. Once the remote map is ready,
-its delivery slices are immutable. If the plan must change, first change only
-`## Graduation` back to `Not ready.`, verify that write, re-chart the now
+it may return to `Not ready.` for re-charting only while `## Queue issues` is
+still exactly `None.` and no marker-bearing slice issue exists. Before filing
+starts, change only `## Graduation`, verify that write, re-chart the now
 provisional plan, and repeat the complete human approval and graduation gate.
+Once the first slice issue is filed, the delivery plan, slice IDs and order,
+destination, decisions, and scope are immutable. Any later route or scope
+change requires a new discovery map; never mutate or cancel the already-filed
+contracts.
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
 form above rejects missing slices, malformed fields, and dependencies that do

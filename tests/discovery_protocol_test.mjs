@@ -164,6 +164,7 @@ function evidenceRunFactory({
   association = "MEMBER",
   childUrl = issueUrl,
   duplicate = false,
+  extraIssues = [],
   labels = [{ name: "gsd:map" }],
   mapState,
   referenceTitle = "Choose channel",
@@ -193,7 +194,7 @@ function evidenceRunFactory({
           title: referenceTitle,
           body: decisionBody(),
           html_url: issueUrl,
-        }]),
+        }, ...extraIssues]),
         stderr: "",
       };
     }
@@ -353,12 +354,62 @@ const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-protocol-"));
 try {
   const planPath = join(testRoot, "plan.md");
   const prelinkedQueue = "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)";
-  const prelinkedState = {
+  const unledgeredState = {
+    body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+    edits: 0,
+  };
+  writeFileSync(planPath, mapBody({ slices: reorderedSlices }));
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({
+        extraIssues: [{
+          number: 20,
+          title: "Request recovery",
+          body: "Discovery map: #10\nDiscovery slice: S-1",
+          html_url: "https://github.com/octocat/project/issues/20",
+          state: "open",
+        }],
+        mapState: unledgeredState,
+      }),
+    }),
+    /slice filing has started; .*Create a new discovery map.*do not mutate or cancel filed contracts/,
+  );
+  assert.equal(unledgeredState.edits, 0);
+
+  const filingStartedState = {
     body: mapBody({
       graduation: "Not ready.",
       queue: prelinkedQueue,
       slices: originalSlices,
     }),
+    edits: 0,
+  };
+  writeFileSync(planPath, mapBody({ slices: reorderedSlices }));
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: filingStartedState }),
+    }),
+    /slice filing has started; .*Create a new discovery map.*do not mutate or cancel filed contracts/,
+  );
+  assert.match(filingStartedState.body, /issues\/20/);
+  assert.equal(filingStartedState.edits, 0);
+
+  const prelinkedState = {
+    body: mapBody({
+      graduation: "Not ready.",
+      slices: originalSlices,
+    }),
+    edits: 0,
   };
   writeFileSync(planPath, mapBody({
     queue: prelinkedQueue,

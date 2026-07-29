@@ -173,6 +173,12 @@ that number, not a guess.
 
 When the source was a discovery map:
 
+Once the first slice issue is filed, including an issue awaiting marker-based
+recovery, the map's delivery plan, slice IDs and order, destination, decisions,
+and scope are immutable.
+A later route or scope change requires a new discovery map. Never mutate or
+cancel an already-filed contract.
+
 1. Confirm no other discovery or spec pass is operating on this map, including
    one authenticated as the same GitHub login. Concurrent same-map passes are
    unsupported; this is an operating precondition, not a distributed lock.
