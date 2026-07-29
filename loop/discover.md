@@ -414,9 +414,11 @@ node DISCOVERY_PROTOCOL graduate MAP --repo OWNER/REPO \
 ```
 
 The helper validates the exact proposed body and all remote decision evidence,
-writes that body, re-fetches it, and validates it again. Once the remote map is
-ready, its delivery slices are immutable. If the plan must change, first change
-only `## Graduation` back to `Not ready.`, verify that write, re-chart the now
+writes that body, re-fetches it, and validates it again. Initial graduation
+also requires `## Queue issues` to be exactly `None.`; no prelinked slice can
+bypass spec's exact draft and human approval gate. Once the remote map is ready,
+its delivery slices are immutable. If the plan must change, first change only
+`## Graduation` back to `Not ready.`, verify that write, re-chart the now
 provisional plan, and repeat the complete human approval and graduation gate.
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. While charting a not-ready map, use `--allow-not-ready`; the ready

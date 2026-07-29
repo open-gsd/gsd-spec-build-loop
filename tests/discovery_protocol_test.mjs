@@ -351,6 +351,30 @@ const reorderedPlanBody = mapBody({ slices: reorderedSlices });
 const testRoot = mkdtempSync(join(tmpdir(), "gsd-loop-protocol-"));
 try {
   const planPath = join(testRoot, "plan.md");
+  const prelinkedQueue = "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)";
+  const prelinkedState = {
+    body: mapBody({
+      graduation: "Not ready.",
+      queue: prelinkedQueue,
+      slices: originalSlices,
+    }),
+  };
+  writeFileSync(planPath, mapBody({
+    queue: prelinkedQueue,
+    slices: originalSlices,
+  }));
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: prelinkedState }),
+    }),
+    /Queue issues must be None/,
+  );
+
   writeFileSync(planPath, reorderedPlanBody);
   const graduationState = {
     body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
@@ -405,6 +429,8 @@ Discovery slice: S-1
     createAttempts: 0,
     createFailure: null,
     createdBody: draft,
+    closeAttempts: 0,
+    closeResponseLost: false,
     failMapUpdate: true,
     mapState: "OPEN",
     mapLabels: [{ name: "gsd:map" }],
@@ -479,7 +505,12 @@ Discovery slice: S-1
       return { status: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("issue close 10")) {
+      filingState.closeAttempts += 1;
       filingState.mapState = "CLOSED";
+      if (filingState.closeResponseLost) {
+        filingState.closeResponseLost = false;
+        return { status: 1, stdout: "", stderr: "close response lost" };
+      }
       return { status: 0, stdout: "", stderr: "" };
     }
     return { status: 1, stdout: "", stderr: `unexpected: ${joined}` };
@@ -564,6 +595,12 @@ Discovery slice: S-1
   );
   assert.equal(filingState.reviewEvidenceQueries, 0);
   filingState.issues[0].state = "open";
+  filingState.issues[0].labels = [{ name: "gsd:ready" }];
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    /must not carry gsd:ready before discovery map completion/,
+  );
+  filingState.issues[0].labels = [];
 
   filingState.issues.push({
     id: 602,
@@ -729,6 +766,18 @@ Needs: S-1`,
     }).number,
     22,
   );
+  filingState.closeResponseLost = true;
+  assert.throws(
+    () => runDiscoveryProtocol({
+      command: "complete-map",
+      map,
+      repo,
+    }, {
+      run: filingRun,
+    }),
+    /close response lost/,
+  );
+  assert.equal(filingState.mapState, "CLOSED");
   assert.deepEqual(
     runDiscoveryProtocol({
       command: "complete-map",
@@ -739,7 +788,7 @@ Needs: S-1`,
     }),
     { closed: true, slices: 2 },
   );
-  assert.equal(filingState.mapState, "CLOSED");
+  assert.equal(filingState.closeAttempts, 1);
 } finally {
   rmSync(testRoot, { recursive: true, force: true });
 }

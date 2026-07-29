@@ -195,15 +195,17 @@ When the source was a discovery map:
    markers, exact dependencies, and that every linked issue remains open;
    searches before creation; reconciles an uncertain create result; updates the
    queue; and verifies the write. A prematurely closed slice blocks the pass
-   for human intervention; spec never interprets review or merge evidence. Its
-   returned issue number is authoritative for the next slice. Repeat steps 3–4
-   until all slices are linked.
+   for human intervention, as does any slice labeled `gsd:ready` before map
+   completion; spec never interprets review or merge evidence. Its returned
+   issue number is authoritative for the next slice. Repeat steps 3–4 until all
+   slices are linked.
 5. Comment on the map with the title and URL of every issue created in this
    pass. After the human explicitly confirms that the linked issues still cover
    the map's entire destination, run
    `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO`. It verifies
    that every slice has a queue entry, every linked issue is still open, and
-   only then closes the map.
+   only then closes the map. The command is repeat-safe: if the close response
+   was lost, a retry verifies the already-closed map and reports completion.
 
 Only after the map is confirmed closed does the human apply `gsd:ready` to
 each issue individually. Until then the new issues remain open but outside the
