@@ -1324,6 +1324,7 @@ Needs: S-1`,
   for (const issue of filingState.issues) {
     issue.state = "closed";
     issue.labels = [{ name: "gsd:ready" }];
+    issue.body = issue.body.replace("- [ ] O-1", "- [x] O-1");
   }
   assert.deepEqual(
     runDiscoveryProtocol({
