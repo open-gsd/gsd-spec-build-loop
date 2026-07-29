@@ -33,7 +33,7 @@ global skill directory.
 
 | Playbook | Mode | One pass does |
 |---|---|---|
-| `loop/discover.md` | interactive | Chart a large uncertain effort, resolve one frontier decision, and shape the cleared destination into delivery slices |
+| `loop/discover.md` | interactive | Chart a large uncertain effort, resolve one frontier decision, or re-chart and graduate or stop after the frontier clears |
 | `loop/spec.md` | interactive | Interview you about a raw idea, or turn a cleared map's slices into separate GitHub issues with `O-N` outcome / `X-N` exclusion contracts |
 | `loop/build.md` | unattended | Repair one `gsd:rework` PR, or claim the oldest safe `gsd:ready` issue and open a PR |
 | `loop/review.md` | unattended | Audit one PR against its issue contract and required CI, post a `gsd-loop verdict`, synchronize outcome checkboxes, set labels |
@@ -77,12 +77,13 @@ inside that harness:
 | Kimi Code | `/skill:gsd-loop-discover` | `/skill:gsd-loop-spec` | `/skill:gsd-loop-build` | `/skill:gsd-loop-review` | `/skill:gsd-loop-schedule` |
 
 Use discover only when an effort is too large and uncertain to specify. Each
-invocation charts a map or resolves one decision with you present. Once the map
-is clear, it records one or more delivery slices; spec files each slice as its
-own issue. For an already clear idea, start with spec directly. Read every
-filed issue and add `gsd:ready` individually. Build processes those issues over
-bounded passes. Build and review belong in separate harness sessions so their
-state cannot mix.
+invocation charts a map or performs one bounded advance with you present. An
+advance resolves at most one decision; after the frontier clears, it may
+instead re-chart and graduate or stop. Once the map is clear, it records one or
+more delivery slices; spec files each slice as its own issue. For an already
+clear idea, start with spec directly. Read every filed issue and add
+`gsd:ready` individually. Build processes those issues over bounded passes.
+Build and review belong in separate harness sessions so their state cannot mix.
 
 Each build or review invocation executes exactly one bounded pass. To keep a
 lane running, invoke the scheduling skill inside that lane's session using the

@@ -9,8 +9,10 @@ to `loop/spec.md`, `loop/build.md`, and `loop/review.md`.
 One invocation does one bounded pass:
 
 - **Chart** a new map and its initial decision frontier, then stop; or
-- **Advance** an existing map by resolving exactly one frontier decision, then
-  stop.
+- **Advance** an existing map through one bounded decision or recovery step,
+  then stop. A decision advance resolves exactly one frontier decision. When
+  none remains, a recovery advance may re-chart and graduate or stop without
+  resolving a decision.
 
 Never schedule this playbook. Never write product code or open a product PR,
 and never apply `gsd:ready`.
