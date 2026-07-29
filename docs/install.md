@@ -230,6 +230,8 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
+- **Upgrading from `0.3.0`:** rerun `init` or `install` with version `0.4.0` to
+  refresh the installed skills and deterministic helpers.
 - **Upgrading from `0.2.5`:** rerun `init` or `install` with version `0.4.0` to
   add the interactive discovery workflow and its deterministic map helpers.
 - **Upgrading from `0.2.3` or `0.2.4`:** rerun `init` with version `0.4.0` to
