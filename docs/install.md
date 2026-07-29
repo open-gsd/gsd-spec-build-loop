@@ -23,17 +23,17 @@ authenticate, select, or launch a model or agent application.
 
 ## Prerequisites
 
-Standalone skill installation requires:
-
-- Node.js 18 or newer, including `npm` and `npx`;
-- one supported agent harness with shell access.
-
-It does not require Git, a GitHub repository, or an authenticated `gh` CLI.
+Standalone skill installation requires Node.js 18 or newer, including `npm`
+and `npx`. It does not require Git, a GitHub repository, an authenticated `gh`
+CLI, or an installed agent harness. Using the skills requires a supported
+agent harness with shell access.
 
 `init` and repository setup additionally require:
 
-- Git with a configured author name and email;
+- Git;
 - the [`gh` CLI](https://cli.github.com/) authenticated with push access.
+
+Creating a repository also requires a configured Git author name and email.
 
 Before review, the repository must have a real successful CI check. gsd-loop
 can require an existing check, but it does not invent an always-green workflow.
@@ -53,8 +53,7 @@ npx @opengsd/gsd-loop@latest install --dry-run
 npx @opengsd/gsd-loop@latest install
 ```
 
-Skill installation does not require a GitHub repository or an authenticated
-`gh` CLI. It does not prepare labels, CI rules, or repository-local state.
+This command does not prepare labels, CI rules, or repository-local state.
 After the repository is on GitHub, run `init` from its local checkout to finish
 repository setup.
 
@@ -134,7 +133,8 @@ npx @opengsd/gsd-loop@latest init --yes --required-check test
 
 ## Run skills inside the harness
 
-Start a new harness session after installation. Invoke one skill per pass:
+After installation and repository setup, start a new harness session. Invoke
+one skill per pass:
 
 | Agent | Discover | Spec | Build | Review | Schedule |
 |---|---|---|---|---|---|

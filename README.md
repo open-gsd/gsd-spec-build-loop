@@ -58,9 +58,7 @@ GitHub repository:
 npx @opengsd/gsd-loop@latest install
 ```
 
-Skill installation does not require a GitHub repository or an authenticated
-`gh` CLI. Once the repository is on GitHub, run its bootstrap from the local
-checkout:
+Once the repository is on GitHub, run its bootstrap from the local checkout:
 
 ```bash
 npx @opengsd/gsd-loop@latest init
@@ -118,25 +116,17 @@ The loop is deliberately incapable of doing these:
 
 ## Requirements
 
-Standalone skill installation requires Node.js 18+ with `npm` and `npx`, plus
-a supported agent harness with shell access. It does not require Git, a GitHub
-repository, or an authenticated `gh` CLI, and it does not install,
-authenticate, select, or launch the harness.
-
-`init` and repository setup additionally require Git with a configured author
-name and email and the `gh` CLI authenticated with push access. Before review,
-the default branch must have **required status checks configured**. The
-reviewer refuses to treat missing CI as green. `init` configures an existing
-successful check when the GitHub plan and repository permissions support
-rulesets; it never creates a fake always-green workflow. See the
-[installation guide](docs/install.md) for repository creation, plan, and
-permission details.
+Standalone installation, repository setup, and skill execution have separate
+prerequisites; see the [installation guide](docs/install.md) for the complete
+requirements. Before review, the default branch must have **required status
+checks configured**. The reviewer refuses to treat missing CI as green. `init`
+configures an existing successful check when the GitHub plan and repository
+permissions support rulesets; it never creates a fake always-green workflow.
 
 The bootstrap reports missing prerequisites or review protections before the
 first skill run. After it finishes, invoke the skills from any GitHub worktree;
-no project files need to be copied. Advanced selective installation,
-unattended bootstrap, diagnostics, and recovery are documented in the
-[installation guide](docs/install.md).
+no project files need to be copied. The installation guide also covers
+selective installation, unattended bootstrap, diagnostics, and recovery.
 
 ## Maintainer releases
 
