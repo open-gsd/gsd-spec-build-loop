@@ -313,6 +313,14 @@ Choose the first frontier issue in the sub-issue order. If open children exist
 but the frontier is empty, report the dependency cycle, unresolved blocker, or
 existing assignee and stop.
 
+If no open children remain, do not choose or claim a decision. Re-chart the
+remaining fog against the destination and the graduation conditions. If that
+exposes another precise decision, append it with the next permanent `D-N` id,
+run reconciliation, and stop. Otherwise, confirm the complete slice plan with
+the human and continue directly to "Graduate or stop." A map must not remain
+`Not ready.` only because recovery completed its final decision in an earlier
+pass.
+
 Claim the chosen decision with `gh issue edit DECISION --add-assignee @me`,
 then re-fetch it. A decision assigned to someone else is not available.
 

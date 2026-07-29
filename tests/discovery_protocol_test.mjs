@@ -184,6 +184,16 @@ assert.deepEqual(reconcileDecisionIssues({ repo, map, run: reconcileRun }), {
   missing: [],
 });
 assert.match(reconcileState.mapBody, /Issue: #7/);
+reconcileState.mapBody = mapBody({ issue: "Pending." })
+  .replace("## Decision frontier\n\n", "## Decision frontier\n")
+  .replace("\n\n## Not yet specified", "\n## Not yet specified");
+assert.deepEqual(reconcileDecisionIssues({ repo, map, run: reconcileRun }), {
+  attached: [],
+  dependencies: [],
+  missing: [],
+});
+assert.match(reconcileState.mapBody, /Issue: #7/);
+assert.match(reconcileState.mapBody, /## Not yet specified\n\nNone\./);
 reconcileState.issueTitle = "Conflicting title";
 assert.throws(
   () => reconcileDecisionIssues({ repo, map, run: reconcileRun }),
@@ -651,6 +661,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     }],
     closingPullRequests: [],
     mergedHead: "abc123",
+    repositoryIssueQueries: 0,
     reviewEvidenceQueries: 0,
     reviewerLogin: "reviewer",
     verdictComments: [],
@@ -666,6 +677,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
   function filingRun(program, argumentsList, options = {}) {
     const joined = argumentsList.join(" ");
     if (joined.includes("issues?state=all")) {
+      filingState.repositoryIssueQueries += 1;
       return {
         status: 0,
         stdout: pages([{
@@ -827,6 +839,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
   assert.equal(filingState.createAttempts, 0);
   writeFileSync(draftPath, draft);
 
+  filingState.repositoryIssueQueries = 0;
   assert.throws(
     () => fileDiscoverySlice({
       repo,
@@ -838,6 +851,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     }),
     /map update failed/,
   );
+  assert.equal(filingState.repositoryIssueQueries, 2);
   assert.equal(filingState.createAttempts, 1);
   assert.equal(filingState.mapBody.includes("issues/20"), false);
   assert.deepEqual(reconcileDiscoverySlices({
