@@ -214,11 +214,13 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
-- **Upgrading from `0.2.3` or `0.2.4`:** rerun `init` with version `0.2.5` to
-  install the corrected Claude skill entry points. Upgrades from `0.2.3` also
-  install the build linkage guard and Grok adapter, and locally exclude
-  `.gsd/scheduled_tasks.lock`. Use `install` instead only when repository setup
-  is not wanted.
+- **Upgrading from `0.2.5`:** rerun `init` or `install` with version `0.3.0` to
+  add the interactive discovery workflow and its deterministic map helpers.
+- **Upgrading from `0.2.3` or `0.2.4`:** rerun `init` with version `0.3.0` to
+  install discovery and the corrected Claude skill entry points. Upgrades from
+  `0.2.3` also install the build linkage guard and Grok adapter, and locally
+  exclude `.gsd/scheduled_tasks.lock`. Use `install` instead only when
+  repository setup is not wanted.
 - **Upgrading from `0.2.2`:** rerun `init` or `install` with version `0.2.3` so
   review outcome synchronization recognizes the repository identity returned
   by the `gh` CLI for linked issues.
