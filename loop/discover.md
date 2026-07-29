@@ -148,9 +148,11 @@ Delivers: <one independently observable result>
 Needs: S-1
 ```
 
-While `## Graduation` is `Not ready.`, slice IDs and order are provisional and
-may be rewritten as decisions clarify the route. They freeze only when the
-human approves the complete plan and the map first graduates.
+While `## Graduation` is `Not ready.`, slice IDs and order are provisional.
+When the plan changes, ask the human to approve a complete replacement already
+expressed in valid sequential `S-N` order with backward-only `Needs`.
+Do not automatically reorder, renumber, or rewrite `Needs`. The plan freezes
+when the human approves it and the map first graduates.
 
 IDs are always sequential. They become permanent when the map graduates.
 `Needs` is `None.` or a comma-separated list of earlier slice IDs. Each slice
@@ -365,10 +367,10 @@ Then, as one coherent update:
 4. Create only the reconciler's missing decisions and rerun it to attach them.
 5. Wire native dependency edges after every new issue has an id.
 6. Move anything revealed beyond the destination into `## Out of scope`.
-7. Add, split, or merge delivery slices when the resolved decision changes the
-   filing plan. While the map is `Not ready.`, renumber the complete plan to the
-   exact `S-1` through `S-N` sequence and rewrite every `Needs` edge whenever
-   order changes. These IDs become permanent only at graduation.
+7. When the resolved decision changes the filing plan, present the human with
+   a complete replacement plan that already uses the exact `S-1` through
+   `S-N` sequence and valid backward-only `Needs`. Do not automatically reorder,
+   renumber, or rewrite the plan. These IDs become permanent only at graduation.
 8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.

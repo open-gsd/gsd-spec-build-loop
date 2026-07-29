@@ -181,6 +181,7 @@ function evidenceRunFactory({
       };
     }
     if (joined.includes("issue edit 10") && mapState) {
+      mapState.edits += 1;
       mapState.body = options.input;
       return { status: 0, stdout: "", stderr: "" };
     }
@@ -378,6 +379,7 @@ try {
   writeFileSync(planPath, reorderedPlanBody);
   const graduationState = {
     body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+    edits: 0,
   };
   assert.deepEqual(
     runDiscoveryProtocol({
@@ -393,6 +395,7 @@ try {
     { decisions: 1, slices: 2 },
   );
   assert.equal(graduationState.body, reorderedPlanBody);
+  assert.equal(graduationState.edits, 1);
 
   writeFileSync(planPath, originalPlanBody);
   assert.throws(
@@ -404,8 +407,58 @@ try {
     }, {
       run: evidenceRunFactory({ mapState: graduationState }),
     }),
-    /ready delivery slices are immutable/,
+    /ready discovery map is frozen/,
   );
+
+  graduationState.body = mapBody({
+    queue: "- S-1 — [Complete recovery](https://github.com/octocat/project/issues/20)",
+    slices: reorderedSlices,
+  });
+  writeFileSync(planPath, reorderedPlanBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: graduationState }),
+    }),
+    /ready discovery map is frozen/,
+  );
+  assert.match(graduationState.body, /issues\/20/);
+  assert.equal(graduationState.edits, 1);
+
+  writeFileSync(planPath, graduationState.body);
+  assert.deepEqual(
+    runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: graduationState }),
+    }),
+    { decisions: 1, slices: 2 },
+  );
+  assert.equal(graduationState.edits, 1);
+
+  writeFileSync(
+    planPath,
+    graduationState.body.replace("Ship account recovery.", "Ship another recovery flow."),
+  );
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: graduationState }),
+    }),
+    /ready discovery map is frozen/,
+  );
+  assert.equal(graduationState.edits, 1);
 
   const draftPath = join(testRoot, "slice.md");
   const draft = `## Why
