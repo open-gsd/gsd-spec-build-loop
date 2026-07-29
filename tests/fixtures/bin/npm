@@ -7,7 +7,7 @@ if [ "${1:-}" = view ]; then
   case "${MOCK_NPM_VIEW_RESULT:-missing}" in
     exists)
       printf '{"version":"%s","gitHead":"%s"}\n' \
-        "${MOCK_PACKAGE_VERSION:-0.2.5}" \
+        "${MOCK_PACKAGE_VERSION:-0.3.0}" \
         "${MOCK_NPM_GIT_HEAD:-0123456789abcdef0123456789abcdef01234567}"
       ;;
     missing)

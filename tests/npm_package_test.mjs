@@ -81,8 +81,11 @@ try {
   assert.ok(existsSync(packageRoot), "packed artifact must install as @opengsd/gsd-loop");
   const cli = join(packageRoot, "bin", "gsd-loop.mjs");
   const metadata = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
+  const lockfile = JSON.parse(readFileSync(join(repositoryRoot, "package-lock.json"), "utf8"));
   assert.equal(metadata.name, "@opengsd/gsd-loop");
-  assert.equal(metadata.version, "0.2.5");
+  assert.equal(metadata.version, "0.3.0");
+  assert.equal(lockfile.version, metadata.version);
+  assert.equal(lockfile.packages[""].version, metadata.version);
   const run = (args, options = {}) => command(process.execPath, [cli, ...args], options);
 
   assert.equal(run(["--version"]).stdout.trim(), metadata.version);

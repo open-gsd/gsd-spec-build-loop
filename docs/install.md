@@ -214,19 +214,21 @@ python3 scripts/install-global.py
 
 ## Troubleshooting
 
-- **Upgrading from `0.2.3` or `0.2.4`:** rerun `init` with version `0.2.5` to
-  install the corrected Claude skill entry points. Upgrades from `0.2.3` also
-  install the build linkage guard and Grok adapter, and locally exclude
-  `.gsd/scheduled_tasks.lock`. Use `install` instead only when repository setup
-  is not wanted.
-- **Upgrading from `0.2.2`:** rerun `init` or `install` with version `0.2.3` so
+- **Upgrading from `0.2.5`:** rerun `init` or `install` with version `0.3.0` to
+  add the interactive discovery workflow and its deterministic map helpers.
+- **Upgrading from `0.2.3` or `0.2.4`:** rerun `init` with version `0.3.0` to
+  install discovery and the corrected Claude skill entry points. Upgrades from
+  `0.2.3` also install the build linkage guard and Grok adapter, and locally
+  exclude `.gsd/scheduled_tasks.lock`. Use `install` instead only when
+  repository setup is not wanted.
+- **Upgrading from `0.2.2`:** rerun `init` or `install` with version `0.3.0` so
   review outcome synchronization recognizes the repository identity returned
   by the `gh` CLI for linked issues.
-- **Upgrading from `0.2.1`:** rerun `init` or `install` with version `0.2.3` to
+- **Upgrading from `0.2.1`:** rerun `init` or `install` with version `0.3.0` to
   add the native Cursor and Gemini adapters. Existing canonical and Claude
   installs remain installer-owned and update safely.
 - **Upgrading from `0.2.0`:** stop any old `npx ... run build|review`
-  processes. Version `0.2.3` ignores their `.git/gsd-loop` state; remove that
+  processes. Version `0.3.0` ignores their `.git/gsd-loop` state; remove that
   directory only after confirming no old runner process is active.
 - **A skill is not visible:** start a new agent session. Gemini can run
   `/skills reload`; Grok can inspect `/skills`; Cursor users should open a new
