@@ -6,11 +6,11 @@ audited verdicts — while every irreversible step stays human.
 
 The loop is four agent-neutral playbooks in `loop/` that any coding agent can
 execute (Codex, Claude Code, Cursor, Gemini CLI, Grok Build, ...). They use
-Node.js and an authenticated `gh` CLI; the installed build and review skills
-bundle the deterministic guards their playbooks invoke, so direct one-pass use
-does not require a global `gsd-loop` command. The installer keeps canonical
-skills in `~/.agents/skills/` and adds native adapters for hosts that use their
-own global skill directory.
+Node.js and an authenticated `gh` CLI; the installed skills bundle the
+deterministic guards their playbooks invoke, so direct one-pass use does not
+require a global `gsd-loop` command. The installer keeps canonical skills in
+`~/.agents/skills/` and adds native adapters for hosts that use their own
+global skill directory.
 
 ```
  foggy idea ──discover──▶ decision map ──slices──┐
@@ -59,10 +59,10 @@ npx @opengsd/gsd-loop@latest init
 
 This is the only user-facing step outside an agent harness. `init` previews one
 plan and asks before it changes anything. It installs or updates the five global
-skills, checks Git and GitHub access and review readiness, creates the five
-labels, and can configure an existing successful CI check as required when the
-GitHub plan and repository permissions support rulesets. It does not choose,
-launch, or configure an agent harness.
+skills, checks Git and GitHub access and review readiness, creates the
+queue/review labels, and can configure an existing successful CI check as
+required when the GitHub plan and repository permissions support rulesets. It
+does not choose, launch, or configure an agent harness.
 
 Start a new harness session after bootstrap. All ongoing work runs as skills
 inside that harness:

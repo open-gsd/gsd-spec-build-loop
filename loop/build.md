@@ -15,7 +15,8 @@ there's nothing to race.
 - Look up the default branch —
   `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name` — and
   use what it says, whatever it says.
-- Guarantee the label vocabulary exists (repeat-safe, non-destructive):
+- Guarantee the queue/review label vocabulary exists (repeat-safe,
+  non-destructive):
 
 ```bash
 for l in gsd:ready gsd:blocked gsd:approved gsd:rework gsd:escalated; do

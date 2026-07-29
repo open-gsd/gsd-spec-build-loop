@@ -11,7 +11,7 @@ owns a decision, it belongs to the user.
 ## Setup
 
 - Verify which repository you're filing into: `gh repo view --json nameWithOwner`.
-- Make sure the loop's label vocabulary exists. Safe to repeat; existing
+- Make sure the queue/review label vocabulary exists. Safe to repeat; existing
   labels keep whatever color and description a human gave them:
 
 ```bash

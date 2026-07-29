@@ -47,7 +47,8 @@ npx @opengsd/gsd-loop@latest init
 
 - installs or updates all five skills;
 - verifies GitHub access;
-- creates the five `gsd:*` labels without replacing existing labels;
+- creates the five queue/review `gsd:*` labels without replacing existing
+  labels; the first discovery pass creates `gsd:map` when needed;
 - locally excludes `.gsd/scheduled_tasks.lock` so native scheduling cannot make
   the worktree look dirty to a builder pass;
 - when one successful check is selected, creates or updates only the dedicated
