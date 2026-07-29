@@ -16,6 +16,23 @@ const map = 10;
 const repo = "octocat/project";
 const issueUrl = "https://github.com/octocat/project/issues/7";
 const gist = `- [Choose channel](${issueUrl}) — Use verified email.`;
+const trustedResolution = `gsd-loop decision for map #10
+
+## Resolution
+
+Use email.
+
+## Evidence
+
+None.
+
+## Consequences
+
+Recovery can be specified.
+
+## Map gist
+
+${gist}`;
 
 function mapBody({
   graduation = "Ready for `gsd-loop-spec`.",
@@ -91,12 +108,17 @@ function pages(items) {
   return JSON.stringify([items]);
 }
 
-function planIdentity(body) {
+function planIdentity(body, resolutionBody = trustedResolution) {
   const normalized = body.replace(
     /((?:^|\r?\n)## Queue issues\r?\n\r?\n)[\s\S]*$/,
     "$1None.",
   );
-  return `sha256:${createHash("sha256").update(normalized).digest("hex")}`;
+  const resolved = [{ body: resolutionBody, id: "D-1", issue: 7 }];
+  return `sha256:${createHash("sha256")
+    .update(normalized)
+    .update("\0")
+    .update(JSON.stringify(resolved))
+    .digest("hex")}`;
 }
 
 assert.deepEqual(
@@ -195,6 +217,16 @@ function evidenceRunFactory({
       mapState.body = options.input;
       return { status: 0, stdout: "", stderr: "" };
     }
+    if (joined.includes("issue comment 10") && mapState) {
+      const body = argumentsList[argumentsList.indexOf("--body") + 1];
+      mapState.graduationComments ??= [];
+      mapState.graduationComments.push({
+        author_association: "MEMBER",
+        user: { login: "resolver" },
+        body,
+      });
+      return { status: 0, stdout: "", stderr: "" };
+    }
     if (joined.includes("issues?state=all")) {
       return {
         status: 0,
@@ -219,27 +251,18 @@ function evidenceRunFactory({
         stderr: "",
       };
     }
-    if (joined.includes("/comments?")) {
+    if (joined.includes("issues/10/comments?")) {
+      return {
+        status: 0,
+        stdout: pages(mapState?.graduationComments ?? []),
+        stderr: "",
+      };
+    }
+    if (joined.includes("issues/7/comments?")) {
       const comment = {
         author_association: association,
         user: { login: "resolver" },
-        body: resolutionBody ?? `gsd-loop decision for map #10
-
-## Resolution
-
-Use email.
-
-## Evidence
-
-None.
-
-## Consequences
-
-Recovery can be specified.
-
-## Map gist
-
-${gist}`,
+        body: resolutionBody ?? trustedResolution,
       };
       return { status: 0, stdout: pages(duplicate ? [comment, comment] : [comment]), stderr: "" };
     }
@@ -456,6 +479,34 @@ try {
   );
   assert.equal(graduationState.body, reorderedPlanBody);
   assert.equal(graduationState.edits, 1);
+  assert.deepEqual(
+    graduationState.graduationComments.map((comment) => comment.body),
+    [`gsd-loop graduation for map #10
+
+Discovery plan: ${planIdentity(reorderedPlanBody)}`],
+  );
+
+  const directReadyEditState = {
+    body: reorderedPlanBody.replace(
+      "Ship account recovery.",
+      "Ship an unapproved recovery route.",
+    ),
+    edits: 0,
+    graduationComments: [...graduationState.graduationComments],
+  };
+  writeFileSync(planPath, directReadyEditState.body);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: directReadyEditState }),
+    }),
+    /differs from its approved graduation evidence/,
+  );
+  assert.equal(directReadyEditState.edits, 0);
 
   writeFileSync(planPath, originalPlanBody);
   assert.throws(
@@ -546,6 +597,14 @@ Discovery plan: ${planIdentity(filingPlanBody)}
   const filingState = {
     issues: [],
     mapBody: filingPlanBody,
+    resolutionBody: trustedResolution,
+    graduationComments: [{
+      author_association: "MEMBER",
+      user: { login: "resolver" },
+      body: `gsd-loop graduation for map #10
+
+Discovery plan: ${planIdentity(filingPlanBody)}`,
+    }],
     closingPullRequests: [],
     mergedHead: "abc123",
     reviewEvidenceQueries: 0,
@@ -563,7 +622,49 @@ Discovery plan: ${planIdentity(filingPlanBody)}
   function filingRun(program, argumentsList, options = {}) {
     const joined = argumentsList.join(" ");
     if (joined.includes("issues?state=all")) {
-      return { status: 0, stdout: pages(filingState.issues), stderr: "" };
+      return {
+        status: 0,
+        stdout: pages([{
+          number: 7,
+          title: "Choose channel",
+          body: decisionBody(),
+          html_url: issueUrl,
+        }, ...filingState.issues]),
+        stderr: "",
+      };
+    }
+    if (joined.includes("sub_issues?")) {
+      return {
+        status: 0,
+        stdout: pages([{
+          number: 7,
+          title: "Choose channel",
+          html_url: issueUrl,
+          state: "closed",
+        }]),
+        stderr: "",
+      };
+    }
+    if (joined.includes("issues/7/comments?")) {
+      return {
+        status: 0,
+        stdout: pages([{
+          author_association: "MEMBER",
+          user: { login: "resolver" },
+          body: filingState.resolutionBody,
+        }]),
+        stderr: "",
+      };
+    }
+    if (joined.includes("issues/10/comments?")) {
+      return {
+        status: 0,
+        stdout: pages(filingState.graduationComments),
+        stderr: "",
+      };
+    }
+    if (joined.includes("issues/7/dependencies/blocked_by?")) {
+      return { status: 0, stdout: pages([]), stderr: "" };
     }
     if (joined.includes("issue create")) {
       filingState.createAttempts += 1;
@@ -667,6 +768,19 @@ Discovery plan: ${planIdentity(filingPlanBody)}
     /S-1 must carry Discovery plan:/,
   );
   assert.equal(filingState.createAttempts, 0);
+  writeFileSync(draftPath, `${draft}\n  Discovery plan: not-a-digest\n`);
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /malformed Discovery plan marker/,
+  );
+  assert.equal(filingState.createAttempts, 0);
   writeFileSync(draftPath, draft);
 
   assert.throws(
@@ -732,7 +846,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}
   );
   assert.throws(
     () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
-    /frozen discovery plan identity/,
+    /differs from its approved graduation evidence/,
   );
   assert.throws(
     () => fileDiscoverySlice({
@@ -743,7 +857,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}
       bodyPath: draftPath,
       run: filingRun,
     }),
-    /frozen discovery plan identity/,
+    /differs from its approved graduation evidence/,
   );
   assert.throws(
     () => runDiscoveryProtocol({
@@ -753,7 +867,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}
     }, {
       run: filingRun,
     }),
-    /frozen discovery plan identity/,
+    /differs from its approved graduation evidence/,
   );
   writeFileSync(planPath, filingState.mapBody);
   assert.throws(
@@ -765,13 +879,24 @@ Discovery plan: ${planIdentity(filingPlanBody)}
     }, {
       run: evidenceRunFactory({
         extraIssues: [filingState.issues[0]],
-        mapState: { body: filingState.mapBody, edits: 0 },
+        mapState: {
+          body: filingState.mapBody,
+          edits: 0,
+          graduationComments: filingState.graduationComments,
+        },
       }),
     }),
-    /frozen discovery plan identity/,
+    /differs from its approved graduation evidence/,
   );
   assert.equal(filingState.closeAttempts, 0);
   filingState.mapBody = frozenMapBody;
+
+  filingState.resolutionBody = trustedResolution.replace("Use email.", "Use SMS.");
+  assert.throws(
+    () => reconcileDiscoverySlices({ repo, map, run: filingRun }),
+    /differs from its approved graduation evidence/,
+  );
+  filingState.resolutionBody = trustedResolution;
 
   writeFileSync(draftPath, `${changedRecoveryBody}\nHarmless redraft difference.\n`);
   const filed = fileDiscoverySlice({
@@ -846,6 +971,25 @@ Discovery plan: ${planIdentity(filingPlanBody)}
 
   const firstIssue = filingState.issues[0];
   filingState.issues = [firstIssue];
+  writeFileSync(draftPath, `## Why
+
+Discovery map: #10
+Discovery slice: S-2
+Discovery plan: ${planIdentity(filingPlanBody)}
+Needs #20 merged
+`);
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-2",
+      title: "Complete recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must omit the Discovery plan marker/,
+  );
+
   writeFileSync(draftPath, `## Why
 
 Discovery map: #10

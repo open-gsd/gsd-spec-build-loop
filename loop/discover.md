@@ -416,9 +416,10 @@ node DISCOVERY_PROTOCOL graduate MAP --repo OWNER/REPO \
 ```
 
 The helper validates the exact proposed body and all remote decision evidence,
-writes that body, re-fetches it, and validates it again. Initial graduation
-also requires `## Queue issues` to be exactly `None.`; no prelinked slice can
-bypass spec's exact draft and human approval gate. Once the remote map is ready,
+persists a trusted graduation event whose identity binds both, writes that
+body, re-fetches it, and validates it again. Initial graduation also requires
+`## Queue issues` to be exactly `None.`; no prelinked slice can bypass spec's
+exact draft and human approval gate. Once the remote map is ready,
 it may return to `Not ready.` for re-charting only while `## Queue issues` is
 still exactly `None.` and no marker-bearing slice issue exists. Before filing
 starts, change only `## Graduation`, verify that write, re-chart the now
@@ -427,7 +428,8 @@ Once the first slice issue is filed, the delivery plan, slice IDs and order,
 destination, decisions, and scope are immutable. Any later route or scope
 change requires a new discovery map; never mutate or cancel the already-filed
 contracts. Spec binds the graduated plan identity into S-1, and every later
-graduation retry, recovery, filing step, and map completion verifies it.
+graduation retry, recovery, filing step, and map completion verifies it against
+the trusted graduation event and current trusted decision resolutions.
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
 form above rejects missing slices, malformed fields, and dependencies that do
