@@ -1337,10 +1337,11 @@ Needs: S-1`,
     /close response lost/,
   );
   assert.equal(filingState.mapState, "CLOSED");
-  for (const issue of filingState.issues) {
+  for (const [index, issue] of filingState.issues.entries()) {
     issue.state = "closed";
     issue.labels = [{ name: "gsd:ready" }];
-    issue.body = issue.body.replace("- [ ] O-1", "- [x] O-1");
+    const completedMarker = index === 0 ? "X" : "x";
+    issue.body = issue.body.replace("- [ ] O-1", `- [${completedMarker}] O-1`);
   }
   assert.deepEqual(
     runDiscoveryProtocol({
