@@ -670,6 +670,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     createdBody: draft,
     closeAttempts: 0,
     closeResponseLost: false,
+    closeSliceAfterMapUpdate: false,
     failMapUpdate: true,
     mapState: "OPEN",
     mapLabels: [{ name: "gsd:map" }],
@@ -784,6 +785,10 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
         return { status: 1, stdout: "", stderr: "map update failed" };
       }
       filingState.mapBody = options.input;
+      if (filingState.closeSliceAfterMapUpdate) {
+        filingState.issues.at(-1).state = "closed";
+        filingState.closeSliceAfterMapUpdate = false;
+      }
       return { status: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("issue close 10")) {
@@ -838,6 +843,24 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
   );
   assert.equal(filingState.createAttempts, 0);
   writeFileSync(draftPath, draft);
+
+  filingState.failMapUpdate = false;
+  filingState.closeSliceAfterMapUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must remain open until discovery map completion/,
+  );
+  filingState.mapBody = filingPlanBody;
+  filingState.issues = [];
+  filingState.createAttempts = 0;
+  filingState.failMapUpdate = true;
 
   filingState.repositoryIssueQueries = 0;
   assert.throws(

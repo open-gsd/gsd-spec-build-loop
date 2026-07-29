@@ -25,7 +25,9 @@ done
 When the user supplies a discovery map number or URL, treat it as planning
 provenance, not as the queue contract. Verify before relying on it:
 
-- it belongs to this repository, is open, and carries `gsd:map`;
+- it belongs to this repository and carries `gsd:map`;
+- it is open, unless this pass is only retrying terminal completion as
+  described below;
 - its `## Graduation` value is the single line
   **Ready for `gsd-loop-spec`.**;
 - its `## Not yet specified` value is exactly `None.`;
@@ -43,6 +45,13 @@ Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. Its JSON output is the authoritative slice order and dependency
 list. If validation fails, stop and direct the user back to
 `gsd-loop-discover MAP`.
+
+If the fetched map is already closed, the validator output must show exactly
+one queue issue for every delivery slice. A closed map is valid only for this
+terminal completion retry: run
+`node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO` and stop. Do not
+run remote validation, recovery, drafting, or filing against a closed map. If
+the queue is incomplete, stop and report the invalid closed state.
 
 Run the shared remote protocol validator:
 
