@@ -909,6 +909,20 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     /recovered issue differs from the approved title or body/,
   );
   writeFileSync(draftPath, changedRecoveryBody);
+  filingState.closeSliceAfterMapUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must remain open until discovery map completion/,
+  );
+  filingState.mapBody = filingPlanBody;
+  filingState.issues[0].state = "open";
   const recovered = fileDiscoverySlice({
     repo,
     map,
