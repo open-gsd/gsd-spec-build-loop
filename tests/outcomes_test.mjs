@@ -41,6 +41,13 @@ assert.equal(transformOutcomeChecklist(issueBody, "complete"), issueBody
   .replace("- [ ] O-1", "- [x] O-1"));
 assert.equal(transformOutcomeChecklist(issueBody, "pending"), issueBody
   .replace("- [x] O-2", "- [ ] O-2"));
+const uppercaseCompletedBody = issueBody
+  .replace("- [ ] O-1", "- [X] O-1")
+  .replace("- [x] O-2", "- [X] O-2");
+assert.equal(
+  transformOutcomeChecklist(uppercaseCompletedBody, "complete"),
+  uppercaseCompletedBody,
+);
 const multilineOutcomeBody = `## Outcomes
 
 - [ ] O-6 — tests cover every required path, including

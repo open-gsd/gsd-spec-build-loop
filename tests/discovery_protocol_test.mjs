@@ -184,6 +184,16 @@ assert.deepEqual(reconcileDecisionIssues({ repo, map, run: reconcileRun }), {
   missing: [],
 });
 assert.match(reconcileState.mapBody, /Issue: #7/);
+reconcileState.mapBody = mapBody({ issue: "Pending." })
+  .replace("## Decision frontier\n\n", "## Decision frontier\n")
+  .replace("\n\n## Not yet specified", "\n## Not yet specified");
+assert.deepEqual(reconcileDecisionIssues({ repo, map, run: reconcileRun }), {
+  attached: [],
+  dependencies: [],
+  missing: [],
+});
+assert.match(reconcileState.mapBody, /Issue: #7/);
+assert.match(reconcileState.mapBody, /## Not yet specified\n\nNone\./);
 reconcileState.issueTitle = "Conflicting title";
 assert.throws(
   () => reconcileDecisionIssues({ repo, map, run: reconcileRun }),
@@ -215,6 +225,9 @@ function evidenceRunFactory({
     if (joined.includes("issue edit 10") && mapState) {
       mapState.edits += 1;
       mapState.body = options.input;
+      if (mapState.referenceTitleAfterMapUpdate) {
+        mapState.referenceTitle = mapState.referenceTitleAfterMapUpdate;
+      }
       return { status: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("issue comment 10") && mapState) {
@@ -232,7 +245,7 @@ function evidenceRunFactory({
         status: 0,
         stdout: pages([{
           number: 7,
-          title: referenceTitle,
+          title: mapState?.referenceTitle ?? referenceTitle,
           body: decisionBody(),
           html_url: issueUrl,
         }, ...extraIssues]),
@@ -508,6 +521,69 @@ Discovery plan: ${planIdentity(reorderedPlanBody)}`],
   );
   assert.equal(directReadyEditState.edits, 0);
 
+  const changedDecisionDuringGraduation = {
+    body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+    edits: 0,
+    referenceTitle: "Choose channel",
+    referenceTitleAfterMapUpdate: "Changed channel",
+  };
+  writeFileSync(planPath, reorderedPlanBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: changedDecisionDuringGraduation }),
+    }),
+    /conflicts with the frontier manifest/,
+  );
+
+  const historicalGraduationState = {
+    body: mapBody({ graduation: "Not ready.", slices: originalSlices }),
+    edits: 0,
+  };
+  writeFileSync(planPath, reorderedPlanBody);
+  runDiscoveryProtocol({
+    bodyPath: planPath,
+    command: "graduate",
+    map,
+    repo,
+  }, {
+    run: evidenceRunFactory({ mapState: historicalGraduationState }),
+  });
+  const alternatePlanBody = reorderedPlanBody.replace(
+    "Ship account recovery.",
+    "Ship password recovery.",
+  );
+  historicalGraduationState.body = alternatePlanBody.replace(
+    "Ready for `gsd-loop-spec`.",
+    "Not ready.",
+  );
+  writeFileSync(planPath, alternatePlanBody);
+  runDiscoveryProtocol({
+    bodyPath: planPath,
+    command: "graduate",
+    map,
+    repo,
+  }, {
+    run: evidenceRunFactory({ mapState: historicalGraduationState }),
+  });
+  historicalGraduationState.body = reorderedPlanBody;
+  writeFileSync(planPath, reorderedPlanBody);
+  assert.throws(
+    () => runDiscoveryProtocol({
+      bodyPath: planPath,
+      command: "graduate",
+      map,
+      repo,
+    }, {
+      run: evidenceRunFactory({ mapState: historicalGraduationState }),
+    }),
+    /differs from its approved graduation evidence/,
+  );
+
   writeFileSync(planPath, originalPlanBody);
   assert.throws(
     () => runDiscoveryProtocol({
@@ -585,6 +661,8 @@ Needs: S-1`,
   const draftPath = join(testRoot, "slice.md");
   const draft = `## Why
 
+Users need a reliable way to regain access to their account.
+
 Discovery map: #10
 Discovery slice: S-1
 Discovery plan: ${planIdentity(filingPlanBody)}
@@ -592,6 +670,22 @@ Discovery plan: ${planIdentity(filingPlanBody)}
 ## Outcomes
 
 - [ ] O-1 — A user can request recovery.
+
+## Exclusions
+
+- X-1 — Completing recovery remains unchanged.
+
+## Code pointers
+
+- lib/recovery.mjs — Handles recovery requests.
+
+## Testing notes
+
+- Cover successful and rejected recovery requests.
+
+## Manual walkthrough
+
+1. Request recovery and confirm the acknowledgement appears.
 `;
   writeFileSync(draftPath, draft);
   const filingState = {
@@ -607,6 +701,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     }],
     closingPullRequests: [],
     mergedHead: "abc123",
+    repositoryIssueQueries: 0,
     reviewEvidenceQueries: 0,
     reviewerLogin: "reviewer",
     verdictComments: [],
@@ -615,6 +710,9 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     createdBody: draft,
     closeAttempts: 0,
     closeResponseLost: false,
+    closeSliceAfterMapUpdate: false,
+    changeDecisionAfterMapUpdate: false,
+    decisionTitle: "Choose channel",
     failMapUpdate: true,
     mapState: "OPEN",
     mapLabels: [{ name: "gsd:map" }],
@@ -622,11 +720,12 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
   function filingRun(program, argumentsList, options = {}) {
     const joined = argumentsList.join(" ");
     if (joined.includes("issues?state=all")) {
+      filingState.repositoryIssueQueries += 1;
       return {
         status: 0,
         stdout: pages([{
           number: 7,
-          title: "Choose channel",
+          title: filingState.decisionTitle,
           body: decisionBody(),
           html_url: issueUrl,
         }, ...filingState.issues]),
@@ -728,6 +827,14 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
         return { status: 1, stdout: "", stderr: "map update failed" };
       }
       filingState.mapBody = options.input;
+      if (filingState.changeDecisionAfterMapUpdate) {
+        filingState.decisionTitle = "Changed channel";
+        filingState.changeDecisionAfterMapUpdate = false;
+      }
+      if (filingState.closeSliceAfterMapUpdate) {
+        filingState.issues.at(-1).state = "closed";
+        filingState.closeSliceAfterMapUpdate = false;
+      }
       return { status: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("issue close 10")) {
@@ -752,6 +859,51 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     recovered: [],
     missing: ["S-1", "S-2"],
   });
+  writeFileSync(
+    draftPath,
+    draft.replace(/\n## Manual walkthrough[\s\S]*$/, "\n"),
+  );
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must contain exactly these sections in order/,
+  );
+  assert.equal(filingState.createAttempts, 0);
+  writeFileSync(
+    draftPath,
+    draft.replace("- [ ] O-1 — A user can request recovery.", "- [ ] O-1"),
+  );
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /outcome O-1 has no description/,
+  );
+  assert.equal(filingState.createAttempts, 0);
+  writeFileSync(draftPath, draft.replace("X-1", "X-one"));
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /malformed exclusion/,
+  );
+  assert.equal(filingState.createAttempts, 0);
   writeFileSync(
     draftPath,
     draft.replace(/^Discovery plan: .*\n/m, ""),
@@ -783,6 +935,42 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
   assert.equal(filingState.createAttempts, 0);
   writeFileSync(draftPath, draft);
 
+  filingState.failMapUpdate = false;
+  filingState.closeSliceAfterMapUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must remain open until discovery map completion/,
+  );
+  filingState.mapBody = filingPlanBody;
+  filingState.issues = [];
+  filingState.createAttempts = 0;
+
+  filingState.changeDecisionAfterMapUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /conflicts with the frontier manifest/,
+  );
+  filingState.mapBody = filingPlanBody;
+  filingState.issues = [];
+  filingState.createAttempts = 0;
+  filingState.decisionTitle = "Choose channel";
+  filingState.failMapUpdate = true;
+
+  filingState.repositoryIssueQueries = 0;
   assert.throws(
     () => fileDiscoverySlice({
       repo,
@@ -794,6 +982,7 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     }),
     /map update failed/,
   );
+  assert.equal(filingState.repositoryIssueQueries, 2);
   assert.equal(filingState.createAttempts, 1);
   assert.equal(filingState.mapBody.includes("issues/20"), false);
   assert.deepEqual(reconcileDiscoverySlices({
@@ -828,6 +1017,20 @@ Discovery plan: ${planIdentity(filingPlanBody)}`,
     /recovered issue differs from the approved title or body/,
   );
   writeFileSync(draftPath, changedRecoveryBody);
+  filingState.closeSliceAfterMapUpdate = true;
+  assert.throws(
+    () => fileDiscoverySlice({
+      repo,
+      map,
+      slice: "S-1",
+      title: "Request recovery",
+      bodyPath: draftPath,
+      run: filingRun,
+    }),
+    /must remain open until discovery map completion/,
+  );
+  filingState.mapBody = filingPlanBody;
+  filingState.issues[0].state = "open";
   const recovered = fileDiscoverySlice({
     repo,
     map,
@@ -1060,9 +1263,31 @@ Needs #ISSUE merged
 
   const crlfDraft = `## Why\r
 \r
+Users need to complete account recovery.\r
+\r
 Discovery map: #10\r
 Discovery slice: S-2\r
 Needs #20 merged\r
+\r
+## Outcomes\r
+\r
+- [ ] O-1 — A user can complete recovery.\r
+\r
+## Exclusions\r
+\r
+- X-1 — Requesting recovery remains unchanged.\r
+\r
+## Code pointers\r
+\r
+- lib/recovery.mjs — Handles recovery completion.\r
+\r
+## Testing notes\r
+\r
+- Cover successful and expired recovery links.\r
+\r
+## Manual walkthrough\r
+\r
+1. Complete recovery and confirm access is restored.\r
 `;
   filingState.mapBody = mapBody({
     queue: "- S-1 — [Request recovery](https://github.com/octocat/project/issues/20)",
@@ -1112,6 +1337,12 @@ Needs: S-1`,
     /close response lost/,
   );
   assert.equal(filingState.mapState, "CLOSED");
+  for (const [index, issue] of filingState.issues.entries()) {
+    issue.state = "closed";
+    issue.labels = [{ name: "gsd:ready" }];
+    const completedMarker = index === 0 ? "X" : "x";
+    issue.body = issue.body.replace("- [ ] O-1", `- [${completedMarker}] O-1`);
+  }
   assert.deepEqual(
     runDiscoveryProtocol({
       command: "complete-map",

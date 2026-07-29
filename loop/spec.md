@@ -25,7 +25,9 @@ done
 When the user supplies a discovery map number or URL, treat it as planning
 provenance, not as the queue contract. Verify before relying on it:
 
-- it belongs to this repository, is open, and carries `gsd:map`;
+- it belongs to this repository and carries `gsd:map`;
+- it is open, unless this pass is only retrying terminal completion as
+  described below;
 - its `## Graduation` value is the single line
   **Ready for `gsd-loop-spec`.**;
 - its `## Not yet specified` value is exactly `None.`;
@@ -43,6 +45,17 @@ Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. Its JSON output is the authoritative slice order and dependency
 list. If validation fails, stop and direct the user back to
 `gsd-loop-discover MAP`.
+
+If the fetched map is already closed, the validator output must show exactly
+one queue issue for every delivery slice. A closed map is valid only for this
+terminal completion retry: run
+`node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO` and stop. Do not
+run the standalone `validate` command, recovery, drafting, or filing against a
+closed map. If the queue is incomplete, stop and report the invalid closed
+state. During this terminal retry, linked slices may already be closed, carry
+`gsd:ready`, or have uniformly completed outcome checkboxes. The helper still
+validates their exact contracts, dependencies, queue links, and frozen plan;
+these allowances never apply while the map is open.
 
 Run the shared remote protocol validator:
 
@@ -149,6 +162,8 @@ Constraints on the content:
 - Outcomes and exclusions carry permanent `O-N` / `X-N` ids. Downstream, the
   builder implements exactly the `O` list and the reviewer audits against it;
   the `X` list is the fence neither may cross.
+- Every `O-N` checkbox has a non-empty description after the em dash. An empty
+  outcome is not a contract and blocks filing or outcome synchronization.
 - An outcome that can't be met without violating an exclusion is a
   contradiction — settle it with the user before filing, never after.
 - Cap each issue at roughly one agent-day. Larger ideas become an ordered
@@ -186,7 +201,8 @@ cancel an already-filed contract.
 2. Before redrafting or creating anything, run
    `node DISCOVERY_PROTOCOL recover-slices MAP --repo OWNER/REPO`.
    It returns the frozen `planIdentity`, validates every existing queue link,
-   checks the trusted graduation event and exact trusted decision resolutions,
+   checks the latest trusted graduation event and exact trusted decision
+   resolutions,
    and searches permanent map/slice markers in slice order. Put
    `Discovery plan: PLAN_IDENTITY` in the S-1 draft exactly; later slices omit
    it. If recovery returns `approvalRequired`, show that exact recovered title
@@ -215,7 +231,8 @@ cancel an already-filed contract.
    `node DISCOVERY_PROTOCOL complete-map MAP --repo OWNER/REPO`. It verifies
    that every slice has a queue entry, every linked issue is still open, and
    only then closes the map. The command is repeat-safe: if the close response
-   was lost, a retry verifies the already-closed map and reports completion.
+   was lost or the linked slices progressed afterward, a retry applies the
+   terminal validation rules above and reports completion.
 
 Only after the map is confirmed closed does the human apply `gsd:ready` to
 each issue individually. Until then the new issues remain open but outside the

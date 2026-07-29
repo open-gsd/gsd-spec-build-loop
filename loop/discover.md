@@ -9,8 +9,10 @@ to `loop/spec.md`, `loop/build.md`, and `loop/review.md`.
 One invocation does one bounded pass:
 
 - **Chart** a new map and its initial decision frontier, then stop; or
-- **Advance** an existing map by resolving exactly one frontier decision, then
-  stop.
+- **Advance** an existing map through one bounded decision or recovery step,
+  then stop. A decision advance resolves exactly one frontier decision. When
+  none remains, a recovery advance may re-chart and graduate or stop without
+  resolving a decision.
 
 Never schedule this playbook. Never write product code or open a product PR,
 and never apply `gsd:ready`.
@@ -151,10 +153,14 @@ Needs: S-1
 While `## Graduation` is `Not ready.`, slice IDs and order are provisional.
 When the plan changes, ask the human to approve a complete replacement already
 expressed in valid sequential `S-N` order with backward-only `Needs`.
-Do not automatically reorder, renumber, or rewrite `Needs`. The plan freezes
-when the human approves it and the map first graduates.
+Do not automatically reorder, renumber, or rewrite `Needs`. Graduation binds
+the approved plan to the active identity. Returning an unfiled map to
+`Not ready.` makes the plan provisional again; filing the first slice freezes
+it permanently.
 
-IDs are always sequential. They become permanent when the map graduates.
+IDs are always sequential. IDs become permanent only at graduation of the plan
+that reaches filing; an explicit pre-filing re-chart makes them provisional
+again.
 `Needs` is `None.` or a comma-separated list of earlier slice IDs. Each slice
 must fit roughly one agent-day and leave the repository in a useful,
 verifiable state. Prefer independent slices; tell the human when a chain is
@@ -313,6 +319,14 @@ Choose the first frontier issue in the sub-issue order. If open children exist
 but the frontier is empty, report the dependency cycle, unresolved blocker, or
 existing assignee and stop.
 
+If no open children remain, do not choose or claim a decision. Re-chart the
+remaining fog against the destination and the graduation conditions. If that
+exposes another precise decision, append it with the next permanent `D-N` id,
+run reconciliation, and stop. Otherwise, confirm the complete slice plan with
+the human and continue directly to "Graduate or stop." A map must not remain
+`Not ready.` only because recovery completed its final decision in an earlier
+pass.
+
 Claim the chosen decision with `gh issue edit DECISION --add-assignee @me`,
 then re-fetch it. A decision assigned to someone else is not available.
 
@@ -370,7 +384,8 @@ Then, as one coherent update:
 7. When the resolved decision changes the filing plan, present the human with
    a complete replacement plan that already uses the exact `S-1` through
    `S-N` sequence and valid backward-only `Needs`. Do not automatically reorder,
-   renumber, or rewrite the plan. These IDs become permanent only at graduation.
+   renumber, or rewrite the plan. Follow the graduation and pre-filing re-chart
+   rule above for ID permanence.
 8. Close the resolved decision issue.
 
 Never copy the full resolution into the map; the child issue owns its detail.
@@ -429,7 +444,7 @@ destination, decisions, and scope are immutable. Any later route or scope
 change requires a new discovery map; never mutate or cancel the already-filed
 contracts. Spec binds the graduated plan identity into S-1, and every later
 graduation retry, recovery, filing step, and map completion verifies it against
-the trusted graduation event and current trusted decision resolutions.
+the latest trusted graduation event and current trusted decision resolutions.
 Resolve `MAP_VALIDATOR` to `scripts/validate-discovery-map.mjs` beside the
 active skill. While charting a not-ready map, use `--allow-not-ready`; the ready
 form above rejects missing slices, malformed fields, and dependencies that do
