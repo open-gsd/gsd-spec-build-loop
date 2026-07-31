@@ -44,6 +44,12 @@ function npmCommand(args, options = {}) {
   );
 }
 
+function assertDiscoveryProtocolUsage(protocol) {
+  const result = command(process.execPath, [protocol], { allowFailure: true });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /usage: COMMAND MAP --repo OWNER\/REPO/);
+}
+
 try {
   if (process.platform !== "win32") {
     const commandInterpreter = join(testRoot, "cmd.exe");
@@ -166,6 +172,9 @@ try {
     assert.equal(invalidMap.status, 2);
     assert.match(invalidMap.stderr, /requires a map body file/);
   }
+  for (const protocol of [discoverProtocol, specProtocol]) {
+    assertDiscoveryProtocolUsage(protocol);
+  }
   const invalidLinkageGuard = command(process.execPath, [linkageGuard], { allowFailure: true });
   assert.equal(invalidLinkageGuard.status, 2);
   assert.match(invalidLinkageGuard.stderr, /requires a positive issue number/);
@@ -221,9 +230,36 @@ try {
   run(["install", "--home", grokHome, "--agents", "grok"]);
   assert.ok(existsSync(join(grokHome, ".agents", "skills", "gsd-loop-spec")));
   assert.ok(existsSync(join(grokHome, ".grok", "skills", "gsd-loop-spec")));
+  for (const lane of ["discover", "spec"]) {
+    const protocol = join(
+      grokHome,
+      ".grok",
+      "skills",
+      `gsd-loop-${lane}`,
+      "scripts",
+      "manage-discovery.mjs",
+    );
+    assertDiscoveryProtocolUsage(protocol);
+  }
   assert.equal(existsSync(join(grokHome, ".claude")), false);
   assert.equal(existsSync(join(grokHome, ".cursor")), false);
   assert.equal(existsSync(join(grokHome, ".gemini")), false);
+
+  const grokCopyHome = join(testRoot, "grok-copy-home");
+  run([
+    "install",
+    "--home",
+    grokCopyHome,
+    "--agents",
+    "grok",
+    "--adapter-mode",
+    "copy",
+  ]);
+  for (const lane of ["discover", "spec"]) {
+    const skill = join(grokCopyHome, ".grok", "skills", `gsd-loop-${lane}`);
+    assert.equal(lstatSync(skill).isSymbolicLink(), false);
+    assertDiscoveryProtocolUsage(join(skill, "scripts", "manage-discovery.mjs"));
+  }
 
   const cursorRootConflictHome = join(testRoot, "cursor-root-conflict-home");
   run(["install", "--home", cursorRootConflictHome, "--agents", "codex"]);
