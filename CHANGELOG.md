@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.1] - 2026-07-30
+
+### Fixed
+
+- Bundle the outcome helper required by installed discovery and specification
+  skills.
+
 ## [0.4.0] - 2026-07-29
 
 ### Changed

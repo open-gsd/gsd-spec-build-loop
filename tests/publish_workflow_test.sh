@@ -73,20 +73,20 @@ test ! -e "$TEST_ROOT/published.log"
 
 run_publish
 
-EXPECTED_NPM=$(printf 'ci\nview @opengsd/gsd-loop@0.4.0 version gitHead --json\npublish')
+EXPECTED_NPM=$(printf 'ci\nview @opengsd/gsd-loop@0.4.1 version gitHead --json\npublish')
 test "$(cat "$TEST_ROOT/published.log")" = "$EXPECTED_NPM"
-test "$(cat "$TEST_ROOT/release-state")" = v0.4.0
+test "$(cat "$TEST_ROOT/release-state")" = v0.4.1
 test "$(cat "$TEST_ROOT/release-commit-state")" = "$CURRENT_SHA"
-grep -q "^release create v0.4.0 .*--target $CURRENT_SHA .*--generate-notes" "$TEST_ROOT/github.log"
+grep -q "^release create v0.4.1 .*--target $CURRENT_SHA .*--generate-notes" "$TEST_ROOT/github.log"
 
 : > "$TEST_ROOT/published.log"
 : > "$TEST_ROOT/github.log"
 rm "$TEST_ROOT/release-state"
 rm "$TEST_ROOT/release-commit-state"
 MOCK_NPM_VIEW_RESULT=exists MOCK_NPM_GIT_HEAD=$PUBLISHED_SHA run_publish
-EXPECTED_RECOVERY=$(printf 'ci\nview @opengsd/gsd-loop@0.4.0 version gitHead --json')
+EXPECTED_RECOVERY=$(printf 'ci\nview @opengsd/gsd-loop@0.4.1 version gitHead --json')
 test "$(cat "$TEST_ROOT/published.log")" = "$EXPECTED_RECOVERY"
-test "$(cat "$TEST_ROOT/release-state")" = v0.4.0
+test "$(cat "$TEST_ROOT/release-state")" = v0.4.1
 test "$(cat "$TEST_ROOT/release-commit-state")" = "$PUBLISHED_SHA"
 
 : > "$TEST_ROOT/published.log"
