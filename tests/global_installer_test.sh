@@ -6,6 +6,16 @@ INSTALLER="$ROOT/scripts/install-global.py"
 TEST_ROOT=$(cd "$(mktemp -d /tmp/gsd-global-installer.XXXXXX)" && pwd -P)
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
+assert_discovery_protocol_usage() {
+  local protocol=$1
+  local description=$2
+  if node "$protocol" >"$TEST_ROOT/discovery.out" 2>"$TEST_ROOT/discovery.err"; then
+    echo "$description must reject missing arguments" >&2
+    exit 1
+  fi
+  grep -q 'usage: COMMAND MAP --repo OWNER/REPO' "$TEST_ROOT/discovery.err"
+}
+
 install_root="$TEST_ROOT/install"
 "$INSTALLER" --home "$install_root"
 
@@ -24,14 +34,19 @@ done
 test -f "$install_root/.agents/skills/gsd-loop-build/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-review/playbook.md"
 test -f "$install_root/.agents/skills/gsd-loop-discover/playbook.md"
-test -f "$install_root/.agents/skills/gsd-loop-discover/scripts/manage-discovery.mjs"
-test -f "$install_root/.agents/skills/gsd-loop-spec/scripts/manage-discovery.mjs"
+discover_protocol="$install_root/.agents/skills/gsd-loop-discover/scripts/manage-discovery.mjs"
+spec_protocol="$install_root/.agents/skills/gsd-loop-spec/scripts/manage-discovery.mjs"
 linkage_guard="$install_root/.agents/skills/gsd-loop-build/scripts/ensure-linkage.mjs"
 outcome_sync="$install_root/.agents/skills/gsd-loop-review/scripts/sync-outcomes.mjs"
 audit_validator="$install_root/.agents/skills/gsd-loop-review/scripts/validate-audit-evidence.mjs"
+test -f "$discover_protocol"
+test -f "$spec_protocol"
 test -f "$linkage_guard"
 test -f "$outcome_sync"
 test -f "$audit_validator"
+for protocol in "$discover_protocol" "$spec_protocol"; do
+  assert_discovery_protocol_usage "$protocol" 'discovery protocol'
+done
 if node "$linkage_guard" >"$TEST_ROOT/linkage.out" 2>"$TEST_ROOT/linkage.err"; then
   echo 'linkage guard must reject missing arguments' >&2
   exit 1
@@ -85,12 +100,23 @@ test -L "$grok_root/.grok/skills/gsd-loop-build"
 test ! -e "$grok_root/.claude"
 test ! -e "$grok_root/.cursor"
 test ! -e "$grok_root/.gemini"
+for lane in discover spec; do
+  skill="$grok_root/.grok/skills/gsd-loop-$lane"
+  test -L "$skill"
+  assert_discovery_protocol_usage \
+    "$skill/scripts/manage-discovery.mjs" \
+    'symlinked Grok discovery protocol'
+done
 
 copy_root="$TEST_ROOT/copy"
 "$INSTALLER" --home "$copy_root" --adapter-mode copy
 for host in .claude .cursor .gemini .grok; do
   test -d "$copy_root/$host/skills/gsd-loop-build"
   test ! -L "$copy_root/$host/skills/gsd-loop-build"
+done
+for lane in discover spec; do
+  protocol="$copy_root/.grok/skills/gsd-loop-$lane/scripts/manage-discovery.mjs"
+  assert_discovery_protocol_usage "$protocol" 'copied Grok discovery protocol'
 done
 
 owned_conversion_root="$TEST_ROOT/owned-conversion"
