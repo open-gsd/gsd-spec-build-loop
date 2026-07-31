@@ -6,6 +6,16 @@ INSTALLER="$ROOT/scripts/install-global.py"
 TEST_ROOT=$(cd "$(mktemp -d /tmp/gsd-global-installer.XXXXXX)" && pwd -P)
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
+assert_discovery_protocol_usage() {
+  local protocol=$1
+  local description=$2
+  if node "$protocol" >"$TEST_ROOT/discovery.out" 2>"$TEST_ROOT/discovery.err"; then
+    echo "$description must reject missing arguments" >&2
+    exit 1
+  fi
+  grep -q 'usage: COMMAND MAP --repo OWNER/REPO' "$TEST_ROOT/discovery.err"
+}
+
 install_root="$TEST_ROOT/install"
 "$INSTALLER" --home "$install_root"
 
@@ -35,11 +45,7 @@ test -f "$linkage_guard"
 test -f "$outcome_sync"
 test -f "$audit_validator"
 for protocol in "$discover_protocol" "$spec_protocol"; do
-  if node "$protocol" >"$TEST_ROOT/discovery.out" 2>"$TEST_ROOT/discovery.err"; then
-    echo 'discovery protocol must reject missing arguments' >&2
-    exit 1
-  fi
-  grep -q 'usage: COMMAND MAP --repo OWNER/REPO' "$TEST_ROOT/discovery.err"
+  assert_discovery_protocol_usage "$protocol" 'discovery protocol'
 done
 if node "$linkage_guard" >"$TEST_ROOT/linkage.out" 2>"$TEST_ROOT/linkage.err"; then
   echo 'linkage guard must reject missing arguments' >&2
@@ -94,6 +100,13 @@ test -L "$grok_root/.grok/skills/gsd-loop-build"
 test ! -e "$grok_root/.claude"
 test ! -e "$grok_root/.cursor"
 test ! -e "$grok_root/.gemini"
+for lane in discover spec; do
+  skill="$grok_root/.grok/skills/gsd-loop-$lane"
+  test -L "$skill"
+  assert_discovery_protocol_usage \
+    "$skill/scripts/manage-discovery.mjs" \
+    'symlinked Grok discovery protocol'
+done
 
 copy_root="$TEST_ROOT/copy"
 "$INSTALLER" --home "$copy_root" --adapter-mode copy
@@ -103,11 +116,7 @@ for host in .claude .cursor .gemini .grok; do
 done
 for lane in discover spec; do
   protocol="$copy_root/.grok/skills/gsd-loop-$lane/scripts/manage-discovery.mjs"
-  if node "$protocol" >"$TEST_ROOT/grok-copy.out" 2>"$TEST_ROOT/grok-copy.err"; then
-    echo 'copied Grok discovery protocol must reject missing arguments' >&2
-    exit 1
-  fi
-  grep -q 'usage: COMMAND MAP --repo OWNER/REPO' "$TEST_ROOT/grok-copy.err"
+  assert_discovery_protocol_usage "$protocol" 'copied Grok discovery protocol'
 done
 
 owned_conversion_root="$TEST_ROOT/owned-conversion"
